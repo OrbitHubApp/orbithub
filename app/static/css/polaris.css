@@ -1011,3 +1011,26 @@ body::before {
     display: none;
   }
 }
+
+#system-pi-model {
+  display: block;
+  max-width: 105px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.refresh-panel {
+  color: #8299ae;
+  font-size: 0.7rem;
+}
+
+.refresh-panel strong {
+  color: var(--mission-cyan);
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+}

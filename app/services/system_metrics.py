@@ -14,6 +14,8 @@ class SystemMetrics:
     temperature_celsius: float | None
     uptime_seconds: int | None
     disk_percent: float | None
+    pi_model: str | None
+    power_status: str | None
 
     def to_dict(self) -> dict[str, float | int | None]:
         return asdict(self)
@@ -169,6 +171,61 @@ def read_disk_percent(
         return None
 
 
+def read_pi_model() -> str | None:
+    candidates = (
+        Path("/proc/device-tree/model"),
+        Path("/sys/firmware/devicetree/base/model"),
+    )
+
+    for path in candidates:
+        try:
+            value = path.read_bytes().rstrip(b"\x00").decode(
+                "utf-8",
+                errors="replace",
+            ).strip()
+
+            if value:
+                return value
+        except OSError:
+            continue
+
+    return None
+
+
+def read_power_status() -> str | None:
+    try:
+        status_path = Path(
+            "/sys/devices/platform/soc/"
+            "soc:firmware/get_throttled"
+        )
+
+        if status_path.exists():
+            raw = status_path.read_text(
+                encoding="utf-8"
+            ).strip()
+
+            value = int(raw, 0)
+
+            if value == 0:
+                return "Versorgung stabil"
+
+            if value & 0x1:
+                return "Unterspannung erkannt"
+
+            if value & 0x2:
+                return "Frequenz begrenzt"
+
+            if value & 0x4:
+                return "Aktuell gedrosselt"
+
+            return "Frühere Versorgungswarnung"
+
+    except (OSError, ValueError):
+        pass
+
+    return "Keine Leistungsmessung verfügbar"
+
+
 def collect_system_metrics() -> SystemMetrics:
     return SystemMetrics(
         cpu_percent=read_cpu_percent(),
@@ -178,6 +235,8 @@ def collect_system_metrics() -> SystemMetrics:
         ),
         uptime_seconds=read_uptime_seconds(),
         disk_percent=read_disk_percent(),
+        pi_model=read_pi_model(),
+        power_status=read_power_status(),
     )
 
 
