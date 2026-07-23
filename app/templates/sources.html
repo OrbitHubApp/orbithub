@@ -261,6 +261,18 @@
       >
         Als bevorzugt wählen
       </button>
+
+      {% if source.custom %}
+        <button
+          class="source-action-button danger"
+          type="button"
+          data-action="delete"
+          data-source-id="{{ source.id }}"
+          data-source-name="{{ source.name }}"
+        >
+          Quelle löschen
+        </button>
+      {% endif %}
     </div>
   </article>
 
@@ -402,6 +414,55 @@
         showGlobalStatus(
           `${data.preferred_source} wurde als ` +
           `bevorzugte Quelle gespeichert.`,
+          "is-success"
+        );
+
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 700);
+      } catch (error) {
+        showGlobalStatus(
+          `Fehler: ${error.message}`,
+          "is-error"
+        );
+
+        button.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll(
+    '[data-action="delete"]'
+  ).forEach((button) => {
+    button.addEventListener("click", async () => {
+      const sourceId = button.dataset.sourceId;
+      const sourceName =
+        button.dataset.sourceName || sourceId;
+
+      const confirmed = window.confirm(
+        `Soll die eigene Quelle "${sourceName}" ` +
+        `wirklich entfernt werden?`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      button.disabled = true;
+
+      showGlobalStatus(
+        `${sourceName} wird entfernt ...`,
+        "is-running"
+      );
+
+      try {
+        const data = await postJson(
+          "/api/sources/delete",
+          {source_id: sourceId}
+        );
+
+        showGlobalStatus(
+          `${data.source_name} wurde entfernt.`,
           "is-success"
         );
 

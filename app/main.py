@@ -638,6 +638,77 @@ async def add_custom_source(
     }
 
 
+@app.post("/api/sources/delete")
+async def delete_custom_source(
+    request: Request,
+) -> dict:
+    payload = await request.json()
+
+    source_id = str(
+        payload.get("source_id", "")
+    ).strip()
+
+    if not source_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Keine Quellenkennung angegeben.",
+        )
+
+    source = source_manager.get_source(
+        source_id
+    )
+
+    if source is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Unbekannte TLE-Quelle.",
+        )
+
+    if source_manager.is_builtin_source(
+        source_id
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Eingebaute TLE-Quellen "
+                "koennen nicht geloescht werden."
+            ),
+        )
+
+    if source_id == status.get(
+        "preferred_source_id"
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Die bevorzugte TLE-Quelle "
+                "kann nicht geloescht werden. "
+                "Waehle zuerst eine andere Quelle."
+            ),
+        )
+
+    try:
+        source_manager.delete_custom_source(
+            source_id
+        )
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail="Unbekannte eigene TLE-Quelle.",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "ok": True,
+        "source_id": source_id,
+        "source_name": source["name"],
+    }
+
+
 @app.post("/api/sources/select")
 async def select_source(
     request: Request,
