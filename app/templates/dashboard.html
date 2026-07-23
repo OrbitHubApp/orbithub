@@ -116,17 +116,23 @@
 
   <article class="mission-card">
     <div>
-      <div class="label">Vorherige Quelle</div>
-      <div class="value">{{ previous_source }}</div>
+      <div class="label">Bevorzugte Quelle</div>
+      <div class="value">{{ preferred_source }}</div>
+      <div class="card-note">
+        Benutzerkonfiguration
+      </div>
     </div>
 
-    <div class="metric-icon">⇢</div>
+    <div class="metric-icon">★</div>
   </article>
 
   <article class="mission-card">
     <div>
-      <div class="label">Quellenwechsel</div>
-      <div class="value">{{ source_changed }}</div>
+      <div class="label">Fallback verwendet</div>
+      <div class="value">{{ fallback_used }}</div>
+      <div class="card-note">
+        Ersatzquelle bei Ausfall
+      </div>
     </div>
 
     <div class="metric-icon">⇆</div>

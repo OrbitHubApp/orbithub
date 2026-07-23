@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}
+  OrbitHub · Daten & Quellen
+{% endblock %}
+
+{% block nav_sources %}active{% endblock %}
+
+{% block page_heading %}
+  Daten & Quellen
+{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero sources-hero">
+  <div>
+    <div class="eyebrow">TLE-QUELLENMANAGER</div>
+
+    <h2>Bahndaten kontrollieren</h2>
+
+    <p>
+      Bevorzugte TLE-Quelle auswählen,
+      Erreichbarkeit testen und Daten manuell
+      aktualisieren.
+    </p>
+  </div>
+
+  <div class="hero-online">
+    <span class="hero-online-dot"></span>
+
+    <div>
+      <strong>{{ active_source }}</strong>
+      <small>aktuell verwendete Quelle</small>
+    </div>
+  </div>
+</section>
+
+<section class="source-summary">
+
+  <article class="source-summary-card">
+    <span>Bevorzugte Quelle</span>
+
+    <strong id="preferred-source-summary">
+      {% for source in sources %}
+        {% if source.id == preferred_source_id %}
+          {{ source.name }}
+        {% endif %}
+      {% endfor %}
+    </strong>
+  </article>
+
+  <article class="source-summary-card">
+    <span>Verwendete Quelle</span>
+    <strong>{{ active_source }}</strong>
+  </article>
+
+  <article class="source-summary-card">
+    <span>Fallback verwendet</span>
+
+    <strong>
+      {% if fallback_used %}
+        Ja
+      {% else %}
+        Nein
+      {% endif %}
+    </strong>
+  </article>
+
+</section>
+
+<section class="source-manager-grid">
+
+  {% for source in sources %}
+
+  <article
+    class="tle-source-card
+    {% if source.id == preferred_source_id %}
+      preferred
+    {% endif %}
+    {% if source.id == active_source_id %}
+      active-source
+    {% endif %}"
+    data-source-id="{{ source.id }}"
+  >
+    <div class="tle-source-card-header">
+      <div>
+        <div class="label">
+          TLE-DATENQUELLE
+        </div>
+
+        <h3>{{ source.name }}</h3>
+      </div>
+
+      <div class="source-card-badges">
+        {% if source.id == preferred_source_id %}
+          <span class="source-badge preferred-badge">
+            BEVORZUGT
+          </span>
+        {% endif %}
+
+        {% if source.id == active_source_id %}
+          <span class="source-badge active-badge">
+            AKTIV
+          </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <p>{{ source.description }}</p>
+
+    <dl class="source-details">
+      <div>
+        <dt>Typ</dt>
+        <dd>
+          {% if source.type == "satnogs_json" %}
+            SatNOGS JSON
+          {% else %}
+            Klassisches TLE
+          {% endif %}
+        </dd>
+      </div>
+
+      <div>
+        <dt>Kennung</dt>
+        <dd>{{ source.id }}</dd>
+      </div>
+    </dl>
+
+    <div
+      class="source-test-result"
+      id="source-result-{{ source.id }}"
+      aria-live="polite"
+    ></div>
+
+    <div class="source-card-actions">
+      <button
+        class="source-action-button secondary"
+        type="button"
+        data-action="test"
+        data-source-id="{{ source.id }}"
+      >
+        Quelle testen
+      </button>
+
+      <button
+        class="source-action-button primary"
+        type="button"
+        data-action="select"
+        data-source-id="{{ source.id }}"
+        {% if source.id == preferred_source_id %}
+          disabled
+        {% endif %}
+      >
+        Als bevorzugt wählen
+      </button>
+    </div>
+  </article>
+
+  {% endfor %}
+
+</section>
+
+<section class="source-update-panel">
+  <div>
+    <div class="label">
+      DATENSÄTZE
+    </div>
+
+    <h3>Aktive TLE-Datei aktualisieren</h3>
+
+    <p>
+      OrbitHub versucht zuerst die bevorzugte
+      Quelle. Ist sie nicht erreichbar, wird
+      automatisch eine Ersatzquelle verwendet.
+    </p>
+  </div>
+
+  <button
+    class="update-dataset-button"
+    id="source-update-button"
+    type="button"
+  >
+    <span class="update-button-icon">↻</span>
+    Jetzt aktualisieren
+  </button>
+</section>
+
+<div
+  class="dataset-update-status"
+  id="source-global-status"
+  role="status"
+  aria-live="polite"
+></div>
+
+<script>
+(() => {
+  const globalStatus = document.getElementById(
+    "source-global-status"
+  );
+
+  function showGlobalStatus(message, state = "") {
+    globalStatus.textContent = message;
+    globalStatus.className =
+      `dataset-update-status ${state}`.trim();
+  }
+
+  async function postJson(url, payload = {}) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    let data = {};
+
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        data.detail || `HTTP ${response.status}`
+      );
+    }
+
+    return data;
+  }
+
+  document.querySelectorAll(
+    '[data-action="test"]'
+  ).forEach((button) => {
+    button.addEventListener("click", async () => {
+      const sourceId = button.dataset.sourceId;
+
+      const result = document.getElementById(
+        `source-result-${sourceId}`
+      );
+
+      button.disabled = true;
+      result.className =
+        "source-test-result running";
+
+      result.textContent =
+        "Verbindung wird geprüft …";
+
+      try {
+        const data = await postJson(
+          "/api/sources/test",
+          {source_id: sourceId}
+        );
+
+        result.className =
+          "source-test-result success";
+
+        result.textContent =
+          `${data.records.toLocaleString("de-DE")} ` +
+          `Datensätze · ` +
+          `${(data.duration_ms / 1000).toFixed(1)} Sek.`;
+      } catch (error) {
+        result.className =
+          "source-test-result error";
+
+        result.textContent =
+          `Fehler: ${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll(
+    '[data-action="select"]'
+  ).forEach((button) => {
+    button.addEventListener("click", async () => {
+      const sourceId = button.dataset.sourceId;
+
+      button.disabled = true;
+
+      showGlobalStatus(
+        "Bevorzugte Quelle wird gespeichert …",
+        "is-running"
+      );
+
+      try {
+        const data = await postJson(
+          "/api/sources/select",
+          {source_id: sourceId}
+        );
+
+        showGlobalStatus(
+          `${data.preferred_source} wurde als ` +
+          `bevorzugte Quelle gespeichert.`,
+          "is-success"
+        );
+
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 700);
+      } catch (error) {
+        showGlobalStatus(
+          `Fehler: ${error.message}`,
+          "is-error"
+        );
+
+        button.disabled = false;
+      }
+    });
+  });
+
+  const updateButton = document.getElementById(
+    "source-update-button"
+  );
+
+  updateButton.addEventListener(
+    "click",
+    async () => {
+      updateButton.disabled = true;
+      updateButton.classList.add("is-updating");
+
+      showGlobalStatus(
+        "TLE-Datensätze werden aktualisiert …",
+        "is-running"
+      );
+
+      try {
+        const data = await postJson(
+          "/api/sources/update"
+        );
+
+        if (!data.ok) {
+          throw new Error(
+            data.error || "Aktualisierung fehlgeschlagen."
+          );
+        }
+
+        showGlobalStatus(
+          `${data.records.toLocaleString("de-DE")} ` +
+          `Datensätze von ${data.source} geladen.`,
+          "is-success"
+        );
+
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 900);
+      } catch (error) {
+        showGlobalStatus(
+          `Fehler: ${error.message}`,
+          "is-error"
+        );
+      } finally {
+        updateButton.disabled = false;
+        updateButton.classList.remove(
+          "is-updating"
+        );
+      }
+    }
+  );
+})();
+</script>
+
+{% endblock %}

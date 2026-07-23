@@ -1028,3 +1028,269 @@ body::before {
     monospace;
 }
 
+
+/* ==========================================================
+   OrbitHub TLE source manager
+   ========================================================== */
+
+.sources-hero {
+  margin-bottom: 18px;
+}
+
+.source-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.source-summary-card {
+  border: 1px solid rgba(75, 219, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(7, 24, 39, 0.78);
+  padding: 15px 17px;
+}
+
+.source-summary-card span {
+  display: block;
+  color: #7890a5;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.source-summary-card strong {
+  display: block;
+  margin-top: 7px;
+  color: #e8f7ff;
+  font-size: 1rem;
+}
+
+.source-manager-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.tle-source-card {
+  position: relative;
+  min-height: 290px;
+  border: 1px solid rgba(107, 139, 165, 0.18);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(10, 31, 49, 0.96),
+      rgba(5, 20, 34, 0.96)
+    );
+  padding: 19px;
+  overflow: hidden;
+}
+
+.tle-source-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: transparent;
+}
+
+.tle-source-card.preferred::before {
+  background: #44d9ff;
+}
+
+.tle-source-card.active-source {
+  border-color: rgba(57, 225, 151, 0.4);
+}
+
+.tle-source-card.active-source::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  bottom: -55px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(57, 225, 151, 0.05);
+}
+
+.tle-source-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.tle-source-card h3 {
+  margin: 6px 0 0;
+  color: #eefaff;
+  font-size: 1.25rem;
+}
+
+.tle-source-card > p {
+  min-height: 46px;
+  margin: 16px 0;
+  color: #8da4b7;
+  line-height: 1.5;
+}
+
+.source-card-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.source-badge {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.preferred-badge {
+  background: rgba(68, 217, 255, 0.12);
+  color: #56ddff;
+}
+
+.active-badge {
+  background: rgba(57, 225, 151, 0.12);
+  color: #45e5a0;
+}
+
+.source-details {
+  margin: 0;
+}
+
+.source-details > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid rgba(107, 139, 165, 0.12);
+  padding: 9px 0;
+}
+
+.source-details dt {
+  color: #71899d;
+  font-size: 0.75rem;
+}
+
+.source-details dd {
+  margin: 0;
+  color: #c9dbe7;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  font-size: 0.75rem;
+}
+
+.source-test-result {
+  min-height: 22px;
+  margin-top: 10px;
+  color: #7890a5;
+  font-size: 0.73rem;
+}
+
+.source-test-result.running {
+  color: #56ddff;
+}
+
+.source-test-result.success {
+  color: #45e5a0;
+}
+
+.source-test-result.error {
+  color: #ff7e8b;
+}
+
+.source-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.source-action-button {
+  min-height: 38px;
+  border-radius: 9px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.source-action-button.secondary {
+  border: 1px solid rgba(92, 157, 190, 0.28);
+  background: rgba(15, 45, 67, 0.55);
+  color: #b7d6e6;
+}
+
+.source-action-button.primary {
+  border: 1px solid rgba(68, 217, 255, 0.33);
+  background: rgba(36, 153, 195, 0.15);
+  color: #5ddfff;
+}
+
+.source-action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.15);
+}
+
+.source-action-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.source-update-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 25px;
+  margin-top: 18px;
+  border: 1px solid rgba(75, 219, 255, 0.14);
+  border-radius: 15px;
+  background: rgba(7, 24, 39, 0.76);
+  padding: 18px 20px;
+}
+
+.source-update-panel h3 {
+  margin: 5px 0;
+  color: #eaf9ff;
+}
+
+.source-update-panel p {
+  max-width: 720px;
+  margin: 0;
+  color: #8299ad;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 1250px) {
+  .source-manager-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 850px) {
+  .source-summary,
+  .source-manager-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .source-update-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .source-card-actions {
+    grid-template-columns: 1fr;
+  }
+}
