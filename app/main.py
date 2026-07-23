@@ -26,6 +26,7 @@ from app.config import (
 from app.exporters.satgazer import SatGazerExporter
 from app.exporters.standard import StandardExporter
 from app.services.tle_parser import TLEParser
+from app.services.source_manager import SourceManager
 from app.services.tle_sources import (
     fetch_source_text,
     find_source,
@@ -56,16 +57,11 @@ templates = Jinja2Templates(
     directory=str(BASE_DIR / "templates")
 )
 
+source_manager = SourceManager(SOURCE_URLS)
+
 
 def get_all_sources() -> list[dict]:
-    custom_sources = load_custom_sources(
-        CUSTOM_SOURCES_FILE
-    )
-
-    return [
-        *SOURCE_URLS,
-        *custom_sources,
-    ]
+    return source_manager.get_all_sources()
 
 
 status = {
