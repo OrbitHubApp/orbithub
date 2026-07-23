@@ -1,0 +1,16 @@
+{
+  "name": "OrbitHub",
+  "short_name": "OrbitHub",
+  "description": "Satellite Orbit Data for Amateur Radio",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06101d",
+  "theme_color": "#0a1626",
+  "icons": [
+    {
+      "src": "/static/favicon/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

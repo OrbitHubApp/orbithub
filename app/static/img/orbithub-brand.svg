@@ -1,0 +1,191 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 760 180"
+  role="img"
+  aria-labelledby="logo-title logo-description"
+>
+  <title id="logo-title">OrbitHub</title>
+  <desc id="logo-description">
+    Satellite orbit data for amateur radio
+  </desc>
+
+  <defs>
+    <linearGradient id="earth" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#30e4ff"/>
+      <stop offset="55%" stop-color="#1688ff"/>
+      <stop offset="100%" stop-color="#1047bb"/>
+    </linearGradient>
+
+    <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#28e7ff"/>
+      <stop offset="100%" stop-color="#2b7dff"/>
+    </linearGradient>
+
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#66efff"/>
+      <stop offset="100%" stop-color="#2468e7"/>
+    </linearGradient>
+
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g transform="translate(12 8)">
+    <circle
+      cx="84"
+      cy="86"
+      r="52"
+      fill="url(#earth)"
+      opacity="0.98"
+    />
+
+    <path
+      d="M49 61
+         C64 48 84 44 103 50
+         C110 57 118 62 126 65
+         C115 68 107 75 102 84
+         C89 81 76 84 66 92
+         C58 85 52 75 49 61Z"
+      fill="#a6f3ff"
+      opacity="0.78"
+    />
+
+    <path
+      d="M63 104
+         C77 96 91 96 105 104
+         C97 120 83 131 68 134
+         C64 124 62 114 63 104Z"
+      fill="#9beaff"
+      opacity="0.62"
+    />
+
+    <ellipse
+      cx="84"
+      cy="86"
+      rx="75"
+      ry="31"
+      fill="none"
+      stroke="url(#orbit)"
+      stroke-width="6"
+      transform="rotate(-17 84 86)"
+      filter="url(#glow)"
+    />
+
+    <g transform="translate(122 40) rotate(19)">
+      <rect
+        x="-13"
+        y="-12"
+        width="26"
+        height="24"
+        rx="5"
+        fill="#eafaff"
+      />
+
+      <rect
+        x="-42"
+        y="-10"
+        width="25"
+        height="20"
+        rx="3"
+        fill="url(#panel)"
+        stroke="#b6f5ff"
+        stroke-width="2"
+      />
+
+      <rect
+        x="17"
+        y="-10"
+        width="25"
+        height="20"
+        rx="3"
+        fill="url(#panel)"
+        stroke="#b6f5ff"
+        stroke-width="2"
+      />
+
+      <path
+        d="M-34 -10 V10 M-25 -10 V10
+           M25 -10 V10 M34 -10 V10"
+        stroke="#d2f9ff"
+        stroke-width="1.5"
+        opacity="0.7"
+      />
+
+      <path
+        d="M0 12 V23"
+        stroke="#eafaff"
+        stroke-width="4"
+        stroke-linecap="round"
+      />
+
+      <circle
+        cx="0"
+        cy="27"
+        r="4"
+        fill="#26e4ff"
+        filter="url(#glow)"
+      />
+    </g>
+
+    <g
+      fill="none"
+      stroke="#30e8ff"
+      stroke-linecap="round"
+      filter="url(#glow)"
+    >
+      <path
+        d="M91 53 C99 59 103 67 103 76"
+        stroke-width="4"
+      />
+      <path
+        d="M96 46 C110 56 117 67 117 82"
+        stroke-width="3"
+        opacity="0.9"
+      />
+      <path
+        d="M101 38 C122 51 132 67 132 87"
+        stroke-width="2.5"
+        opacity="0.7"
+      />
+    </g>
+
+    <circle
+      cx="42"
+      cy="132"
+      r="5"
+      fill="#27e8ff"
+      filter="url(#glow)"
+    />
+  </g>
+
+  <g transform="translate(190 49)">
+    <text
+      x="0"
+      y="58"
+      fill="#f4f9ff"
+      font-family="Inter,Segoe UI,Arial,sans-serif"
+      font-size="72"
+      font-weight="760"
+      letter-spacing="-3"
+    >
+      Orbit<tspan fill="#35ddff">Hub</tspan>
+    </text>
+
+    <text
+      x="3"
+      y="94"
+      fill="#8fa8c3"
+      font-family="Inter,Segoe UI,Arial,sans-serif"
+      font-size="18"
+      font-weight="650"
+      letter-spacing="2.4"
+    >
+      SATELLITE ORBIT DATA FOR AMATEUR RADIO
+    </text>
+  </g>
+</svg>
