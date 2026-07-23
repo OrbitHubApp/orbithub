@@ -1034,7 +1034,23 @@ body::before {
    ========================================================== */
 
 .sources-hero {
+  min-height: 132px;
   margin-bottom: 18px;
+  padding: 20px 28px;
+}
+
+.sources-hero h2 {
+  margin-top: 3px;
+  margin-bottom: 5px;
+}
+
+.sources-hero p {
+  max-width: 590px;
+  line-height: 1.4;
+}
+
+.sources-hero .hero-online {
+  margin-right: 120px;
 }
 
 .source-summary {
@@ -1292,5 +1308,135 @@ body::before {
 
   .source-card-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Eigene TLE-Quellen */
+
+.add-source-panel {
+  margin-bottom: 18px;
+  border: 1px solid rgba(75, 219, 255, 0.15);
+  border-radius: 15px;
+  background: rgba(7, 24, 39, 0.76);
+  padding: 18px 20px;
+}
+
+.add-source-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.add-source-panel h3 {
+  margin: 5px 0;
+  color: #eaf9ff;
+}
+
+.add-source-panel p {
+  max-width: 720px;
+  margin: 0;
+  color: #8299ad;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.add-source-form {
+  margin-top: 20px;
+  border-top: 1px solid rgba(107, 139, 165, 0.14);
+  padding-top: 18px;
+}
+
+.source-form-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(220px, 0.45fr);
+  gap: 15px;
+}
+
+.source-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.source-form-grid label > span {
+  color: #89a4b7;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.source-form-wide {
+  grid-column: 1 / -1;
+}
+
+.source-form-grid input,
+.source-form-grid select {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  border: 1px solid rgba(92, 157, 190, 0.28);
+  border-radius: 9px;
+  outline: none;
+  background: rgba(5, 20, 34, 0.82);
+  padding: 9px 11px;
+  color: #dff5ff;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.source-form-grid input:focus,
+.source-form-grid select:focus {
+  border-color: rgba(68, 217, 255, 0.65);
+  box-shadow: 0 0 0 3px rgba(68, 217, 255, 0.08);
+}
+
+.source-form-grid input::placeholder {
+  color: #587185;
+}
+
+.source-form-status {
+  min-height: 22px;
+  margin-top: 12px;
+  font-size: 0.76rem;
+}
+
+.source-form-status.running {
+  color: #56ddff;
+}
+
+.source-form-status.success {
+  color: #45e5a0;
+}
+
+.source-form-status.error {
+  color: #ff7e8b;
+}
+
+.source-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 8px;
+}
+
+@media (max-width: 850px) {
+  .add-source-panel-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .source-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .source-form-wide {
+    grid-column: auto;
+  }
+
+  .source-form-actions {
+    flex-direction: column-reverse;
   }
 }

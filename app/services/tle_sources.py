@@ -70,6 +70,100 @@ def save_preferred_source(
     temporary_file.replace(settings_file)
 
 
+def load_custom_sources(
+    sources_file: Path,
+) -> list[dict[str, str]]:
+    if not sources_file.exists():
+        return []
+
+    try:
+        payload = json.loads(
+            sources_file.read_text(
+                encoding="utf-8"
+            )
+        )
+    except (
+        OSError,
+        json.JSONDecodeError,
+    ):
+        return []
+
+    raw_sources = payload.get("sources", [])
+
+    if not isinstance(raw_sources, list):
+        return []
+
+    valid_sources: list[dict[str, str]] = []
+
+    for source in raw_sources:
+        if not isinstance(source, dict):
+            continue
+
+        required_fields = (
+            "id",
+            "name",
+            "description",
+            "type",
+            "url",
+        )
+
+        if not all(
+            isinstance(source.get(field), str)
+            and source[field].strip()
+            for field in required_fields
+        ):
+            continue
+
+        if source["type"] not in {
+            "tle",
+            "satnogs_json",
+        }:
+            continue
+
+        valid_sources.append(
+            {
+                "id": source["id"].strip(),
+                "name": source["name"].strip(),
+                "description": (
+                    source["description"].strip()
+                ),
+                "type": source["type"].strip(),
+                "url": source["url"].strip(),
+                "custom": True,
+            }
+        )
+
+    return valid_sources
+
+
+def save_custom_sources(
+    sources_file: Path,
+    sources: list[dict[str, str]],
+) -> None:
+    sources_file.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    temporary_file = sources_file.with_suffix(
+        ".tmp"
+    )
+
+    temporary_file.write_text(
+        json.dumps(
+            {
+                "sources": sources,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    temporary_file.replace(sources_file)
+
+
 def find_source(
     sources: list[dict[str, str]],
     source_id: str,

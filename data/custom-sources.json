@@ -1,0 +1,12 @@
+{
+  "sources": [
+    {
+      "id": "custom-amsat",
+      "name": "AMSAT",
+      "description": "Aktuelle Amateurfunksatelliten von AMSAT",
+      "type": "tle",
+      "url": "https://www.amsat.org/tle/current/nasabare.txt",
+      "custom": true
+    }
+  ]
+}

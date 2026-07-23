@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
+import re
 import time
+from urllib.parse import urlparse
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
@@ -15,6 +17,7 @@ from app.config import (
     APP_SLOGAN,
     BASE_DIR,
     DASHBOARD_REFRESH_SECONDS,
+    CUSTOM_SOURCES_FILE,
     DATA_DIR,
     SOURCE_SETTINGS_FILE,
     SOURCE_URLS,
@@ -26,8 +29,10 @@ from app.services.tle_parser import TLEParser
 from app.services.tle_sources import (
     fetch_source_text,
     find_source,
+    load_custom_sources,
     load_source_settings,
     ordered_sources,
+    save_custom_sources,
     save_preferred_source,
 )
 from app.version import CODENAME, VERSION
@@ -50,6 +55,17 @@ app.include_router(system_router)
 templates = Jinja2Templates(
     directory=str(BASE_DIR / "templates")
 )
+
+
+def get_all_sources() -> list[dict]:
+    custom_sources = load_custom_sources(
+        CUSTOM_SOURCES_FILE
+    )
+
+    return [
+        *SOURCE_URLS,
+        *custom_sources,
+    ]
 
 
 status = {
@@ -84,13 +100,15 @@ async def update_tle() -> None:
         "preferred_source_id"
     ]
 
+    all_sources = get_all_sources()
+
     preferred_source = find_source(
-        SOURCE_URLS,
+        all_sources,
         preferred_source_id,
     )
 
     if preferred_source is None:
-        preferred_source = SOURCE_URLS[0]
+        preferred_source = all_sources[0]
         preferred_source_id = preferred_source["id"]
 
     try:
@@ -105,7 +123,7 @@ async def update_tle() -> None:
         source_errors: list[str] = []
 
         source_order = ordered_sources(
-            SOURCE_URLS,
+            all_sources,
             preferred_source_id,
         )
 
@@ -419,7 +437,11 @@ async def sources_page(request: Request):
                 DASHBOARD_REFRESH_SECONDS
             ),
             "records": status["records"],
-            "sources": SOURCE_URLS,
+            "sources": [
+                source
+                for source in get_all_sources()
+                if source["id"] != "celestrak-www"
+            ],
             "preferred_source_id": (
                 preferred_source_id
             ),
@@ -436,6 +458,191 @@ async def sources_page(request: Request):
     )
 
 
+@app.post("/api/sources/add")
+async def add_custom_source(
+    request: Request,
+) -> dict:
+    payload = await request.json()
+
+    name = str(
+        payload.get("name", "")
+    ).strip()
+
+    source_url = str(
+        payload.get("url", "")
+    ).strip()
+
+    source_type = str(
+        payload.get("type", "tle")
+    ).strip()
+
+    description = str(
+        payload.get("description", "")
+    ).strip()
+
+    if not name:
+        raise HTTPException(
+            status_code=400,
+            detail="Bitte einen Namen eingeben.",
+        )
+
+    if len(name) > 80:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Der Name darf höchstens "
+                "80 Zeichen lang sein."
+            ),
+        )
+
+    parsed_url = urlparse(source_url)
+
+    if (
+        parsed_url.scheme not in {"http", "https"}
+        or not parsed_url.netloc
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Bitte eine gültige HTTP- oder "
+                "HTTPS-Adresse eingeben."
+            ),
+        )
+
+    if source_type not in {
+        "tle",
+        "satnogs_json",
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail="Unbekanntes Datenformat.",
+        )
+
+    source_id = re.sub(
+        r"[^a-z0-9]+",
+        "-",
+        name.lower(),
+    ).strip("-")
+
+    if not source_id:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Aus dem Namen konnte keine "
+                "gültige Kennung erzeugt werden."
+            ),
+        )
+
+    source_id = f"custom-{source_id}"
+
+    all_sources = get_all_sources()
+
+    if find_source(all_sources, source_id):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Eine Quelle mit diesem Namen "
+                "existiert bereits."
+            ),
+        )
+
+    if any(
+        source["url"].rstrip("/")
+        == source_url.rstrip("/")
+        for source in all_sources
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Diese Quellenadresse ist bereits "
+                "eingetragen."
+            ),
+        )
+
+    new_source = {
+        "id": source_id,
+        "name": name,
+        "description": (
+            description
+            or "Benutzerdefinierte TLE-Quelle"
+        ),
+        "type": source_type,
+        "url": source_url,
+        "custom": True,
+    }
+
+    started = time.perf_counter()
+
+    timeout = httpx.Timeout(
+        45.0,
+        connect=30.0,
+    )
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=timeout,
+            follow_redirects=True,
+            headers={
+                "User-Agent": (
+                    "OrbitHub/"
+                    f"{VERSION}"
+                )
+            },
+        ) as client:
+            candidate_text = (
+                await fetch_source_text(
+                    client,
+                    new_source,
+                )
+            )
+
+        records = TLEParser().parse_text(
+            candidate_text
+        )
+
+        if not records:
+            raise ValueError(
+                "Keine verwertbaren "
+                "TLE-Datensätze gefunden."
+            )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Die Quelle konnte nicht "
+                "gespeichert werden: "
+                f"{exc}"
+            ),
+        ) from exc
+
+    custom_sources = load_custom_sources(
+        CUSTOM_SOURCES_FILE
+    )
+
+    custom_sources.append(new_source)
+
+    save_custom_sources(
+        CUSTOM_SOURCES_FILE,
+        custom_sources,
+    )
+
+    duration_ms = round(
+        (
+            time.perf_counter()
+            - started
+        )
+        * 1000
+    )
+
+    return {
+        "ok": True,
+        "source": new_source,
+        "records": len(records),
+        "duration_ms": duration_ms,
+    }
+
+
 @app.post("/api/sources/select")
 async def select_source(
     request: Request,
@@ -446,7 +653,7 @@ async def select_source(
     ).strip()
 
     source = find_source(
-        SOURCE_URLS,
+        get_all_sources(),
         source_id,
     )
 
@@ -486,7 +693,7 @@ async def test_source(
     ).strip()
 
     source = find_source(
-        SOURCE_URLS,
+        get_all_sources(),
         source_id,
     )
 

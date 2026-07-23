@@ -26,6 +26,23 @@
   }
 
   function updateCountdown() {
+    const refreshPauseElement =
+      document.querySelector(
+        "[data-pause-auto-refresh]:not([hidden])"
+      );
+
+    if (refreshPauseElement) {
+      remaining = refreshSeconds;
+
+      if (countdown) {
+        countdown.textContent = String(
+          refreshSeconds
+        );
+      }
+
+      return;
+    }
+
     remaining -= 1;
 
     if (countdown) {

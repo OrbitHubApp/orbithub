@@ -11,6 +11,7 @@ DATA_DIR = Path("/app/data")
 
 TLE_FILE = DATA_DIR / "all-active.tle"
 SOURCE_SETTINGS_FILE = DATA_DIR / "source-settings.json"
+CUSTOM_SOURCES_FILE = DATA_DIR / "custom-sources.json"
 
 DASHBOARD_REFRESH_SECONDS = 60
 
