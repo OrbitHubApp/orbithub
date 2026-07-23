@@ -612,16 +612,15 @@ async def add_custom_source(
             ),
         ) from exc
 
-    custom_sources = load_custom_sources(
-        CUSTOM_SOURCES_FILE
-    )
-
-    custom_sources.append(new_source)
-
-    save_custom_sources(
-        CUSTOM_SOURCES_FILE,
-        custom_sources,
-    )
+    try:
+        source_manager.add_custom_source(
+            new_source
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
 
     duration_ms = round(
         (
