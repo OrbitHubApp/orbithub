@@ -1034,3 +1034,25 @@ body::before {
     Consolas,
     monospace;
 }
+
+/* Raspberry-Pi-Modell im Header sichtbar halten */
+
+.mission-header-status
+.live-metric-card:has(#system-pi-model) {
+  display: flex;
+  min-width: 112px;
+}
+
+@media (max-width: 1400px) {
+  .mission-header-status
+  .live-metric-card:has(#system-pi-model) {
+    display: flex;
+  }
+}
+
+@media (max-width: 1180px) {
+  .mission-header-status
+  .live-metric-card:has(#system-pi-model) {
+    display: none;
+  }
+}
