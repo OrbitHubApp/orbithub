@@ -107,9 +107,6 @@
       "system-temperature"
     ),
     disk: document.getElementById("system-disk"),
-    piModel: document.getElementById(
-      "system-pi-model"
-    ),
   };
 
   function formatPercent(value) {
@@ -184,15 +181,7 @@
         );
       }
 
-      if (elements.piModel) {
-        const model = data.pi_model || "Unbekannt";
 
-        elements.piModel.textContent = model
-          .replace("Raspberry Pi ", "Pi ")
-          .replace("Model ", "")
-          .replace("Rev ", "R");
-        elements.piModel.title = model;
-      }
     } catch (error) {
       console.error(
         "OrbitHub system metrics update failed:",

@@ -1012,13 +1012,6 @@ body::before {
   }
 }
 
-#system-pi-model {
-  display: block;
-  max-width: 105px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 .refresh-panel {
   color: #8299ae;
@@ -1035,24 +1028,3 @@ body::before {
     monospace;
 }
 
-/* Raspberry-Pi-Modell im Header sichtbar halten */
-
-.mission-header-status
-.live-metric-card:has(#system-pi-model) {
-  display: flex;
-  min-width: 112px;
-}
-
-@media (max-width: 1400px) {
-  .mission-header-status
-  .live-metric-card:has(#system-pi-model) {
-    display: flex;
-  }
-}
-
-@media (max-width: 1180px) {
-  .mission-header-status
-  .live-metric-card:has(#system-pi-model) {
-    display: none;
-  }
-}
