@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from app.api.system import router as system_router
 
 from app.config import (
     APP_DESCRIPTION,
@@ -34,6 +35,8 @@ app.mount(
     StaticFiles(directory=str(BASE_DIR / "static")),
     name="static",
 )
+
+app.include_router(system_router)
 
 templates = Jinja2Templates(
     directory=str(BASE_DIR / "templates")
