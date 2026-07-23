@@ -638,6 +638,174 @@ async def add_custom_source(
     }
 
 
+@app.post("/api/sources/update")
+async def update_custom_source(
+    request: Request,
+) -> dict:
+    payload = await request.json()
+
+    source_id = str(
+        payload.get("source_id", "")
+    ).strip()
+
+    name = str(
+        payload.get("name", "")
+    ).strip()
+
+    source_url = str(
+        payload.get("url", "")
+    ).strip()
+
+    source_type = str(
+        payload.get("type", "tle")
+    ).strip()
+
+    description = str(
+        payload.get("description", "")
+    ).strip()
+
+    if not source_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Keine Quellenkennung angegeben.",
+        )
+
+    source = source_manager.get_source(
+        source_id
+    )
+
+    if source is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Unbekannte TLE-Quelle.",
+        )
+
+    if source_manager.is_builtin_source(
+        source_id
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Eingebaute TLE-Quellen "
+                "koennen nicht geaendert werden."
+            ),
+        )
+
+    if not name:
+        raise HTTPException(
+            status_code=400,
+            detail="Der Quellenname fehlt.",
+        )
+
+    if not source_url:
+        raise HTTPException(
+            status_code=400,
+            detail="Die Quellenadresse fehlt.",
+        )
+
+    if source_type not in {
+        "tle",
+        "satnogs_json",
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail="Unbekanntes Datenformat.",
+        )
+
+    updated_source = {
+        "id": source_id,
+        "name": name,
+        "description": (
+            description
+            or "Benutzerdefinierte TLE-Quelle"
+        ),
+        "type": source_type,
+        "url": source_url,
+        "custom": True,
+    }
+
+    started = time.perf_counter()
+
+    timeout = httpx.Timeout(
+        45.0,
+        connect=30.0,
+    )
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=timeout,
+            follow_redirects=True,
+            headers={
+                "User-Agent": (
+                    "OrbitHub/"
+                    f"{VERSION}"
+                )
+            },
+        ) as client:
+            candidate_text = (
+                await fetch_source_text(
+                    client,
+                    updated_source,
+                )
+            )
+
+        records = TLEParser().parse_text(
+            candidate_text
+        )
+
+        if not records:
+            raise ValueError(
+                "Keine verwertbaren "
+                "TLE-Datensaetze gefunden."
+            )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Die geaenderte Quelle konnte "
+                "nicht gespeichert werden: "
+                f"{exc}"
+            ),
+        ) from exc
+
+    try:
+        source_manager.update_custom_source(
+            source_id,
+            updated_source,
+        )
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail="Unbekannte eigene TLE-Quelle.",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    if source_id == status.get(
+        "preferred_source_id"
+    ):
+        status["preferred_source"] = name
+
+    duration_ms = round(
+        (
+            time.perf_counter()
+            - started
+        )
+        * 1000
+    )
+
+    return {
+        "ok": True,
+        "source": updated_source,
+        "records": len(records),
+        "duration_ms": duration_ms,
+    }
+
+
 @app.post("/api/sources/delete")
 async def delete_custom_source(
     request: Request,
