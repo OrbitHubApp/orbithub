@@ -98,3 +98,100 @@
     }
   });
 })();
+
+(() => {
+  const elements = {
+    cpu: document.getElementById("system-cpu"),
+    memory: document.getElementById("system-memory"),
+    temperature: document.getElementById(
+      "system-temperature"
+    ),
+    disk: document.getElementById("system-disk"),
+  };
+
+  function formatPercent(value) {
+    return Number.isFinite(value)
+      ? `${value.toFixed(1)} %`
+      : "–";
+  }
+
+  function formatTemperature(value) {
+    return Number.isFinite(value)
+      ? `${value.toFixed(1)} °C`
+      : "–";
+  }
+
+  async function updateSystemMetrics() {
+    try {
+      const response = await fetch(
+        "/api/system",
+        {
+          headers: {
+            Accept: "application/json",
+          },
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `System API returned ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+
+      if (elements.cpu) {
+        elements.cpu.textContent = formatPercent(
+          data.cpu_percent
+        );
+      }
+
+      if (elements.memory) {
+        elements.memory.textContent = formatPercent(
+          data.memory_percent
+        );
+      }
+
+      if (elements.temperature) {
+        elements.temperature.textContent =
+          formatTemperature(
+            data.temperature_celsius
+          );
+
+        const card =
+          elements.temperature.closest(
+            ".temperature-card"
+          );
+
+        if (card) {
+          card.classList.toggle(
+            "temperature-warning",
+            Number.isFinite(
+              data.temperature_celsius
+            ) &&
+              data.temperature_celsius >= 70
+          );
+        }
+      }
+
+      if (elements.disk) {
+        elements.disk.textContent = formatPercent(
+          data.disk_percent
+        );
+      }
+    } catch (error) {
+      console.error(
+        "OrbitHub system metrics update failed:",
+        error
+      );
+    }
+  }
+
+  updateSystemMetrics();
+
+  window.setInterval(
+    updateSystemMetrics,
+    10000
+  );
+})();

@@ -198,16 +198,24 @@
           </div>
         </div>
 
-        <div class="header-status-card">
-          <small>QUELLE</small>
-          <strong>{{ source | default("–") }}</strong>
+        <div class="header-status-card live-metric-card">
+          <small>CPU</small>
+          <strong id="system-cpu">–</strong>
         </div>
 
-        <div class="header-status-card">
-          <small>DATENSÄTZE</small>
-          <strong>
-            {{ "{:,}".format(records | default(0)) }}
-          </strong>
+        <div class="header-status-card live-metric-card">
+          <small>RAM</small>
+          <strong id="system-memory">–</strong>
+        </div>
+
+        <div class="header-status-card live-metric-card temperature-card">
+          <small>TEMP</small>
+          <strong id="system-temperature">–</strong>
+        </div>
+
+        <div class="header-status-card live-metric-card">
+          <small>SD</small>
+          <strong id="system-disk">–</strong>
         </div>
 
         <div class="operator-card">
