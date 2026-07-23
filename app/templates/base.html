@@ -79,6 +79,10 @@
         src="{{ url_for('static', path='img/orbithub-mission-logo.svg') }}"
         alt="OrbitHub – Satellite Orbit Data for Amateur Radio"
       >
+
+      <div class="sidebar-brand-operator">
+        by <strong>DL7AG</strong>
+      </div>
     </a>
 
     <nav
@@ -150,20 +154,28 @@
       </a>
     </nav>
 
-    <div class="mission-system-status">
+    <div class="mission-system-status operator-station-card">
       <span class="system-pulse"></span>
 
       <div>
-        <strong>
-          {% if state == "ONLINE" %}
-            System online
-          {% else %}
-            Systemstatus prüfen
-          {% endif %}
+        <small class="operator-station-label">
+          OPERATOR
+        </small>
+
+        <strong class="operator-station-call">
+          DL7AG
         </strong>
 
-        <small>
-          Version {{ version }} „{{ codename }}“
+        <span class="operator-station-location">
+          QTH Berlin
+        </span>
+
+        <span class="operator-station-locator">
+          Locator JO62PL
+        </span>
+
+        <small class="operator-station-version">
+          OrbitHub {{ version }} „{{ codename }}“
         </small>
       </div>
     </div>
@@ -195,6 +207,13 @@
           <div>
             <strong>LIVE</strong>
             <span id="local-clock">--:--:--</span>
+
+            <small
+              class="local-time-zone"
+              id="local-time-zone"
+            >
+              Ortszeit
+            </small>
           </div>
         </div>
 
@@ -221,7 +240,10 @@
         <div class="operator-card">
           <div>
             <strong>DL7AG</strong>
-            <small>Amateur Radio</small>
+            <small>QTH Berlin</small>
+            <span class="operator-locator">
+              JO62PL
+            </span>
           </div>
 
           <span class="operator-icon">◯</span>

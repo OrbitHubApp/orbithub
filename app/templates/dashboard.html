@@ -87,12 +87,27 @@
     <div class="metric-icon">▤</div>
   </article>
 
-  <article class="mission-card update-card">
+  <article
+    class="mission-card update-card"
+    data-update-utc="{{ updated_text }}"
+    id="last-update-card"
+  >
     <div>
       <div class="label">Letzte Aktualisierung</div>
 
-      <div class="value compact">
+      <div class="value compact update-timestamp">
         {{ updated_text }}
+      </div>
+
+      <div class="update-time-zone">
+        UTC
+      </div>
+
+      <div
+        class="update-relative-time"
+        id="last-update-relative"
+      >
+        wird berechnet …
       </div>
     </div>
 

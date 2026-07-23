@@ -316,3 +316,143 @@
     }
   );
 })();
+
+(() => {
+  const timezoneElement = document.getElementById(
+    "local-time-zone"
+  );
+
+  function updateLocalTimezoneLabel() {
+    if (!timezoneElement) {
+      return;
+    }
+
+    try {
+      const parts = new Intl.DateTimeFormat(
+        "de-DE",
+        {
+          timeZone: "Europe/Berlin",
+          timeZoneName: "short",
+        }
+      ).formatToParts(new Date());
+
+      const zone = parts.find(
+        (part) => part.type === "timeZoneName"
+      )?.value;
+
+      timezoneElement.textContent = zone
+        ? `Ortszeit (${zone})`
+        : "Ortszeit";
+    } catch {
+      timezoneElement.textContent = "Ortszeit";
+    }
+  }
+
+  updateLocalTimezoneLabel();
+})();
+
+(() => {
+  const updateCard = document.getElementById(
+    "last-update-card"
+  );
+
+  const relativeElement = document.getElementById(
+    "last-update-relative"
+  );
+
+  if (!updateCard || !relativeElement) {
+    return;
+  }
+
+  function parseGermanUtcTimestamp(value) {
+    if (!value) {
+      return null;
+    }
+
+    const match = value.match(
+      /(\d{2})\.(\d{2})\.(\d{4})\D+(\d{2}):(\d{2}):(\d{2})/
+    );
+
+    if (!match) {
+      return null;
+    }
+
+    const [
+      ,
+      day,
+      month,
+      year,
+      hour,
+      minute,
+      second,
+    ] = match;
+
+    return new Date(
+      Date.UTC(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second)
+      )
+    );
+  }
+
+  function formatRelativeTime(milliseconds) {
+    const seconds = Math.max(
+      0,
+      Math.floor(milliseconds / 1000)
+    );
+
+    if (seconds < 60) {
+      return "vor weniger als 1 Min.";
+    }
+
+    const minutes = Math.floor(seconds / 60);
+
+    if (minutes < 60) {
+      return minutes === 1
+        ? "vor 1 Min."
+        : `vor ${minutes} Min.`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+
+    if (hours < 24) {
+      return hours === 1
+        ? "vor 1 Std."
+        : `vor ${hours} Std.`;
+    }
+
+    const days = Math.floor(hours / 24);
+
+    return days === 1
+      ? "vor 1 Tag"
+      : `vor ${days} Tagen`;
+  }
+
+  function updateRelativeTime() {
+    const timestamp = parseGermanUtcTimestamp(
+      updateCard.dataset.updateUtc
+    );
+
+    if (!timestamp) {
+      relativeElement.textContent =
+        "Zeitabstand nicht verfügbar";
+      return;
+    }
+
+    relativeElement.textContent =
+      formatRelativeTime(
+        Date.now() - timestamp.getTime()
+      );
+  }
+
+  updateRelativeTime();
+
+  window.setInterval(
+    updateRelativeTime,
+    30000
+  );
+})();

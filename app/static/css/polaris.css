@@ -881,3 +881,133 @@ body::before {
     transform: rotate(360deg);
   }
 }
+
+/* =========================================================
+   Amateur radio operator identity and time zones
+   ========================================================= */
+
+.sidebar-brand-operator {
+  margin-top: -13px;
+  padding-right: 21px;
+  color: #8fa9c0;
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.sidebar-brand-operator strong {
+  color: var(--mission-cyan);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
+.operator-station-card {
+  align-items: flex-start;
+}
+
+.operator-station-card .system-pulse {
+  margin-top: 5px;
+}
+
+.operator-station-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--mission-green) !important;
+  font-size: 0.59rem !important;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+}
+
+.operator-station-call {
+  color: #ffffff !important;
+  font-size: 1rem !important;
+  letter-spacing: 0.04em;
+}
+
+.operator-station-location,
+.operator-station-locator {
+  display: block;
+  margin-top: 4px;
+  color: #b5cadc;
+  font-size: 0.71rem;
+}
+
+.operator-station-locator {
+  color: var(--mission-cyan);
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.operator-station-version {
+  margin-top: 9px !important;
+  color: #6d879e !important;
+}
+
+.operator-card {
+  min-width: 164px;
+}
+
+.operator-card small {
+  color: #94abc0;
+}
+
+.operator-locator {
+  margin-top: 3px;
+  color: var(--mission-cyan);
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.local-time-zone {
+  margin-top: 3px !important;
+  color: #7894ad !important;
+  font-size: 0.55rem !important;
+  white-space: nowrap;
+}
+
+.update-timestamp {
+  white-space: pre-line;
+}
+
+.update-time-zone {
+  margin-top: 7px;
+  color: var(--mission-cyan);
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+}
+
+.update-relative-time {
+  margin-top: 5px;
+  color: #91a9be;
+  font-size: 0.69rem;
+}
+
+@media (max-width: 1180px) {
+  .operator-card {
+    min-width: 135px;
+  }
+
+  .operator-card small,
+  .operator-locator {
+    display: none;
+  }
+}
