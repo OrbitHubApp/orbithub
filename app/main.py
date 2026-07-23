@@ -26,6 +26,7 @@ from app.config import (
 from app.exporters.satgazer import SatGazerExporter
 from app.exporters.standard import StandardExporter
 from app.services.tle_parser import TLEParser
+from app.services.pass_predictor import PassPredictor
 from app.services.source_manager import SourceManager
 from app.services.tle_sources import (
     fetch_source_text,
@@ -410,7 +411,56 @@ async def index(request: Request):
         context=context,
     )
 
+@app.get("/passes")
+async def passes_page(request: Request):
+    parser = TLEParser()
+    records = (
+        parser.parse_file(TLE_FILE)
+        if TLE_FILE.exists()
+        else []
+    )
 
+    selected_record = None
+    satellite_passes = []
+
+    if records:
+        selected_record = records[0]
+
+        predictor = PassPredictor(
+            latitude_deg=52.45,
+            longitude_deg=13.35,
+            elevation_m=50,
+        )
+
+        satellite_passes = predictor.predict(
+            selected_record,
+            hours=24,
+            minimum_elevation_deg=10,
+        )
+
+    return templates.TemplateResponse(
+        name="passes.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "version": VERSION,
+            "codename": CODENAME,
+            "refresh_seconds": (
+                DASHBOARD_REFRESH_SECONDS
+            ),
+            "records": status["records"],
+            "satellites": records,
+            "selected_satellite": (
+                selected_record
+            ),
+            "passes": satellite_passes,
+            "observer_name": "Berlin",
+            "observer_locator": "JO62PL",
+            "minimum_elevation": 10,
+            "hours": 24,
+        },
+    )
 @app.get("/sources")
 async def sources_page(request: Request):
     settings = load_source_settings(

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Überflüge – OrbitHub{% endblock %}
+
+{% block nav_passes %}active{% endblock %}
+
+{% block page_heading %}Überflüge{% endblock %}
+
+{% block content %}
+
+<section class="mission-panel">
+  <div class="panel-heading">
+    <div>
+      <span class="panel-kicker">PASS PREDICTION</span>
+      <h2>Nächste Satellitenüberflüge</h2>
+      <p>
+        Berechnet für {{ observer_name }}
+        · Locator {{ observer_locator }}
+        · Mindesthöhe {{ minimum_elevation }}°
+        · Zeitraum {{ hours }} Stunden
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="mission-panel">
+  <div class="panel-heading">
+    <div>
+      <span class="panel-kicker">SATELLIT</span>
+
+      {% if selected_satellite %}
+        <h2>{{ selected_satellite.name }}</h2>
+        <p>
+          NORAD {{ selected_satellite.norad_id }}
+        </p>
+      {% else %}
+        <h2>Keine TLE-Daten verfügbar</h2>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="mission-panel">
+  <div class="panel-heading">
+    <div>
+      <span class="panel-kicker">PASSES</span>
+      <h2>Überflugliste</h2>
+    </div>
+  </div>
+
+  {% if passes %}
+    <div class="table-scroll">
+      <table class="mission-table">
+        <thead>
+          <tr>
+            <th>Aufgang</th>
+            <th>Maximum</th>
+            <th>Untergang</th>
+            <th>Max. Höhe</th>
+            <th>Azimut Aufgang</th>
+            <th>Azimut Untergang</th>
+            <th>Dauer</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for pass in passes %}
+            <tr>
+              <td>
+                {{ pass.rise_time.astimezone().strftime("%d.%m.%Y %H:%M:%S") }}
+              </td>
+
+              <td>
+                {{ pass.culmination_time.astimezone().strftime("%d.%m.%Y %H:%M:%S") }}
+              </td>
+
+              <td>
+                {{ pass.set_time.astimezone().strftime("%d.%m.%Y %H:%M:%S") }}
+              </td>
+
+              <td>
+                <strong>{{ "%.1f"|format(pass.max_elevation_deg) }}°</strong>
+              </td>
+
+              <td>
+                {{ "%.1f"|format(pass.rise_azimuth_deg) }}°
+              </td>
+
+              <td>
+                {{ "%.1f"|format(pass.set_azimuth_deg) }}°
+              </td>
+
+              <td>
+                {{ pass.duration_seconds // 60 }} Min.
+                {{ pass.duration_seconds % 60 }} Sek.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <strong>Keine Überflüge gefunden</strong>
+      <p>
+        Im gewählten Zeitraum wurde kein Überflug oberhalb
+        von {{ minimum_elevation }}° berechnet.
+      </p>
+    </div>
+  {% endif %}
+</section>
+
+{% endblock %}

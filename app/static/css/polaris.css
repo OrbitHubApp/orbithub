@@ -1440,3 +1440,44 @@ body::before {
     flex-direction: column-reverse;
   }
 }
+/* OrbitHub: Ãœberflugtabelle */
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.mission-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.mission-table th,
+.mission-table td {
+  padding: 0.75rem 0.85rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(113, 199, 255, 0.12);
+}
+
+.mission-table th {
+  color: var(--mission-accent, #69d7ff);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mission-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+.mission-table tbody tr:hover {
+  background: rgba(68, 168, 255, 0.06);
+}
+
+@media (max-width: 1100px) {
+  .mission-table {
+    min-width: 900px;
+  }
+}â
