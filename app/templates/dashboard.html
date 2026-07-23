@@ -179,10 +179,25 @@
 
 <nav class="mission-services" aria-label="OrbitHub Dienste">
 
-  <a href="/tle/all-active.tle">
-    <span>▤</span>
-    Standard-TLE
+  <a
+    href="/downloads/orbithub-tle.txt"
+    download
+  >
+    <span>⇩</span>
+    TLE als TXT
   </a>
+
+  <button
+    class="update-dataset-button"
+    id="update-dataset-button"
+    type="button"
+  >
+    <span class="update-button-icon">↻</span>
+
+    <span class="update-button-label">
+      Datensätze aktualisieren
+    </span>
+  </button>
 
   <a href="/satgazer/all-active.tle">
     <span>◈</span>
@@ -194,17 +209,19 @@
     Status-JSON
   </a>
 
-  <a href="/health">
-    <span>♡</span>
-    Health Check
-  </a>
-
   <a href="/docs">
     <span>▧</span>
     API-Dokumentation
   </a>
 
 </nav>
+
+<div
+  class="dataset-update-status"
+  id="dataset-update-status"
+  role="status"
+  aria-live="polite"
+></div>
 
 <div class="refresh-panel">
   Anzeige wird in

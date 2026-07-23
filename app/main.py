@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import FileResponse
 from app.api.system import router as system_router
 
 from app.config import (
@@ -390,3 +391,29 @@ async def satgazer_all_active():
     content = exporter.export(records)
 
     return PlainTextResponse(content)
+
+@app.get(
+    "/downloads/orbithub-tle.txt",
+    include_in_schema=False,
+)
+def download_orbithub_tle_txt() -> FileResponse:
+    """Download the current TLE dataset as a TXT file."""
+    from datetime import datetime
+
+    if not TLE_FILE.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Noch keine TLE-Datei vorhanden.",
+        )
+
+    filename = (
+        "OrbitHub-all-active-"
+        f"{datetime.now():%Y-%m-%d}.txt"
+    )
+
+    return FileResponse(
+        path=str(TLE_FILE),
+        media_type="text/plain; charset=utf-8",
+        filename=filename,
+    )
+

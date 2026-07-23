@@ -195,3 +195,124 @@
     10000
   );
 })();
+
+(() => {
+  const updateButton = document.getElementById(
+    "update-dataset-button"
+  );
+
+  const updateStatus = document.getElementById(
+    "dataset-update-status"
+  );
+
+  if (!updateButton) {
+    return;
+  }
+
+  const label = updateButton.querySelector(
+    ".update-button-label"
+  );
+
+  const icon = updateButton.querySelector(
+    ".update-button-icon"
+  );
+
+  function setStatus(message, state = "") {
+    if (!updateStatus) {
+      return;
+    }
+
+    updateStatus.textContent = message;
+    updateStatus.className =
+      `dataset-update-status ${state}`.trim();
+  }
+
+  updateButton.addEventListener(
+    "click",
+    async () => {
+      updateButton.disabled = true;
+      updateButton.classList.add("is-updating");
+
+      if (label) {
+        label.textContent =
+          "Datensätze werden geladen …";
+      }
+
+      if (icon) {
+        icon.setAttribute("aria-hidden", "true");
+      }
+
+      setStatus(
+        "OrbitHub lädt aktuelle TLE-Daten von der Quelle. " +
+        "Dies kann etwa ein bis zwei Minuten dauern.",
+        "is-running"
+      );
+
+      try {
+        const response = await fetch(
+          "/update",
+          {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+            },
+            cache: "no-store",
+          }
+        );
+
+        let result = null;
+
+        try {
+          result = await response.json();
+        } catch {
+          result = null;
+        }
+
+        if (!response.ok) {
+          const detail =
+            result?.detail ||
+            `HTTP-Fehler ${response.status}`;
+
+          throw new Error(detail);
+        }
+
+        setStatus(
+          "Aktualisierung erfolgreich abgeschlossen. " +
+          "Das Dashboard wird neu geladen.",
+          "is-success"
+        );
+
+        if (label) {
+          label.textContent =
+            "Aktualisierung abgeschlossen";
+        }
+
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } catch (error) {
+        console.error(
+          "OrbitHub dataset update failed:",
+          error
+        );
+
+        setStatus(
+          `Aktualisierung fehlgeschlagen: ${
+            error.message
+          }`,
+          "is-error"
+        );
+
+        if (label) {
+          label.textContent =
+            "Erneut aktualisieren";
+        }
+
+        updateButton.disabled = false;
+        updateButton.classList.remove(
+          "is-updating"
+        );
+      }
+    }
+  );
+})();

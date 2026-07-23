@@ -767,3 +767,117 @@ body::before {
     display: none;
   }
 }
+
+/* =========================================================
+   Dataset download and manual source update
+   ========================================================= */
+
+.mission-services button {
+  appearance: none;
+  font: inherit;
+}
+
+.update-dataset-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 61px;
+  padding: 11px 13px;
+  border: 1px solid rgba(34, 219, 118, 0.42);
+  border-radius: 12px;
+  color: #dffff0;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(16, 89, 66, 0.5),
+      rgba(5, 35, 38, 0.82)
+    );
+  font-size: 0.77rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    opacity 150ms ease;
+}
+
+.update-dataset-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(34, 219, 118, 0.78);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(19, 117, 80, 0.62),
+      rgba(6, 49, 49, 0.92)
+    );
+}
+
+.update-dataset-button:disabled {
+  cursor: wait;
+  opacity: 0.78;
+}
+
+.update-button-icon {
+  color: var(--mission-green);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.update-dataset-button.is-updating
+.update-button-icon {
+  animation: orbithub-update-spin 900ms linear infinite;
+}
+
+.dataset-update-status {
+  min-height: 0;
+  margin-top: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0 solid transparent;
+  border-radius: 11px;
+  color: #9bb2c7;
+  background: transparent;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  transition:
+    margin 180ms ease,
+    padding 180ms ease,
+    border-width 180ms ease;
+}
+
+.dataset-update-status:not(:empty) {
+  min-height: 46px;
+  margin-top: 12px;
+  padding: 12px 15px;
+  border-width: 1px;
+}
+
+.dataset-update-status.is-running {
+  border-color: rgba(33, 175, 232, 0.3);
+  color: #bdefff;
+  background: rgba(10, 66, 91, 0.3);
+}
+
+.dataset-update-status.is-success {
+  border-color: rgba(34, 219, 118, 0.35);
+  color: #caffdf;
+  background: rgba(18, 104, 67, 0.28);
+}
+
+.dataset-update-status.is-error {
+  border-color: rgba(255, 64, 81, 0.4);
+  color: #ffd0d5;
+  background: rgba(105, 24, 37, 0.34);
+}
+
+@keyframes orbithub-update-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
