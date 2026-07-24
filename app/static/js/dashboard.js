@@ -475,3 +475,62 @@
     30000
   );
 })();
+
+(() => {
+  const panel = document.getElementById("pass-countdown");
+
+  if (!panel) {
+    return;
+  }
+
+  const labelEl = document.getElementById("pass-countdown-label");
+  const valueEl = document.getElementById("pass-countdown-value");
+
+  const riseTime = new Date(panel.dataset.riseUtc);
+  const setTime = new Date(panel.dataset.setUtc);
+
+  function pad(number) {
+    return String(number).padStart(2, "0");
+  }
+
+  function formatDuration(milliseconds) {
+    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return pad(hours) + ":" + pad(minutes) + ":" + pad(seconds);
+  }
+
+  let intervalId = null;
+
+  function updateCountdown() {
+    if (Number.isNaN(riseTime.getTime()) || Number.isNaN(setTime.getTime())) {
+      labelEl.textContent = "Kein Überflug geplant";
+      valueEl.textContent = "--:--:--";
+      return;
+    }
+
+    const now = new Date();
+
+    if (now < riseTime) {
+      labelEl.textContent = "Nächster Überflug in";
+      valueEl.textContent = formatDuration(riseTime - now);
+      panel.classList.remove("is-active");
+    } else if (now < setTime) {
+      labelEl.textContent = "Überflug läuft · LOS in";
+      valueEl.textContent = formatDuration(setTime - now);
+      panel.classList.add("is-active");
+    } else {
+      labelEl.textContent = "Überflug beendet";
+      valueEl.textContent = "00:00:00";
+      panel.classList.remove("is-active");
+
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+    }
+  }
+
+  updateCountdown();
+  intervalId = window.setInterval(updateCountdown, 1000);
+})();

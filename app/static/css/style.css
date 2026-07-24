@@ -1380,3 +1380,81 @@ body::before {
     padding-left: 14px;
   }
 }
+
+.pass-countdown-panel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 18px 22px;
+  border: 1px solid rgba(68, 217, 230, 0.35);
+  border-radius: 15px;
+  background: linear-gradient(135deg, rgba(9, 30, 48, 0.9), rgba(14, 29, 48, 0.94));
+  box-shadow: 0 0 24px rgba(68, 217, 230, 0.08);
+}
+
+.pass-countdown-panel.is-active {
+  border-color: rgba(71, 209, 140, 0.45);
+  box-shadow: 0 0 24px rgba(71, 209, 140, 0.12);
+}
+
+.pass-countdown-dot {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 12px var(--cyan);
+  animation: pulse 2s infinite;
+}
+
+.pass-countdown-panel.is-active .pass-countdown-dot {
+  background: var(--green);
+  box-shadow: 0 0 12px var(--green);
+  animation: pulse 1s infinite;
+}
+
+.pass-countdown-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pass-countdown-text strong {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pass-countdown-value {
+  color: var(--cyan);
+  font-family: ui-monospace, monospace;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.pass-countdown-panel.is-active .pass-countdown-value {
+  color: var(--green);
+}
+
+.pass-countdown-sat {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .pass-countdown-panel {
+    flex-wrap: wrap;
+  }
+
+  .pass-countdown-sat {
+    margin-left: 0;
+    width: 100%;
+  }
+}

@@ -7,6 +7,26 @@
 {% block page_heading %}Überflüge{% endblock %}
 
 {% block content %}
+{% if passes %}
+  <div
+    class="pass-countdown-panel"
+    id="pass-countdown"
+    data-rise-utc="{{ passes[0].rise_time.isoformat() }}"
+    data-set-utc="{{ passes[0].set_time.isoformat() }}"
+  >
+    <span class="pass-countdown-dot"></span>
+
+    <div class="pass-countdown-text">
+      <strong id="pass-countdown-label">Nächster Überflug in</strong>
+      <span id="pass-countdown-value" class="pass-countdown-value">--:--:--</span>
+    </div>
+
+    <div class="pass-countdown-sat">
+      {{ selected_satellite.name|display_name }}
+    </div>
+  </div>
+{% endif %}
+
 
 <section class="passes-top-grid">
 
