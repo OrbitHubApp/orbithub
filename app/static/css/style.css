@@ -1384,27 +1384,28 @@ body::before {
 .pass-countdown-panel {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
   margin-bottom: 18px;
-  padding: 18px 22px;
-  border: 1px solid rgba(68, 217, 230, 0.35);
-  border-radius: 15px;
-  background: linear-gradient(135deg, rgba(9, 30, 48, 0.9), rgba(14, 29, 48, 0.94));
-  box-shadow: 0 0 24px rgba(68, 217, 230, 0.08);
+  padding: 20px 26px;
+  border: 1px solid rgba(68, 217, 230, 0.55);
+  border-radius: 16px;
+  background: linear-gradient(120deg, rgba(24, 92, 148, 0.55), rgba(15, 130, 150, 0.4) 45%, rgba(9, 30, 48, 0.92));
+  box-shadow: 0 0 0 1px rgba(68, 217, 230, 0.12), 0 0 36px rgba(68, 217, 230, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .pass-countdown-panel.is-active {
-  border-color: rgba(71, 209, 140, 0.45);
-  box-shadow: 0 0 24px rgba(71, 209, 140, 0.12);
+  border-color: rgba(71, 209, 140, 0.65);
+  background: linear-gradient(120deg, rgba(20, 110, 84, 0.55), rgba(15, 130, 100, 0.4) 45%, rgba(9, 48, 30, 0.92));
+  box-shadow: 0 0 0 1px rgba(71, 209, 140, 0.16), 0 0 36px rgba(71, 209, 140, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .pass-countdown-dot {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   flex: 0 0 auto;
   border-radius: 50%;
   background: var(--cyan);
-  box-shadow: 0 0 12px var(--cyan);
+  box-shadow: 0 0 16px 2px var(--cyan);
   animation: pulse 2s infinite;
 }
 
@@ -1429,16 +1430,18 @@ body::before {
 }
 
 .pass-countdown-value {
-  color: var(--cyan);
+  color: #eafeff;
   font-family: ui-monospace, monospace;
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 1.95rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 18px rgba(68, 217, 230, 0.85);
 }
 
 .pass-countdown-panel.is-active .pass-countdown-value {
-  color: var(--green);
+  color: #eafff2;
+  text-shadow: 0 0 18px rgba(71, 209, 140, 0.85);
 }
 
 .pass-countdown-sat {
