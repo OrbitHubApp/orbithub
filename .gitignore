@@ -12,3 +12,7 @@ backups/
 *backup*
 *.zip
 *.tar.gz
+*.bak*
+*backup*
+*.zip
+*.tar.gz
