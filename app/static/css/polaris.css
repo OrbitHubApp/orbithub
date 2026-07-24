@@ -1673,3 +1673,43 @@ a.source-action-button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* OrbitHub: Ueberfluege Zwei-Spalten-Layout */
+
+.passes-top-grid {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.95fr) minmax(320px, 1.05fr);
+  gap: 16px;
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+
+.passes-left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.passes-right-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.passes-right-column .polarplot-card {
+  margin-top: 14px;
+  flex: 1;
+}
+
+.passes-right-column .satellite-empty-block {
+  margin-top: 14px;
+}
+
+.passes-form-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 1100px) {
+  .passes-top-grid {
+    grid-template-columns: 1fr;
+  }
+}
