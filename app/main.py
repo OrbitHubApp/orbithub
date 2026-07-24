@@ -1,4 +1,6 @@
+from dataclasses import asdict
 from datetime import datetime, timezone
+import json
 import re
 import time
 from urllib.parse import urlparse
@@ -28,6 +30,13 @@ from app.exporters.standard import StandardExporter
 from app.services.tle_parser import TLEParser
 from app.services.pass_predictor import PassPredictor
 from app.services.source_manager import SourceManager
+from app.services.maidenhead import locator_to_latlon
+from app.services.observer_settings import (
+    HorizonSegment,
+    ObserverSettings,
+    load_observer_settings,
+    save_observer_settings,
+)
 from app.services.tle_sources import (
     fetch_source_text,
     find_source,
@@ -68,6 +77,7 @@ def display_satellite_name(name: str) -> str:
 
 
 templates.env.filters["display_name"] = display_satellite_name
+templates.env.globals["observer_settings"] = load_observer_settings
 
 source_manager = SourceManager(SOURCE_URLS)
 
@@ -464,18 +474,19 @@ async def passes_page(
         if selected_record is None:
             selected_record = records[0]
 
+        observer = load_observer_settings()
+
         predictor = PassPredictor(
-            latitude_deg=52.45,
-            longitude_deg=13.35,
-            elevation_m=50,
+            latitude_deg=observer.latitude_deg,
+            longitude_deg=observer.longitude_deg,
+            elevation_m=observer.elevation_m,
         )
 
         satellite_passes = predictor.predict(
             selected_record,
             hours=hours,
-            minimum_elevation_deg=(
-                minimum_elevation
-            ),
+            minimum_elevation_deg=minimum_elevation,
+            observer_settings=observer,
         )
 
     return templates.TemplateResponse(
@@ -495,14 +506,108 @@ async def passes_page(
                 selected_record
             ),
             "passes": satellite_passes,
-            "observer_name": "Berlin",
-            "observer_locator": "JO62PL",
+            "observer_name": observer.qth_name,
+            "observer_locator": observer.locator,
             "minimum_elevation": (
                 minimum_elevation
             ),
             "hours": hours,
         },
     )
+@app.get("/settings")
+async def settings_page(request: Request):
+    settings = load_observer_settings()
+
+    horizon_segments_json = json.dumps(
+        [asdict(segment) for segment in settings.horizon_segments]
+    )
+
+    return templates.TemplateResponse(
+        name="settings.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "version": VERSION,
+            "codename": CODENAME,
+            "settings": settings,
+            "horizon_segments_json": horizon_segments_json,
+            "saved": request.query_params.get("saved") == "1",
+        },
+    )
+
+
+@app.post("/api/settings/update")
+async def update_settings(request: Request) -> dict:
+    payload = await request.json()
+
+    def coerce_float(value: object, fallback: float) -> float:
+        try:
+            return float(str(value).replace(",", "."))
+        except (TypeError, ValueError):
+            return fallback
+
+    callsign = str(payload.get("callsign", "")).strip().upper() or "DL0AA"
+    locator = str(payload.get("locator", "")).strip().upper()
+    qth_name = str(payload.get("qth_name", "")).strip() or "QTH"
+
+    latitude_deg = None
+    longitude_deg = None
+
+    if payload.get("use_locator") and locator:
+        try:
+            latitude_deg, longitude_deg = locator_to_latlon(locator)
+        except ValueError:
+            latitude_deg = None
+            longitude_deg = None
+
+    if latitude_deg is None or longitude_deg is None:
+        latitude_deg = coerce_float(payload.get("latitude_deg"), 52.45)
+        longitude_deg = coerce_float(payload.get("longitude_deg"), 13.35)
+
+    elevation_m = coerce_float(payload.get("elevation_m"), 0.0)
+
+    default_minimum_elevation_deg = max(
+        0.0,
+        min(90.0, coerce_float(payload.get("default_minimum_elevation_deg"), 10.0)),
+    )
+
+    horizon_segments = []
+    for raw_segment in payload.get("horizon_segments") or []:
+        if not isinstance(raw_segment, dict):
+            continue
+
+        azimuth_from_deg = coerce_float(raw_segment.get("azimuth_from_deg"), 0.0) % 360.0
+        azimuth_to_deg = coerce_float(raw_segment.get("azimuth_to_deg"), 0.0) % 360.0
+        segment_minimum_elevation_deg = max(
+            0.0,
+            min(90.0, coerce_float(raw_segment.get("minimum_elevation_deg"), 0.0)),
+        )
+
+        horizon_segments.append(
+            HorizonSegment(
+                azimuth_from_deg=azimuth_from_deg,
+                azimuth_to_deg=azimuth_to_deg,
+                minimum_elevation_deg=segment_minimum_elevation_deg,
+            )
+        )
+
+    settings = ObserverSettings(
+        callsign=callsign,
+        locator=locator or "JO62PL",
+        qth_name=qth_name,
+        latitude_deg=latitude_deg,
+        longitude_deg=longitude_deg,
+        elevation_m=elevation_m,
+        default_minimum_elevation_deg=default_minimum_elevation_deg,
+        horizon_segments=tuple(horizon_segments),
+    )
+
+    save_observer_settings(settings)
+
+    return {"ok": True}
+
+
 @app.get("/satellites")
 async def satellites_page(request: Request):
     parser = TLEParser()

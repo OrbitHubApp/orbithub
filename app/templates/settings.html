@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}
+  OrbitHub · Einstellungen
+{% endblock %}
+
+{% block nav_settings %}active{% endblock %}
+
+{% block page_heading %}
+  Einstellungen
+{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero sources-hero">
+  <div>
+    <div class="eyebrow">STATION &amp; SICHTBARKEIT</div>
+    <h2>Standort, Rufzeichen &amp; Horizont</h2>
+    <p>
+      Hinterlege deinen Standort, dein Rufzeichen und deinen tatsächlich
+      freien Himmelsausschnitt. OrbitHub zeigt Überflüge dann nur noch dort,
+      wo du sie wirklich empfangen kannst.
+    </p>
+  </div>
+
+  <article class="source-summary-card">
+    <span>Rufzeichen</span>
+    <strong>{{ settings.callsign }}</strong>
+  </article>
+
+  <article class="source-summary-card">
+    <span>QTH</span>
+    <strong>{{ settings.qth_name }}</strong>
+  </article>
+
+  <article class="source-summary-card">
+    <span>Locator</span>
+    <strong>{{ settings.locator }}</strong>
+  </article>
+</section>
+
+<section class="add-source-panel">
+  <div class="add-source-panel-header">
+    <div>
+      <div class="label">STATION</div>
+      <h3>Rufzeichen &amp; Standort</h3>
+      <p>
+        Der Locator berechnet Breiten- und Längengrad automatisch. Alternativ
+        kannst du Koordinaten manuell eingeben.
+      </p>
+    </div>
+  </div>
+
+  <div class="source-form-grid" id="settings-station-form">
+    <label>
+      <span>Rufzeichen</span>
+      <input
+        type="text"
+        id="settings-callsign"
+        value="{{ settings.callsign }}"
+        placeholder="DL7AG"
+        maxlength="12"
+      >
+    </label>
+
+    <label>
+      <span>QTH-Name</span>
+      <input
+        type="text"
+        id="settings-qth-name"
+        value="{{ settings.qth_name }}"
+        placeholder="Berlin"
+        maxlength="60"
+      >
+    </label>
+
+    <label>
+      <span>Maidenhead-Locator</span>
+      <input
+        type="text"
+        id="settings-locator"
+        value="{{ settings.locator }}"
+        placeholder="JO62PL"
+        maxlength="8"
+      >
+    </label>
+
+    <label>
+      <span>Position bestimmen über</span>
+      <select id="settings-use-locator">
+        <option value="1" selected>Locator (automatisch)</option>
+        <option value="0">Manuelle Koordinaten</option>
+      </select>
+    </label>
+
+    <label>
+      <span>Breitengrad (°)</span>
+      <input
+        type="text"
+        id="settings-latitude"
+        value="{{ settings.latitude_deg }}"
+        inputmode="decimal"
+        placeholder="52.45"
+      >
+    </label>
+
+    <label>
+      <span>Längengrad (°)</span>
+      <input
+        type="text"
+        id="settings-longitude"
+        value="{{ settings.longitude_deg }}"
+        inputmode="decimal"
+        placeholder="13.35"
+      >
+    </label>
+
+    <label>
+      <span>Höhe über NN (m)</span>
+      <input
+        type="text"
+        id="settings-elevation"
+        value="{{ settings.elevation_m }}"
+        inputmode="decimal"
+        placeholder="50"
+      >
+    </label>
+
+    <label>
+      <span>Standard-Mindesthöhe (°)</span>
+      <input
+        type="text"
+        id="settings-default-min-elevation"
+        value="{{ settings.default_minimum_elevation_deg }}"
+        inputmode="decimal"
+        placeholder="10"
+      >
+    </label>
+  </div>
+</section>
+
+<section class="add-source-panel">
+  <div class="add-source-panel-header">
+    <div>
+      <div class="label">SICHTBARER HIMMEL</div>
+      <h3>Horizont-Profil</h3>
+      <p>
+        Trage die Himmelsrichtungen ein, in denen Gebäude, Bäume o. Ä. die
+        Sicht einschränken, und ab welcher Elevation du dort erst freie Sicht
+        hast. Nicht abgedeckte Richtungen nutzen die Standard-Mindesthöhe.
+      </p>
+    </div>
+
+    <button
+      class="source-action-button primary"
+      id="add-horizon-segment"
+      type="button"
+    >
+      + Bereich hinzufügen
+    </button>
+  </div>
+
+  <div id="horizon-segments-list"></div>
+
+  <p class="source-form-status" id="horizon-empty-hint">
+    Noch keine Einschränkung eingetragen — der komplette Himmel ab der
+    Standard-Mindesthöhe gilt als sichtbar.
+  </p>
+
+  <div class="source-form-actions">
+    <button
+      class="source-action-button secondary"
+      id="reload-settings"
+      type="button"
+    >
+      Verwerfen
+    </button>
+    <button
+      class="source-action-button primary"
+      id="save-settings"
+      type="button"
+    >
+      Einstellungen speichern
+    </button>
+  </div>
+
+  <div
+    class="source-form-status"
+    id="settings-status"
+    role="status"
+    aria-live="polite"
+  >{% if saved %}Einstellungen gespeichert.{% endif %}</div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script id="horizon-segments-data" type="application/json">{{ horizon_segments_json | safe }}</script>
+<script>
+(() => {
+  const listEl = document.getElementById("horizon-segments-list");
+  const emptyHint = document.getElementById("horizon-empty-hint");
+  const addButton = document.getElementById("add-horizon-segment");
+  const saveButton = document.getElementById("save-settings");
+  const reloadButton = document.getElementById("reload-settings");
+  const statusEl = document.getElementById("settings-status");
+
+  if (!listEl || !addButton || !saveButton) return;
+
+  let segments = [];
+
+  try {
+    const dataEl = document.getElementById("horizon-segments-data");
+    segments = JSON.parse(dataEl.textContent || "[]");
+  } catch (error) {
+    segments = [];
+  }
+
+  function renderSegments() {
+    listEl.innerHTML = "";
+
+    if (segments.length === 0) {
+      emptyHint.style.display = "";
+    } else {
+      emptyHint.style.display = "none";
+    }
+
+    segments.forEach((segment, index) => {
+      const row = document.createElement("div");
+      row.className = "source-form-grid horizon-segment-row";
+
+      row.innerHTML = `
+        <label>
+          <span>Azimut von (°)</span>
+          <input type="text" inputmode="decimal" data-field="azimuth_from_deg" value="${segment.azimuth_from_deg}">
+        </label>
+        <label>
+          <span>Azimut bis (°)</span>
+          <input type="text" inputmode="decimal" data-field="azimuth_to_deg" value="${segment.azimuth_to_deg}">
+        </label>
+        <label>
+          <span>Mindesthöhe hier (°)</span>
+          <input type="text" inputmode="decimal" data-field="minimum_elevation_deg" value="${segment.minimum_elevation_deg}">
+        </label>
+        <button type="button" class="source-action-button secondary" data-remove-index="${index}">Entfernen</button>
+      `;
+
+      row.querySelectorAll("input").forEach((input) => {
+        input.addEventListener("input", () => {
+          const field = input.dataset.field;
+          segments[index][field] = input.value;
+        });
+      });
+
+      row.querySelector("[data-remove-index]").addEventListener("click", () => {
+        segments.splice(index, 1);
+        renderSegments();
+      });
+
+      listEl.appendChild(row);
+    });
+  }
+
+  addButton.addEventListener("click", () => {
+    segments.push({
+      azimuth_from_deg: 0,
+      azimuth_to_deg: 90,
+      minimum_elevation_deg: 20,
+    });
+    renderSegments();
+  });
+
+  if (reloadButton) {
+    reloadButton.addEventListener("click", () => {
+      window.location.reload();
+    });
+  }
+
+  async function postJson(url, payload = {}) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    let data = {};
+
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
+
+    if (!response.ok) {
+      throw new Error(data.detail || `HTTP ${response.status}`);
+    }
+
+    return data;
+  }
+
+  saveButton.addEventListener("click", async () => {
+    saveButton.disabled = true;
+    if (statusEl) {
+      statusEl.textContent = "Wird gespeichert …";
+      statusEl.className = "source-form-status running";
+    }
+
+    const useLocatorEl = document.getElementById("settings-use-locator");
+
+    const payload = {
+      callsign: document.getElementById("settings-callsign").value,
+      qth_name: document.getElementById("settings-qth-name").value,
+      locator: document.getElementById("settings-locator").value,
+      use_locator: useLocatorEl ? useLocatorEl.value === "1" : true,
+      latitude_deg: document.getElementById("settings-latitude").value,
+      longitude_deg: document.getElementById("settings-longitude").value,
+      elevation_m: document.getElementById("settings-elevation").value,
+      default_minimum_elevation_deg: document.getElementById(
+        "settings-default-min-elevation"
+      ).value,
+      horizon_segments: segments,
+    };
+
+    try {
+      await postJson("/api/settings/update", payload);
+      window.location.href = "/settings?saved=1";
+    } catch (error) {
+      if (statusEl) {
+        statusEl.textContent = `Fehler: ${error.message}`;
+        statusEl.className = "source-form-status error";
+      }
+      saveButton.disabled = false;
+    }
+  });
+
+  renderSegments();
+})();
+</script>
+{% endblock %}

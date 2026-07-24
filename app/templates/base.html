@@ -1,4 +1,5 @@
 <!doctype html>
+{% set observer = observer_settings() %}
 <html lang="de">
 <head>
   <meta charset="utf-8">
@@ -145,10 +146,9 @@
         <span>Daten &amp; Quellen</span>
       </a>
 
-      <a class="nav-item" href="/settings">
+      <a class="nav-item {% block nav_settings %}{% endblock %}" href="/settings">
         <span class="nav-icon">⚙</span>
         <span>Einstellungen</span>
-        <span class="nav-badge">bald</span>
       </a>
 
       <a class="nav-item" href="/about">
@@ -167,15 +167,15 @@
         </small>
 
         <strong class="operator-station-call">
-          DL7AG
+          {{ observer.callsign }}
         </strong>
 
         <span class="operator-station-location">
-          QTH Berlin
+          {{ observer.qth_name }}
         </span>
 
         <span class="operator-station-locator">
-          Locator JO62PL
+          Locator {{ observer.locator }}
         </span>
 
         <small class="operator-station-version">
@@ -199,7 +199,7 @@
         </h1>
 
         <p>
-          Willkommen zurück, <strong>DL7AG</strong>!
+          Willkommen zurück, <strong>{{ observer.callsign }}</strong>!
         </p>
       </div>
 
@@ -238,11 +238,11 @@
 
         <div class="operator-card">
           <div>
-            <strong>DL7AG</strong>
-            <small>QTH Berlin</small>
-            <span class="operator-locator">
-              JO62PL
-            </span>
+            <strong>{{ observer.callsign }}</strong>
+          <small>{{ observer.qth_name }}</small>
+          <span class="operator-locator">
+            {{ observer.locator }}
+          </span>
           </div>
 
           <span class="operator-icon">◯</span>

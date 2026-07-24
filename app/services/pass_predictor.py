@@ -1,10 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from math import cos, radians, sin
 
 from skyfield.api import EarthSatellite, load, wgs84
 
 from app.models.tle_record import TLERecord
+from app.services.observer_settings import ObserverSettings
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,6 +129,7 @@ class PassPredictor:
         hours: int = 24,
         minimum_elevation_deg: float = 10.0,
         start_time: datetime | None = None,
+        observer_settings: ObserverSettings | None = None,
     ) -> list[SatellitePass]:
         start = start_time or datetime.now(
             timezone.utc
@@ -156,11 +158,19 @@ class PassPredictor:
             end
         )
 
+        search_floor = minimum_elevation_deg
+        if observer_settings is not None:
+            search_floor = min(
+                search_floor,
+                observer_settings.default_minimum_elevation_deg,
+            )
+        search_floor = max(0.0, search_floor)
+
         times, events = satellite.find_events(
             self.observer,
             start_sf,
             end_sf,
-            altitude_degrees=minimum_elevation_deg,
+            altitude_degrees=search_floor,
         )
 
         passes: list[SatellitePass] = []
@@ -244,4 +254,62 @@ class PassPredictor:
                 current_culmination = None
                 current_max_elevation = None
 
-        return passes
+        if observer_settings is None:
+            return passes
+
+        masked_passes: list[SatellitePass] = []
+        for satellite_pass in passes:
+            masked_passes.extend(
+                self._apply_horizon_mask(
+                    satellite_pass,
+                    minimum_elevation_deg=minimum_elevation_deg,
+                    observer_settings=observer_settings,
+                )
+            )
+        return masked_passes
+
+    def _apply_horizon_mask(
+        self,
+        satellite_pass: SatellitePass,
+        minimum_elevation_deg: float,
+        observer_settings: ObserverSettings,
+    ) -> list[SatellitePass]:
+        """Split a pass into the sub-window(s) that clear the local horizon."""
+
+        def required_elevation(azimuth_deg: float) -> float:
+            return max(
+                minimum_elevation_deg,
+                observer_settings.minimum_elevation_at(azimuth_deg),
+            )
+
+        runs: list[list[SatelliteTrackPoint]] = []
+        current_run: list[SatelliteTrackPoint] = []
+
+        for point in satellite_pass.track_points:
+            if point.elevation_deg >= required_elevation(point.azimuth_deg):
+                current_run.append(point)
+            else:
+                if len(current_run) >= 2:
+                    runs.append(current_run)
+                current_run = []
+
+        if len(current_run) >= 2:
+            runs.append(current_run)
+
+        result: list[SatellitePass] = []
+        for run in runs:
+            peak = max(run, key=lambda point: point.elevation_deg)
+            result.append(
+                replace(
+                    satellite_pass,
+                    rise_time=run[0].timestamp,
+                    culmination_time=peak.timestamp,
+                    set_time=run[-1].timestamp,
+                    max_elevation_deg=peak.elevation_deg,
+                    rise_azimuth_deg=run[0].azimuth_deg,
+                    set_azimuth_deg=run[-1].azimuth_deg,
+                    track_points=tuple(run),
+                )
+            )
+
+        return result
