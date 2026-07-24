@@ -8,28 +8,53 @@
 
 {% block content %}
 
-<section class="mission-panel">
-  <div class="panel-heading">
+<section class="mission-hero">
+  <div>
+    <div class="eyebrow">PASS PREDICTION</div>
+
+    <h2>Nächste Satellitenüberflüge</h2>
+
+    <p>
+      Berechnet für {{ observer_name }}
+      · Locator {{ observer_locator }}
+      · Mindesthöhe {{ minimum_elevation }}°
+      · Zeitraum {{ hours }} Stunden
+    </p>
+  </div>
+
+  <div class="hero-online">
+    <span class="hero-online-dot"></span>
+
     <div>
-      <span class="panel-kicker">PASS PREDICTION</span>
-      <h2>Nächste Satellitenüberflüge</h2>
-      <p>
-        Berechnet für {{ observer_name }}
-        · Locator {{ observer_locator }}
-        · Mindesthöhe {{ minimum_elevation }}°
-        · Zeitraum {{ hours }} Stunden
-      </p>
+      {% if selected_satellite %}
+        <strong>{{ selected_satellite.name|display_name }}</strong>
+        <small>NORAD {{ selected_satellite.norad_id }} · {{ passes|length }} Überflüge</small>
+      {% else %}
+        <strong>Keine TLE-Daten</strong>
+        <small>Noch kein Satellit geladen</small>
+      {% endif %}
     </div>
   </div>
 </section>
 
-<section class="mission-panel">
+<section class="add-source-panel">
+  <div class="add-source-panel-header">
+    <div>
+      <div class="label">FILTER</div>
+      <h3>Überflüge berechnen</h3>
+      <p>
+        Satellit, Zeitraum und Mindesthöhe wählen
+        und die Liste neu berechnen.
+      </p>
+    </div>
+  </div>
+
   <form
-    class="passes-filter-form"
+    class="add-source-form"
     method="get"
     action="/passes"
   >
-    <div class="passes-filter-grid">
+    <div class="source-form-grid">
       <label>
         <span>Satellit</span>
 
@@ -82,37 +107,25 @@
           {% endfor %}
         </select>
       </label>
+    </div>
 
-      <button type="submit">
+    <div class="source-form-actions">
+      <button
+        class="source-action-button primary"
+        type="submit"
+      >
         Überflüge berechnen
       </button>
     </div>
   </form>
 </section>
 
-<section class="mission-panel">
-  <div class="panel-heading">
-    <div>
-      <span class="panel-kicker">SATELLIT</span>
-
-      {% if selected_satellite %}
-        <h2>{{ selected_satellite.name|display_name }}</h2>
-        <p>
-          NORAD {{ selected_satellite.norad_id }}
-        </p>
-      {% else %}
-        <h2>Keine TLE-Daten verfügbar</h2>
-      {% endif %}
-    </div>
-  </div>
-</section>
-
 {% if passes %}
-<section class="mission-panel pass-center-panel">
-  <div class="panel-heading">
+<section class="add-source-panel">
+  <div class="add-source-panel-header">
     <div>
-      <span class="panel-kicker">NEXT PASS</span>
-      <h2>Polarplot des nächsten Überflugs</h2>
+      <div class="label">NEXT PASS</div>
+      <h3>Polarplot des nächsten Überflugs</h3>
       <p>
         {{ passes[0].rise_time.astimezone().strftime("%d.%m.%Y %H:%M:%S") }}
         bis
@@ -184,7 +197,7 @@
     </div>
 
     <div class="pass-summary-card">
-      <span class="panel-kicker">ÜBERFLUGDATEN</span>
+      <span class="label">ÜBERFLUGDATEN</span>
       <h3>{{ selected_satellite.name|display_name }}</h3>
 
       <dl class="pass-summary-list">
@@ -231,11 +244,11 @@
 </section>
 {% endif %}
 
-<section class="mission-panel">
-  <div class="panel-heading">
+<section class="add-source-panel">
+  <div class="add-source-panel-header">
     <div>
-      <span class="panel-kicker">PASSES</span>
-      <h2>Überflugliste</h2>
+      <div class="label">PASSES</div>
+      <h3>Überflugliste</h3>
     </div>
   </div>
 
@@ -291,7 +304,7 @@
       </table>
     </div>
   {% else %}
-    <div class="empty-state">
+    <div class="satellite-empty-block">
       <strong>Keine Überflüge gefunden</strong>
       <p>
         Im gewählten Zeitraum wurde kein Überflug oberhalb
