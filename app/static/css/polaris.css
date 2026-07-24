@@ -1713,3 +1713,21 @@ a.source-action-button {
     grid-template-columns: 1fr;
   }
 }
+
+.pass-row {
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.pass-row.active {
+  background: rgba(68, 217, 230, 0.12);
+  box-shadow: inset 3px 0 0 var(--cyan);
+}
+
+.pass-row.active td {
+  color: #eafeff;
+}
+
+.pass-row.active td strong {
+  color: var(--cyan);
+}

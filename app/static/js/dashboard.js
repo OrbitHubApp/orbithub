@@ -486,9 +486,6 @@
   const labelEl = document.getElementById("pass-countdown-label");
   const valueEl = document.getElementById("pass-countdown-value");
 
-  const riseTime = new Date(panel.dataset.riseUtc);
-  const setTime = new Date(panel.dataset.setUtc);
-
   function pad(number) {
     return String(number).padStart(2, "0");
   }
@@ -504,6 +501,9 @@
   let intervalId = null;
 
   function updateCountdown() {
+    const riseTime = new Date(panel.dataset.riseUtc);
+    const setTime = new Date(panel.dataset.setUtc);
+
     if (Number.isNaN(riseTime.getTime()) || Number.isNaN(setTime.getTime())) {
       labelEl.textContent = "Kein Überflug geplant";
       valueEl.textContent = "--:--:--";
@@ -533,4 +533,134 @@
 
   updateCountdown();
   intervalId = window.setInterval(updateCountdown, 1000);
+})();
+
+(() => {
+  const dataEl = document.getElementById("passes-data");
+
+  if (!dataEl) {
+    return;
+  }
+
+  let passList;
+
+  try {
+    passList = JSON.parse(dataEl.textContent);
+  } catch (error) {
+    return;
+  }
+
+  const rows = document.querySelectorAll(".pass-row");
+  const countdownPanel = document.getElementById("pass-countdown");
+
+  const summaryRise = document.getElementById("summary-rise");
+  const summaryMax = document.getElementById("summary-max");
+  const summarySet = document.getElementById("summary-set");
+  const summaryElevation = document.getElementById("summary-elevation");
+  const summaryAzimuthRise = document.getElementById("summary-azimuth-rise");
+  const summaryAzimuthSet = document.getElementById("summary-azimuth-set");
+  const summaryDuration = document.getElementById("summary-duration");
+  const nextPassSummary = document.getElementById("next-pass-summary");
+
+  const track = document.getElementById("polarplot-track");
+  const riseDot = document.getElementById("polarplot-rise");
+  const setDot = document.getElementById("polarplot-set");
+  const aosLabel = document.getElementById("polarplot-aos-label");
+  const losLabel = document.getElementById("polarplot-los-label");
+
+  function pad(number) {
+    return String(number).padStart(2, "0");
+  }
+
+  function formatTime(date) {
+    return pad(date.getHours()) + ":" + pad(date.getMinutes()) + ":" + pad(date.getSeconds());
+  }
+
+  function formatDateTime(date) {
+    return (
+      pad(date.getDate()) +
+      "." +
+      pad(date.getMonth() + 1) +
+      "." +
+      date.getFullYear() +
+      " " +
+      formatTime(date)
+    );
+  }
+
+  function formatDuration(totalSeconds) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return minutes + " Min. " + seconds + " Sek.";
+  }
+
+  function applyPass(index) {
+    const passData = passList[index];
+
+    if (!passData) {
+      return;
+    }
+
+    const rise = new Date(passData.rise_iso);
+    const culmination = new Date(passData.culmination_iso);
+    const set = new Date(passData.set_iso);
+
+    if (summaryRise) summaryRise.textContent = formatTime(rise);
+    if (summaryMax) summaryMax.textContent = formatTime(culmination);
+    if (summarySet) summarySet.textContent = formatTime(set);
+    if (summaryElevation) summaryElevation.textContent = passData.max_elevation_deg.toFixed(1) + "°";
+    if (summaryAzimuthRise) summaryAzimuthRise.textContent = passData.rise_azimuth_deg.toFixed(1) + "°";
+    if (summaryAzimuthSet) summaryAzimuthSet.textContent = passData.set_azimuth_deg.toFixed(1) + "°";
+    if (summaryDuration) summaryDuration.textContent = formatDuration(passData.duration_seconds);
+
+    if (nextPassSummary) {
+      nextPassSummary.textContent =
+        formatDateTime(rise) + " bis " + formatTime(set) + " · Maximum " + passData.max_elevation_deg.toFixed(1) + "°";
+    }
+
+    if (track && passData.track_points.length > 0) {
+      track.setAttribute(
+        "points",
+        passData.track_points.map((point) => point.x + "," + point.y).join(" ")
+      );
+
+      const firstPoint = passData.track_points[0];
+      const lastPoint = passData.track_points[passData.track_points.length - 1];
+
+      if (riseDot) {
+        riseDot.setAttribute("cx", firstPoint.x);
+        riseDot.setAttribute("cy", firstPoint.y);
+      }
+
+      if (setDot) {
+        setDot.setAttribute("cx", lastPoint.x);
+        setDot.setAttribute("cy", lastPoint.y);
+      }
+
+      if (aosLabel) {
+        aosLabel.setAttribute("x", firstPoint.x);
+        aosLabel.setAttribute("y", firstPoint.y - 7);
+      }
+
+      if (losLabel) {
+        losLabel.setAttribute("x", lastPoint.x);
+        losLabel.setAttribute("y", lastPoint.y - 7);
+      }
+    }
+
+    if (countdownPanel) {
+      countdownPanel.dataset.riseUtc = passData.rise_iso;
+      countdownPanel.dataset.setUtc = passData.set_iso;
+    }
+
+    rows.forEach((row) => {
+      row.classList.toggle("active", Number(row.dataset.passIndex) === index);
+    });
+  }
+
+  rows.forEach((row) => {
+    row.addEventListener("click", () => {
+      applyPass(Number(row.dataset.passIndex));
+    });
+  });
 })();

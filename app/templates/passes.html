@@ -121,37 +121,37 @@
         <dl class="pass-summary-list">
           <div>
             <dt>Aufgang</dt>
-            <dd>{{ passes[0].rise_time.astimezone().strftime("%H:%M:%S") }}</dd>
+            <dd id="summary-rise">{{ passes[0].rise_time.astimezone().strftime("%H:%M:%S") }}</dd>
           </div>
 
           <div>
             <dt>Maximum</dt>
-            <dd>{{ passes[0].culmination_time.astimezone().strftime("%H:%M:%S") }}</dd>
+            <dd id="summary-max">{{ passes[0].culmination_time.astimezone().strftime("%H:%M:%S") }}</dd>
           </div>
 
           <div>
             <dt>Untergang</dt>
-            <dd>{{ passes[0].set_time.astimezone().strftime("%H:%M:%S") }}</dd>
+            <dd id="summary-set">{{ passes[0].set_time.astimezone().strftime("%H:%M:%S") }}</dd>
           </div>
 
           <div>
             <dt>Maximale Höhe</dt>
-            <dd>{{ "%.1f"|format(passes[0].max_elevation_deg) }}°</dd>
+            <dd id="summary-elevation">{{ "%.1f"|format(passes[0].max_elevation_deg) }}°</dd>
           </div>
 
           <div>
             <dt>Azimut Aufgang</dt>
-            <dd>{{ "%.1f"|format(passes[0].rise_azimuth_deg) }}°</dd>
+            <dd id="summary-azimuth-rise">{{ "%.1f"|format(passes[0].rise_azimuth_deg) }}°</dd>
           </div>
 
           <div>
             <dt>Azimut Untergang</dt>
-            <dd>{{ "%.1f"|format(passes[0].set_azimuth_deg) }}°</dd>
+            <dd id="summary-azimuth-set">{{ "%.1f"|format(passes[0].set_azimuth_deg) }}°</dd>
           </div>
 
           <div>
             <dt>Dauer</dt>
-            <dd>
+            <dd id="summary-duration">
               {{ passes[0].duration_seconds // 60 }} Min.
               {{ passes[0].duration_seconds % 60 }} Sek.
             </dd>
@@ -178,7 +178,7 @@
     <h3>Polarplot des nächsten Überflugs</h3>
 
     {% if passes %}
-      <p>
+      <p id="next-pass-summary">
         {{ passes[0].rise_time.astimezone().strftime("%d.%m.%Y %H:%M:%S") }}
         bis
         {{ passes[0].set_time.astimezone().strftime("%H:%M:%S") }}
@@ -209,26 +209,26 @@
           <text class="polarplot-elevation" x="104" y="103">90°</text>
 
           <polyline
-            class="polarplot-track"
+            id="polarplot-track" class="polarplot-track"
             points="{% for point in passes[0].track_points %}{{ point.polar_x }},{{ point.polar_y }} {% endfor %}"
           />
 
           <circle
-            class="polarplot-rise"
+            id="polarplot-rise" class="polarplot-rise"
             cx="{{ passes[0].track_points[0].polar_x }}"
             cy="{{ passes[0].track_points[0].polar_y }}"
             r="4"
           />
 
           <circle
-            class="polarplot-set"
+            id="polarplot-set" class="polarplot-set"
             cx="{{ passes[0].track_points[-1].polar_x }}"
             cy="{{ passes[0].track_points[-1].polar_y }}"
             r="4"
           />
 
           <text
-            class="polarplot-marker-label"
+            id="polarplot-aos-label" class="polarplot-marker-label"
             x="{{ passes[0].track_points[0].polar_x }}"
             y="{{ passes[0].track_points[0].polar_y - 7 }}"
           >
@@ -236,7 +236,7 @@
           </text>
 
           <text
-            class="polarplot-marker-label"
+            id="polarplot-los-label" class="polarplot-marker-label"
             x="{{ passes[0].track_points[-1].polar_x }}"
             y="{{ passes[0].track_points[-1].polar_y - 7 }}"
           >
@@ -278,7 +278,7 @@
 
         <tbody>
           {% for pass in passes %}
-            <tr>
+            <tr class="pass-row{% if loop.first %} active{% endif %}" data-pass-index="{{ loop.index0 }}">
               <td>
                 {{ pass.rise_time.astimezone().strftime("%d.%m.%Y %H:%M:%S") }}
               </td>
@@ -322,5 +322,24 @@
     </div>
   {% endif %}
 </section>
+
+{% if passes %}
+<script id="passes-data" type="application/json">
+[
+{% for pass in passes %}
+  {
+    "rise_iso": "{{ pass.rise_time.isoformat() }}",
+    "culmination_iso": "{{ pass.culmination_time.isoformat() }}",
+    "set_iso": "{{ pass.set_time.isoformat() }}",
+    "max_elevation_deg": {{ pass.max_elevation_deg }},
+    "rise_azimuth_deg": {{ pass.rise_azimuth_deg }},
+    "set_azimuth_deg": {{ pass.set_azimuth_deg }},
+    "duration_seconds": {{ pass.duration_seconds }},
+    "track_points": [{% for point in pass.track_points %}{"x": {{ point.polar_x }}, "y": {{ point.polar_y }}}{% if not loop.last %}, {% endif %}{% endfor %}]
+  }{% if not loop.last %},{% endif %}
+{% endfor %}
+]
+</script>
+{% endif %}
 
 {% endblock %}
