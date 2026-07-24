@@ -58,6 +58,17 @@ templates = Jinja2Templates(
     directory=str(BASE_DIR / "templates")
 )
 
+
+def display_satellite_name(name: str) -> str:
+    """Strip the leading 3LE '0 ' marker from a satellite name for display."""
+    if name.startswith("0 "):
+        return name[2:]
+
+    return name
+
+
+templates.env.filters["display_name"] = display_satellite_name
+
 source_manager = SourceManager(SOURCE_URLS)
 
 
@@ -500,6 +511,13 @@ async def satellites_page(request: Request):
         parser.parse_file(TLE_FILE)
         if TLE_FILE.exists()
         else []
+    )
+
+    records = sorted(
+        records,
+        key=lambda record: display_satellite_name(
+            record.name
+        ).lower(),
     )
 
     return templates.TemplateResponse(

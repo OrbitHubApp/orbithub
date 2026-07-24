@@ -36,7 +36,7 @@
   </div>
 </section>
 
-<section class="source-summary">
+<section class="source-summary satellite-summary-grid">
   <article class="source-summary-card satellite-search-card">
     <span>Suche</span>
 
@@ -47,6 +47,18 @@
       placeholder="Name oder NORAD-ID ..."
       autocomplete="off"
     >
+  </article>
+
+  <article class="source-summary-card satellite-sort-card">
+    <span>Sortierung</span>
+
+    <select
+      id="satellite-sort-select"
+      class="satellite-search-input"
+    >
+      <option value="name">Name (A-Z)</option>
+      <option value="norad">NORAD-ID</option>
+    </select>
   </article>
 
   <article class="source-summary-card">
@@ -75,10 +87,10 @@
         <tbody>
           {% for satellite in satellites %}
             <tr
-              data-name="{{ satellite.name|lower }}"
+              data-name="{{ satellite.name|display_name|lower }}"
               data-norad="{{ satellite.norad_id|lower }}"
             >
-              <td>{{ satellite.name }}</td>
+              <td>{{ satellite.name|display_name }}</td>
               <td>{{ satellite.norad_id }}</td>
               <td>
                 <a
@@ -166,6 +178,45 @@
     "input",
     applyFilter
   );
+
+  const sortSelect = document.getElementById(
+    "satellite-sort-select"
+  );
+
+  const tableBody = document.querySelector(
+    "#satellite-table tbody"
+  );
+
+  function sortRows(criterion) {
+    if (!tableBody) {
+      return;
+    }
+
+    const sorted = [...rows].sort((a, b) => {
+      if (criterion === "norad") {
+        return a.dataset.norad.localeCompare(
+          b.dataset.norad,
+          "de",
+          {numeric: true}
+        );
+      }
+
+      return a.dataset.name.localeCompare(
+        b.dataset.name,
+        "de"
+      );
+    });
+
+    sorted.forEach((row) => {
+      tableBody.appendChild(row);
+    });
+  }
+
+  if (sortSelect) {
+    sortSelect.addEventListener("change", () => {
+      sortRows(sortSelect.value);
+    });
+  }
 })();
 </script>
 

@@ -41,7 +41,7 @@
                 selected
               {% endif %}
             >
-              {{ satellite.name }}
+              {{ satellite.name|display_name }}
               · NORAD {{ satellite.norad_id }}
             </option>
           {% endfor %}
@@ -96,7 +96,7 @@
       <span class="panel-kicker">SATELLIT</span>
 
       {% if selected_satellite %}
-        <h2>{{ selected_satellite.name }}</h2>
+        <h2>{{ selected_satellite.name|display_name }}</h2>
         <p>
           NORAD {{ selected_satellite.norad_id }}
         </p>
@@ -185,7 +185,7 @@
 
     <div class="pass-summary-card">
       <span class="panel-kicker">ÜBERFLUGDATEN</span>
-      <h3>{{ selected_satellite.name }}</h3>
+      <h3>{{ selected_satellite.name|display_name }}</h3>
 
       <dl class="pass-summary-list">
         <div>
