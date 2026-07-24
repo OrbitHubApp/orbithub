@@ -1617,3 +1617,49 @@ body::before {
     min-height: 340px;
   }
 }
+
+/* OrbitHub: Satellitenkatalog */
+
+.satellite-search-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.satellite-search-input {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  border: 1px solid rgba(92, 157, 190, 0.28);
+  border-radius: 9px;
+  outline: none;
+  background: rgba(5, 20, 34, 0.82);
+  padding: 9px 11px;
+  color: #dff5ff;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.satellite-search-input:focus {
+  border-color: rgba(68, 217, 255, 0.65);
+  box-shadow: 0 0 0 3px rgba(68, 217, 255, 0.08);
+}
+
+.satellite-search-input::placeholder {
+  color: #587185;
+}
+
+a.source-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.satellite-empty-block {
+  border: 1px dashed rgba(107, 139, 165, 0.3);
+  border-radius: 14px;
+  padding: 30px;
+  text-align: center;
+  color: #8da4b7;
+}

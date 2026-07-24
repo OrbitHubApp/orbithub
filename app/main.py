@@ -492,6 +492,33 @@ async def passes_page(
             "hours": hours,
         },
     )
+@app.get("/satellites")
+async def satellites_page(request: Request):
+    parser = TLEParser()
+
+    records = (
+        parser.parse_file(TLE_FILE)
+        if TLE_FILE.exists()
+        else []
+    )
+
+    return templates.TemplateResponse(
+        name="satellites.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "version": VERSION,
+            "codename": CODENAME,
+            "refresh_seconds": (
+                DASHBOARD_REFRESH_SECONDS
+            ),
+            "records": status["records"],
+            "satellites": records,
+        },
+    )
+
+
 @app.get("/sources")
 async def sources_page(request: Request):
     settings = load_source_settings(
