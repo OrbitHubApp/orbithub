@@ -1,9 +1,19 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from math import cos, radians, sin
 
 from skyfield.api import EarthSatellite, load, wgs84
 
 from app.models.tle_record import TLERecord
+
+
+@dataclass(frozen=True, slots=True)
+class SatelliteTrackPoint:
+    timestamp: datetime
+    azimuth_deg: float
+    elevation_deg: float
+    polar_x: float
+    polar_y: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,6 +26,7 @@ class SatellitePass:
     max_elevation_deg: float
     rise_azimuth_deg: float
     set_azimuth_deg: float
+    track_points: tuple[SatelliteTrackPoint, ...]
 
     @property
     def duration_seconds(self) -> int:
@@ -40,6 +51,76 @@ class PassPredictor:
             elevation_m=elevation_m,
         )
         self.timescale = load.timescale()
+
+    def _build_track_points(
+        self,
+        satellite: EarthSatellite,
+        rise_time: datetime,
+        set_time: datetime,
+        sample_count: int = 41,
+    ) -> tuple[SatelliteTrackPoint, ...]:
+        duration = set_time - rise_time
+        points: list[SatelliteTrackPoint] = []
+
+        for index in range(sample_count):
+            fraction = index / (sample_count - 1)
+            timestamp = rise_time + duration * fraction
+
+            skyfield_time = self.timescale.from_datetime(
+                timestamp
+            )
+
+            difference = (
+                satellite - self.observer
+            ).at(skyfield_time)
+
+            altitude, azimuth, _ = difference.altaz()
+
+            azimuth_deg = azimuth.degrees % 360.0
+            elevation_deg = max(
+                0.0,
+                min(90.0, altitude.degrees),
+            )
+
+            radius = (
+                90.0 - elevation_deg
+            ) / 90.0 * 90.0
+
+            azimuth_rad = radians(azimuth_deg)
+
+            polar_x = (
+                100.0
+                + radius * sin(azimuth_rad)
+            )
+
+            polar_y = (
+                100.0
+                - radius * cos(azimuth_rad)
+            )
+
+            points.append(
+                SatelliteTrackPoint(
+                    timestamp=timestamp,
+                    azimuth_deg=round(
+                        azimuth_deg,
+                        1,
+                    ),
+                    elevation_deg=round(
+                        elevation_deg,
+                        1,
+                    ),
+                    polar_x=round(
+                        polar_x,
+                        2,
+                    ),
+                    polar_y=round(
+                        polar_y,
+                        2,
+                    ),
+                )
+            )
+
+        return tuple(points)
 
     def predict(
         self,
@@ -127,6 +208,12 @@ class PassPredictor:
                 and current_rise_azimuth
                 is not None
             ):
+                track_points = self._build_track_points(
+                    satellite,
+                    current_rise,
+                    timestamp,
+                )
+
                 passes.append(
                     SatellitePass(
                         satellite_name=record.name,
@@ -148,6 +235,7 @@ class PassPredictor:
                             azimuth.degrees,
                             1,
                         ),
+                        track_points=track_points,
                     )
                 )
 

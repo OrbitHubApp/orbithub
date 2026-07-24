@@ -8,3 +8,7 @@ data/*.tmp
 data/*.part
 backups/
 .DS_Store
+*.bak*
+*backup*
+*.zip
+*.tar.gz

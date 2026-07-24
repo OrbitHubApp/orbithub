@@ -412,19 +412,46 @@ async def index(request: Request):
     )
 
 @app.get("/passes")
-async def passes_page(request: Request):
+async def passes_page(
+    request: Request,
+    satellite: str | None = None,
+    hours: int = 24,
+    minimum_elevation: float = 10.0,
+):
     parser = TLEParser()
+
     records = (
         parser.parse_file(TLE_FILE)
         if TLE_FILE.exists()
         else []
     )
 
+    allowed_hours = {24, 48, 72}
+
+    if hours not in allowed_hours:
+        hours = 24
+
+    minimum_elevation = max(
+        0.0,
+        min(minimum_elevation, 90.0),
+    )
+
     selected_record = None
     satellite_passes = []
 
     if records:
-        selected_record = records[0]
+        if satellite:
+            selected_record = next(
+                (
+                    record
+                    for record in records
+                    if record.norad_id == satellite
+                ),
+                None,
+            )
+
+        if selected_record is None:
+            selected_record = records[0]
 
         predictor = PassPredictor(
             latitude_deg=52.45,
@@ -434,8 +461,10 @@ async def passes_page(request: Request):
 
         satellite_passes = predictor.predict(
             selected_record,
-            hours=24,
-            minimum_elevation_deg=10,
+            hours=hours,
+            minimum_elevation_deg=(
+                minimum_elevation
+            ),
         )
 
     return templates.TemplateResponse(
@@ -457,8 +486,10 @@ async def passes_page(request: Request):
             "passes": satellite_passes,
             "observer_name": "Berlin",
             "observer_locator": "JO62PL",
-            "minimum_elevation": 10,
-            "hours": 24,
+            "minimum_elevation": (
+                minimum_elevation
+            ),
+            "hours": hours,
         },
     )
 @app.get("/sources")

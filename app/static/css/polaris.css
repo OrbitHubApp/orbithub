@@ -1481,3 +1481,139 @@ body::before {
     min-width: 900px;
   }
 }â
+
+/* OrbitHub polar pass display */
+.pass-center-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(280px, 0.8fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.polarplot-card,
+.pass-summary-card {
+  border: 1px solid rgba(70, 174, 231, 0.16);
+  border-radius: 14px;
+  background: rgba(4, 20, 33, 0.55);
+}
+
+.polarplot-card {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 430px;
+  padding: 24px;
+}
+
+.polarplot {
+  display: block;
+  width: min(100%, 430px);
+  height: auto;
+  overflow: visible;
+}
+
+.polarplot-horizon {
+  fill: rgba(5, 27, 43, 0.7);
+  stroke: rgba(92, 196, 255, 0.75);
+  stroke-width: 1.6;
+}
+
+.polarplot-ring {
+  fill: none;
+  stroke: rgba(123, 184, 218, 0.18);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.polarplot-axis {
+  stroke: rgba(123, 184, 218, 0.18);
+  stroke-width: 1;
+}
+
+.polarplot-direction {
+  fill: #d9f3ff;
+  font-size: 8px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+.polarplot-elevation {
+  fill: rgba(169, 204, 223, 0.55);
+  font-size: 5px;
+}
+
+.polarplot-track {
+  fill: none;
+  stroke: #42d5ff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px rgba(66, 213, 255, 0.7));
+}
+
+.polarplot-rise {
+  fill: #55e68a;
+  stroke: #e7fff0;
+  stroke-width: 1.2;
+}
+
+.polarplot-set {
+  fill: #ff9f5a;
+  stroke: #fff2e8;
+  stroke-width: 1.2;
+}
+
+.polarplot-marker-label {
+  fill: #f4fbff;
+  font-size: 5px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+.pass-summary-card {
+  padding: 24px;
+}
+
+.pass-summary-card h3 {
+  margin: 8px 0 22px;
+  font-size: 1.7rem;
+}
+
+.pass-summary-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.pass-summary-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(112, 181, 219, 0.12);
+}
+
+.pass-summary-list > div:last-child {
+  border-bottom: 0;
+}
+
+.pass-summary-list dt {
+  color: var(--text-muted, #91a9bb);
+}
+
+.pass-summary-list dd {
+  margin: 0;
+  color: #f1f9ff;
+  font-weight: 700;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .pass-center-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .polarplot-card {
+    min-height: 340px;
+  }
+}
