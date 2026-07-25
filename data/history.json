@@ -1,6 +1,11 @@
 [
   {
     "date": "2026-07-25",
+    "time": "22:45",
+    "message": "Logo verfeinert: Die neue Grafik hat jetzt einen transparenten Hintergrund und fuegt sich damit nahtlos in den dunklen Seitenmenue-Hintergrund ein. Zusaetzlich wurden die Abstaende zwischen den Menuepunkten im Seitenmenue verringert, damit die Navigation kompakter wirkt."
+  },
+  {
+    "date": "2026-07-25",
     "time": "22:15",
     "message": "Neues Logo im Seitenmenü: Das bisherige Vektor-Logo wurde durch eine neue Grafik von DL7AG ersetzt, die einen Satelliten über der Nachtseite der Erde zeigt."
   },
