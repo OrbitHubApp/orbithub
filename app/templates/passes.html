@@ -270,6 +270,7 @@
       <table class="mission-table">
         <thead>
           <tr>
+            <th>Datum</th>
             <th>Aufgang</th>
             <th>Maximum</th>
             <th>Untergang</th>
@@ -283,16 +284,20 @@
         <tbody>
           {% for pass in passes %}
             <tr class="pass-row{% if loop.first %} active{% endif %}" data-pass-index="{{ loop.index0 }}">
-              <td>
-                {{ pass.rise_time.astimezone().strftime("%d.%m.%Y %H:%M:%S") }}
+              <td class="pass-date">
+                {{ pass.rise_time.astimezone().strftime("%d.%m.") }}
               </td>
 
               <td>
-                {{ pass.culmination_time.astimezone().strftime("%d.%m.%Y %H:%M:%S") }}
+                {{ pass.rise_time.astimezone().strftime("%H:%M:%S") }}
               </td>
 
               <td>
-                {{ pass.set_time.astimezone().strftime("%d.%m.%Y %H:%M:%S") }}
+                {{ pass.culmination_time.astimezone().strftime("%H:%M:%S") }}
+              </td>
+
+              <td>
+                {{ pass.set_time.astimezone().strftime("%H:%M:%S") }}
               </td>
 
               <td>

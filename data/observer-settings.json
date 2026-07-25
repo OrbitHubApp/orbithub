@@ -10,7 +10,7 @@
     {
       "azimuth_from_deg": 100.0,
       "azimuth_to_deg": 240.0,
-      "minimum_elevation_deg": 17.7
+      "minimum_elevation_deg": 60.0
     }
   ]
 }

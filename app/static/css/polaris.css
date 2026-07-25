@@ -1472,6 +1472,11 @@ body::before {
   font-variant-numeric: tabular-nums;
 }
 
+.mission-table td.pass-date {
+  color: #8299ad;
+  font-size: 0.78rem;
+}
+
 .mission-table tbody tr:hover {
   background: rgba(68, 168, 255, 0.06);
 }
