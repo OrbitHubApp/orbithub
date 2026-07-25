@@ -202,7 +202,26 @@ async def fetch_source_text(
     source: dict[str, str],
 ) -> str:
     response = await client.get(source["url"])
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        body_preview = response.text.strip()
+        if (
+            response.status_code == 403
+            and "has not updated since" in body_preview.lower()
+        ):
+            raise ValueError(
+                "CelesTrak hat diese Daten erst kürzlich aktualisiert "
+                "und blockiert kurzfristig wiederholte Abfragen "
+                "(eigenes Rate-Limit von CelesTrak, alle 2 Stunden). "
+                "Das ist kein Fehler in OrbitHub - bitte später "
+                "erneut versuchen."
+            ) from exc
+
+        detail = f"HTTP {response.status_code}"
+        if body_preview:
+            detail += f": {body_preview[:300]}"
+        raise ValueError(detail) from exc
 
     source_type = source["type"]
 
