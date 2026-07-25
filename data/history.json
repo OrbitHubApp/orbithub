@@ -1,6 +1,11 @@
 [
   {
     "date": "2026-07-25",
+    "time": "22:15",
+    "message": "Neues Logo im Seitenmenü: Das bisherige Vektor-Logo wurde durch eine neue Grafik von DL7AG ersetzt, die einen Satelliten über der Nachtseite der Erde zeigt."
+  },
+  {
+    "date": "2026-07-25",
     "time": "21:10",
     "message": "Wichtiger Bugfix bei der Datenqualität: Wenn CelesTrak kurzzeitig nicht erreichbar war, ist OrbitHub automatisch auf die Ersatzquelle SatNOGS ausgewichen - dort steckte jedoch für die ISS ein über drei Jahre alter Karteileichen-Datensatz (Stand Januar 2023) neben dem aktuellen Eintrag. OrbitHub prüft neue Bahndaten jetzt vor der Übernahme auf Aktualität und bereinigt doppelte Katalogeinträge automatisch, damit so etwas nicht mehr unbemerkt bleibt."
   },
