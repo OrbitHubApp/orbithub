@@ -242,19 +242,62 @@
           <span>Mindesthöhe hier (°)</span>
           <input type="text" inputmode="decimal" data-field="minimum_elevation_deg" value="${segment.minimum_elevation_deg}">
         </label>
+                <div class="horizon-height-helper">
+          <span class="horizon-height-helper-title">Höhenrechner: Hindernis in Meter statt Grad eingeben</span>
+          <label>
+            <span>Hindernishöhe (m)</span>
+            <input type="text" inputmode="decimal" class="horizon-helper-height" placeholder="z. B. 8">
+          </label>
+          <label>
+            <span>Entfernung (m)</span>
+            <input type="text" inputmode="decimal" class="horizon-helper-distance" placeholder="z. B. 25">
+          </label>
+          <button type="button" class="source-action-button secondary horizon-helper-apply">Übernehmen</button>
+          <span class="horizon-helper-result"></span>
+        </div>
         <button type="button" class="source-action-button secondary" data-remove-index="${index}">Entfernen</button>
       `;
 
-      row.querySelectorAll("input").forEach((input) => {
+      row.querySelectorAll("input[data-field]").forEach((input) => {
         input.addEventListener("input", () => {
           const field = input.dataset.field;
           segments[index][field] = input.value;
         });
       });
 
-      row.querySelector("[data-remove-index]").addEventListener("click", () => {
-        segments.splice(index, 1);
-        renderSegments();
+      listEl.appendChild(row);
+      const helperHeightInput = row.querySelector(".horizon-helper-height");
+      const helperDistanceInput = row.querySelector(".horizon-helper-distance");
+      const helperApplyButton = row.querySelector(".horizon-helper-apply");
+      const helperResult = row.querySelector(".horizon-helper-result");
+      const minElevationInput = row.querySelector('input[data-field="minimum_elevation_deg"]');
+
+      const updateHelperPreview = () => {
+        const height = parseFloat(helperHeightInput.value.replace(",", "."));
+        const distance = parseFloat(helperDistanceInput.value.replace(",", "."));
+        if (Number.isFinite(height) && Number.isFinite(distance) && distance > 0 && height >= 0) {
+          const angle = (Math.atan2(height, distance) * 180) / Math.PI;
+          helperResult.textContent = `≈ ${angle.toFixed(1)}°`;
+        } else {
+          helperResult.textContent = "";
+        }
+      };
+
+      helperHeightInput.addEventListener("input", updateHelperPreview);
+      helperDistanceInput.addEventListener("input", updateHelperPreview);
+
+      helperApplyButton.addEventListener("click", () => {
+        const height = parseFloat(helperHeightInput.value.replace(",", "."));
+        const distance = parseFloat(helperDistanceInput.value.replace(",", "."));
+        if (!Number.isFinite(height) || !Number.isFinite(distance) || distance <= 0 || height < 0) {
+          helperResult.textContent = "Bitte Höhe und Entfernung angeben.";
+          return;
+        }
+        const angle = (Math.atan2(height, distance) * 180) / Math.PI;
+        const rounded = angle.toFixed(1);
+        minElevationInput.value = rounded;
+        segments[index].minimum_elevation_deg = rounded;
+        helperResult.textContent = `Übernommen: ${rounded}°`;
       });
 
       listEl.appendChild(row);

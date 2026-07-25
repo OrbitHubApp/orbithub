@@ -6,5 +6,11 @@
   "longitude_deg": 13.29167,
   "elevation_m": 50.0,
   "default_minimum_elevation_deg": 10.0,
-  "horizon_segments": []
+  "horizon_segments": [
+    {
+      "azimuth_from_deg": 100.0,
+      "azimuth_to_deg": 240.0,
+      "minimum_elevation_deg": 17.7
+    }
+  ]
 }
