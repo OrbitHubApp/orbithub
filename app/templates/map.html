@@ -17,6 +17,12 @@
 
 {% block content %}
 
+<span
+  data-pause-auto-refresh
+  style="display: none"
+  aria-hidden="true"
+></span>
+
 <section class="mission-hero sources-hero">
   <div>
     <div class="eyebrow">{{ app_name }} - {{ app_slogan }}</div>
@@ -192,6 +198,7 @@
           fillColor: "#4ec9f0",
           fillOpacity: 1,
           weight: 2,
+          className: "satellite-marker",
         })
           .addTo(worldMap)
           .bindTooltip(
@@ -210,6 +217,7 @@
           weight: 1,
           fillColor: "#4ec9f0",
           fillOpacity: 0.08,
+          className: "satellite-footprint",
         }).addTo(worldMap);
 
         entry = { marker: marker, circle: circle };
@@ -260,7 +268,7 @@
     function scheduleRefresh() {
       refreshPositions();
       if (refreshTimer) return;
-      refreshTimer = window.setInterval(refreshPositions, 15000);
+      refreshTimer = window.setInterval(refreshPositions, 5000);
     }
 
     const SELECTION_STORAGE_KEY = "orbithub-map-selected-ids";

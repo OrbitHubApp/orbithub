@@ -1973,3 +1973,13 @@ a.source-action-button {
   inset: 0;
   z-index: 2000;
 }
+
+
+/* Karte / sanfte Bewegung der Satellitenmarker */
+.satellite-marker {
+  transition: cx 1.4s linear, cy 1.4s linear;
+}
+
+.satellite-footprint {
+  transition: cx 1.4s linear, cy 1.4s linear;
+}
