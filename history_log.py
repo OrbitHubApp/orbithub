@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Fuegt einen Eintrag zur OrbitHub-Aenderungshistorie hinzu (data/history.json).
+"""Fügt einen Eintrag zur OrbitHub-Änderungshistorie hinzu (data/history.json).
 
-Aufruf: python3 history_log.py "Kurzbeschreibung der Aenderung"
+Aufruf: python3 history_log.py "Kurzbeschreibung der Änderung"
 
-Soll nach jeder abgeschlossenen Aenderung ausgefuehrt werden (idealerweise
+Soll nach jeder abgeschlossenen Änderung ausgeführt werden (idealerweise
 zusammen mit git commit), damit die Historie-Seite in der App automatisch
-aktuell bleibt. data/ ist als Volume gemountet, ein Docker-Rebuild ist dafuer
-nicht noetig.
+aktuell bleibt. data/ ist als Volume gemountet, ein Docker-Rebuild ist dafür
+nicht nötig.
 """
 import json
 import sys
@@ -18,7 +18,7 @@ HISTORY_FILE = Path(__file__).resolve().parent / "data" / "history.json"
 
 def main() -> None:
     if len(sys.argv) < 2:
-        print('Nutzung: python3 history_log.py "Beschreibung der Aenderung"')
+        print('Nutzung: python3 history_log.py "Beschreibung der Änderung"')
         raise SystemExit(1)
 
     message = " ".join(sys.argv[1:])
@@ -41,7 +41,7 @@ def main() -> None:
     HISTORY_FILE.write_text(
         json.dumps(entries, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    print(f"Eintrag hinzugefuegt: {now.strftime('%Y-%m-%d %H:%M')} - {message}")
+    print(f"Eintrag hinzugefügt: {now.strftime('%Y-%m-%d %H:%M')} - {message}")
 
 
 if __name__ == "__main__":

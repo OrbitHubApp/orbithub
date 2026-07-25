@@ -1309,7 +1309,7 @@ async def about_page(request: Request):
 
 
 _GERMAN_MONTHS = [
-    "Januar", "Februar", "Maerz", "April", "Mai", "Juni",
+    "Januar", "Februar", "März", "April", "Mai", "Juni",
     "Juli", "August", "September", "Oktober", "November", "Dezember",
 ]
 
@@ -1324,7 +1324,7 @@ def format_history_date(date_str: str) -> str:
 
 
 def load_history_entries() -> list[dict]:
-    """Laedt die Aenderungshistorie aus data/history.json (neueste zuerst)."""
+    """Lädt die Änderungshistorie aus data/history.json (neueste zuerst)."""
     if not HISTORY_FILE.exists():
         return []
     try:

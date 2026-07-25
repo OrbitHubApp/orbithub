@@ -2,198 +2,198 @@
   {
     "date": "2026-07-25",
     "time": "15:21",
-    "message": "Historie-Seite mit automatischem Aenderungslog hinzugefuegt, Menuepunkt aktiviert"
+    "message": "Historie-Seite mit automatischem Änderungslog hinzugefügt, Menüpunkt aktiviert"
   },
   {
     "date": "2026-07-25",
     "time": "11:07",
-    "message": "Add /about page with project info, activate nav link",
+    "message": "Seite Über OrbitHub mit Projektinfos hinzugefügt, Navigationslink aktiviert",
     "hash": "b7bd5b0"
   },
   {
     "date": "2026-07-25",
     "time": "09:54",
-    "message": "Bump version to 1.0.0-beta \"Moon\"",
+    "message": "Version auf 1.0.0-beta \"Moon\" angehoben",
     "hash": "08c6e09"
   },
   {
     "date": "2026-07-25",
     "time": "08:58",
-    "message": "Add ground track map (Leaflet + CARTO dark tiles) to Ueberfluege page",
+    "message": "Bodenspur-Karte (Leaflet + CARTO Dark-Kacheln) zur Überflüge-Seite hinzugefügt",
     "hash": "9d541bb"
   },
   {
     "date": "2026-07-25",
     "time": "07:45",
-    "message": "Ueberflugliste: Datum nur einmal pro Zeile, Zeitspalten kompakt",
+    "message": "Überflugliste: Datum nur einmal pro Zeile, Zeitspalten kompakter",
     "hash": "651ce13"
   },
   {
     "date": "2026-07-25",
     "time": "07:24",
-    "message": "Settings: Hoehenrechner (Meter+Entfernung) fuer Horizont-Segmente",
+    "message": "Einstellungen: Höhenrechner (Meter + Entfernung) für Horizont-Segmente hinzugefügt",
     "hash": "7088659"
   },
   {
     "date": "2026-07-25",
     "time": "04:13",
-    "message": "Polarplot: gesperrten Himmelsbereich als Schatten anzeigen",
+    "message": "Polarplot: gesperrten Himmelsbereich als Schatten dargestellt",
     "hash": "ddabca0"
   },
   {
     "date": "2026-07-24",
     "time": "21:13",
-    "message": "Add observer settings page with custom horizon/visibility mask",
+    "message": "Einstellungsseite für Standort mit individueller Horizont-/Sichtbarkeitsmaske hinzugefügt",
     "hash": "cfc1cb3"
   },
   {
     "date": "2026-07-24",
     "time": "20:13",
-    "message": "Make pass list rows clickable to update polarplot and details",
+    "message": "Zeilen der Überflugliste klickbar gemacht, um Polarplot und Details zu aktualisieren",
     "hash": "38665cf"
   },
   {
     "date": "2026-07-24",
     "time": "18:32",
-    "message": "Make pass countdown card more visually prominent",
+    "message": "Countdown-Karte für den nächsten Überflug optisch hervorgehoben",
     "hash": "618c416"
   },
   {
     "date": "2026-07-24",
     "time": "18:13",
-    "message": "Add live countdown to next pass on Ueberfluege page",
+    "message": "Live-Countdown bis zum nächsten Überflug auf der Überflüge-Seite hinzugefügt",
     "hash": "a609d61"
   },
   {
     "date": "2026-07-24",
     "time": "16:55",
-    "message": "Two-column layout for passes page: filter+summary left, polarplot right",
+    "message": "Zweispaltiges Layout für die Überflüge-Seite: Filter und Übersicht links, Polarplot rechts",
     "hash": "903defb"
   },
   {
     "date": "2026-07-24",
     "time": "16:44",
-    "message": "Restyle passes page with working panel classes to match app design",
+    "message": "Überflüge-Seite neu gestaltet, Panel-Stile an das App-Design angepasst",
     "hash": "e2e0530"
   },
   {
     "date": "2026-07-24",
     "time": "16:37",
-    "message": "Strip leading 0 marker from satellite names and add name/NORAD sort to satellites page",
+    "message": "Führende Null aus Satellitennamen entfernt, Sortierung nach Name/NORAD-ID ergänzt",
     "hash": "7e10ba8"
   },
   {
     "date": "2026-07-24",
     "time": "16:28",
-    "message": "Add satellites catalog page with search and pass linking",
+    "message": "Satellitenkatalog-Seite mit Suche und Verlinkung zu Überflügen hinzugefügt",
     "hash": "c018a03"
   },
   {
     "date": "2026-07-24",
     "time": "15:48",
-    "message": "Initial commit: OrbitHub v0.2.0-alpha 'Horizon' baseline",
+    "message": "Initialer Commit: OrbitHub v0.2.0-alpha \"Horizon\" Basisversion",
     "hash": "d3208dd"
   },
   {
     "date": "2026-07-24",
     "time": "15:41",
-    "message": "Initial commit: OrbitHub v0.2.0-alpha 'Horizon' baseline",
+    "message": "Initialer Commit: OrbitHub v0.2.0-alpha \"Horizon\" Basisversion",
     "hash": "c1c84ca"
   },
   {
     "date": "2026-07-23",
     "time": "20:38",
-    "message": "Add initial satellite pass prediction",
+    "message": "Erste Version der Überflugvorhersage hinzugefügt",
     "hash": "f3bc611"
   },
   {
     "date": "2026-07-23",
     "time": "18:49",
-    "message": "Add custom source editing",
+    "message": "Bearbeiten eigener Datenquellen hinzugefügt",
     "hash": "05b8bc4"
   },
   {
     "date": "2026-07-23",
     "time": "18:28",
-    "message": "Add custom source deletion",
+    "message": "Löschen eigener Datenquellen hinzugefügt",
     "hash": "e35527d"
   },
   {
     "date": "2026-07-23",
     "time": "17:54",
-    "message": "Use source manager when adding custom sources",
+    "message": "Quellenmanager beim Hinzufügen eigener Datenquellen genutzt",
     "hash": "4d7af3c"
   },
   {
     "date": "2026-07-23",
     "time": "17:44",
-    "message": "Use source manager for combined sources",
+    "message": "Quellenmanager für kombinierte Datenquellen genutzt",
     "hash": "413e0c4"
   },
   {
     "date": "2026-07-23",
     "time": "17:41",
-    "message": "Add central TLE source manager",
+    "message": "Zentralen TLE-Quellenmanager hinzugefügt",
     "hash": "2dcf52b"
   },
   {
     "date": "2026-07-23",
     "time": "17:29",
-    "message": "Add custom TLE source management",
+    "message": "Verwaltung eigener TLE-Quellen hinzugefügt",
     "hash": "05c8dc2"
   },
   {
     "date": "2026-07-23",
     "time": "16:33",
-    "message": "Add selectable TLE source manager",
+    "message": "Auswählbaren TLE-Quellenmanager hinzugefügt",
     "hash": "235fb83"
   },
   {
     "date": "2026-07-23",
     "time": "16:22",
-    "message": "Remove Raspberry Pi model from header",
+    "message": "Raspberry-Pi-Modell aus dem Header entfernt",
     "hash": "56ce389"
   },
   {
     "date": "2026-07-23",
     "time": "16:20",
-    "message": "Keep Raspberry Pi model visible in header",
+    "message": "Raspberry-Pi-Modell im Header sichtbar gehalten",
     "hash": "b87b02b"
   },
   {
     "date": "2026-07-23",
     "time": "16:16",
-    "message": "Show Raspberry Pi model and clearer reload timer",
+    "message": "Raspberry-Pi-Modell und deutlicheren Reload-Timer angezeigt",
     "hash": "fd1fe58"
   },
   {
     "date": "2026-07-23",
     "time": "16:01",
-    "message": "Add DL7AG operator profile and UTC time labels",
+    "message": "Betreiberprofil DL7AG und UTC-Zeitangaben hinzugefügt",
     "hash": "27b7498"
   },
   {
     "date": "2026-07-23",
     "time": "15:46",
-    "message": "Add TXT download and manual dataset update",
+    "message": "TXT-Download und manuelle Datenaktualisierung hinzugefügt",
     "hash": "f9b98b2"
   },
   {
     "date": "2026-07-23",
     "time": "15:37",
-    "message": "Show live Raspberry Pi telemetry in header",
+    "message": "Live-Telemetrie des Raspberry Pi im Header angezeigt",
     "hash": "53b32d8"
   },
   {
     "date": "2026-07-23",
     "time": "15:33",
-    "message": "Add Raspberry Pi system metrics API",
+    "message": "API für Raspberry-Pi-Systemmetriken hinzugefügt",
     "hash": "19526bb"
   },
   {
     "date": "2026-07-23",
     "time": "15:30",
-    "message": "Checkpoint: OrbitHub 0.2 Horizon",
+    "message": "Checkpoint: OrbitHub 0.2 \"Horizon\"",
     "hash": "c3bf6de"
   }
 ]
