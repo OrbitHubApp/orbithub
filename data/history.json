@@ -1,6 +1,11 @@
 [
   {
     "date": "2026-07-25",
+    "time": "15:37",
+    "message": "Historie-Texte auf richtiges Deutsch mit Umlauten korrigiert (Seite, Einträge, Skript)"
+  },
+  {
+    "date": "2026-07-25",
     "time": "15:21",
     "message": "Historie-Seite mit automatischem Änderungslog hinzugefügt, Menüpunkt aktiviert"
   },
