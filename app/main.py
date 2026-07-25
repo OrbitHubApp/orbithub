@@ -150,6 +150,87 @@ status = {
 }
 
 
+TLE_MAX_AGE_DAYS = 14
+
+
+def _check_tle_freshness(text: str) -> None:
+    """
+    Prüft, ob eine frisch abgerufene TLE-Quelle aktuelle Bahndaten
+    liefert. Manche Quellen (z. B. SatNOGS) liefern im Fehlerfall oder
+    bei Ausfällen teils monatealte, veraltete Datensätze zurück, statt
+    einen Fehler zu melden. Ohne diese Prüfung würden solche Daten
+    unbemerkt übernommen und alle Vorhersagen (Aufgangs-, Kulminations-
+    und Untergangszeiten) wären falsch.
+
+    Nutzt die ISS (NORAD 25544) als Referenz, da sie durchgehend im
+    aktiven Katalog geführt und besonders häufig aktualisiert wird.
+    Fällt auf den Median-Wert aller Datensätze zurück, falls die ISS
+    in der Quelle fehlt.
+    """
+    records = TLEParser().parse_text(text)
+    if not records:
+        return
+
+    now = datetime.now(timezone.utc)
+
+    iss_record = next(
+        (record for record in records if record.norad_id == "25544"),
+        None,
+    )
+    reference_records = [iss_record] if iss_record else records
+
+    ages_days = sorted(
+        (now - record.epoch_datetime).total_seconds() / 86400.0
+        for record in reference_records
+        if record.epoch_datetime is not None
+    )
+    if not ages_days:
+        return
+
+    median_age_days = ages_days[len(ages_days) // 2]
+
+    if median_age_days > TLE_MAX_AGE_DAYS:
+        raise ValueError(
+            "Die gelieferten Bahndaten sind zu alt (Epoche ca. "
+            f"{median_age_days:.1f} Tage alt, Grenzwert "
+            f"{TLE_MAX_AGE_DAYS} Tage). Diese Quelle liefert offenbar "
+            "veraltete TLE-Datensätze und wird übersprungen."
+        )
+
+
+def _deduplicate_by_freshness(records):
+    """
+    Manche Quellen (z. B. SatNOGS) liefern für denselben Satelliten
+    (gleiche NORAD-Katalognummer) mehrere, widersprüchliche
+    TLE-Datensätze in derselben Antwort - etwa einen aktuellen und
+    einen veralteten Karteileichen-Eintrag. Ohne Bereinigung würde
+    OrbitHub den Satelliten doppelt in der Auswahlliste anzeigen und
+    sich implizit auf die zufällige Reihenfolge der Quelle verlassen,
+    welcher der beiden Datensätze tatsächlich für Vorhersagen
+    verwendet wird.
+
+    Behält je NORAD-ID nur den Datensatz mit der aktuellsten Epoche.
+    Datensätze ohne auswertbare Epoche gelten dabei als am ältesten.
+    """
+    best_by_norad = {}
+
+    for record in records:
+        existing = best_by_norad.get(record.norad_id)
+        if existing is None:
+            best_by_norad[record.norad_id] = record
+            continue
+
+        existing_epoch = existing.epoch_datetime
+        candidate_epoch = record.epoch_datetime
+
+        if candidate_epoch is None:
+            continue
+        if existing_epoch is None or candidate_epoch > existing_epoch:
+            best_by_norad[record.norad_id] = record
+
+    return list(best_by_norad.values())
+
+
 async def update_tle() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -208,6 +289,8 @@ async def update_tle() -> None:
                         )
                     )
 
+                    _check_tle_freshness(candidate_text)
+
                     text = candidate_text
                     active_source = source
                     break
@@ -240,6 +323,9 @@ async def update_tle() -> None:
                 "Die Quelle enthielt keine "
                 "verwertbaren TLE-Datensätze."
             )
+
+        new_records = _deduplicate_by_freshness(new_records)
+        text = "".join(record.to_tle() for record in new_records)
 
         old_by_norad = {
             record.norad_id: record
