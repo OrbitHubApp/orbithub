@@ -1,6 +1,11 @@
 [
   {
     "date": "2026-07-25",
+    "time": "16:52",
+    "message": "Kartenseite verbessert: Satellitenauswahl bleibt jetzt beim automatischen Reload erhalten (vorher verschwanden die Marker), Satellitennamen werden dauerhaft an den Markern angezeigt, ein Vollbild-Button ermöglicht eine große Kartenansicht, und der Kartenkopf zeigt an, von wann der geladene TLE-Datensatz stammt."
+  },
+  {
+    "date": "2026-07-25",
     "time": "16:09",
     "message": "Neue Kartenseite: zoombare Weltkarte mit Live-Positionen und Sichtbarkeitsbereichen frei auswählbarer Satelliten. Zudem einen Fehler behoben, bei dem Satelliten mit doppelter NORAD-ID (z.B. ISS und ISS (ZARYA)) sich gegenseitig auf der Karte überschrieben haben."
   },
