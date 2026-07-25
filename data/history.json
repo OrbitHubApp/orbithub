@@ -1,6 +1,11 @@
 [
   {
     "date": "2026-07-25",
+    "time": "20:23",
+    "message": "Neue Einstellung: Zeitanzeige zwischen Ortszeit und GMT/UTC wählbar. Betrifft die Live-Uhr im Kopfbereich, die Überflug-Übersicht sowie die Polarplot-Zeiten auf der Karte."
+  },
+  {
+    "date": "2026-07-25",
     "time": "19:26",
     "message": "CelesTrak-Fehlermeldung verständlicher gemacht: Der Rate-Limit-Hinweis (HTTP 403) von CelesTrak wird jetzt als klare deutsche Erklärung angezeigt statt als kryptischer HTTP-Fehler."
   },
