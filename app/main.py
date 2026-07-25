@@ -1334,6 +1334,103 @@ def load_history_entries() -> list[dict]:
     return raw if isinstance(raw, list) else []
 
 
+@app.get("/map")
+async def map_page(request: Request):
+    parser = TLEParser()
+
+    records = (
+        parser.parse_file(TLE_FILE)
+        if TLE_FILE.exists()
+        else []
+    )
+
+    records = sorted(
+        records,
+        key=lambda record: display_satellite_name(
+            record.name,
+        ).lower(),
+    )
+
+    observer = load_observer_settings()
+
+    return templates.TemplateResponse(
+        name="map.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "version": VERSION,
+            "codename": CODENAME,
+            "satellites": records,
+            "observer_name": observer.qth_name,
+            "observer_locator": observer.locator,
+            "observer_latitude_deg": observer.latitude_deg,
+            "observer_longitude_deg": observer.longitude_deg,
+        },
+    )
+
+
+@app.get("/api/satellites/positions")
+async def satellite_positions(indices: str = "") -> dict:
+    """Liefert die aktuelle Position (Subpunkt) fuer ausgewaehlte Satelliten.
+
+    Die Auswahl erfolgt ueber den Index in der (alphabetisch sortierten)
+    Satellitenliste, nicht ueber die NORAD-ID: Manche Kataloge enthalten
+    mehrere Eintraege (z. B. verschiedene ISS-Module) mit derselben
+    NORAD-ID, die sich sonst nicht eindeutig auseinanderhalten liessen.
+    """
+    requested_indices: set[int] = set()
+    for value in indices.split(","):
+        value = value.strip()
+        if not value:
+            continue
+        try:
+            requested_indices.add(int(value))
+        except ValueError:
+            continue
+
+    if not requested_indices:
+        return {"positions": []}
+
+    parser = TLEParser()
+    records = (
+        parser.parse_file(TLE_FILE)
+        if TLE_FILE.exists()
+        else []
+    )
+    records = sorted(
+        records,
+        key=lambda record: display_satellite_name(
+            record.name,
+        ).lower(),
+    )
+
+    observer = load_observer_settings()
+    predictor = PassPredictor(
+        latitude_deg=observer.latitude_deg,
+        longitude_deg=observer.longitude_deg,
+        elevation_m=observer.elevation_m,
+    )
+
+    positions = []
+    for index in sorted(requested_indices):
+        if index < 0 or index >= len(records):
+            continue
+
+        record = records[index]
+        position = predictor.current_position(record)
+        positions.append(
+            {
+                "id": index,
+                "norad_id": record.norad_id,
+                "name": display_satellite_name(record.name),
+                **position,
+            }
+        )
+
+    return {"positions": positions}
+
+
 @app.get("/history")
 async def history_page(request: Request):
     entries = load_history_entries()

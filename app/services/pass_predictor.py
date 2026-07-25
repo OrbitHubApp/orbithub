@@ -142,6 +142,27 @@ class PassPredictor:
 
         return tuple(points)
 
+    def current_position(self, record: TLERecord) -> dict:
+        """Berechnet die aktuelle Subsatellitenposition (Position "jetzt").
+
+        Liefert Breite/Laenge des Punkts direkt unter dem Satelliten sowie
+        seine Hoehe, unabhaengig von einer konkreten Bodenstation.
+        """
+        satellite = EarthSatellite(
+            record.line1,
+            record.line2,
+            record.name,
+            self.timescale,
+        )
+        now = self.timescale.now()
+        subpoint = wgs84.subpoint(satellite.at(now))
+
+        return {
+            "lat_deg": round(subpoint.latitude.degrees, 4),
+            "lon_deg": round(subpoint.longitude.degrees, 4),
+            "alt_km": round(subpoint.elevation.km, 2),
+        }
+
     def predict(
         self,
         record: TLERecord,

@@ -1898,3 +1898,14 @@ a.source-action-button {
   font-size: 0.85rem;
   margin-top: 12px;
 }
+
+/* Karte / Weltkarte */
+.world-map {
+  height: 560px;
+}
+
+@media (max-width: 720px) {
+  .world-map {
+    height: 380px;
+  }
+}

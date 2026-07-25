@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}OrbitHub - Karte{% endblock %}
+
+{% block head %}
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""
+>
+{% endblock %}
+
+{% block nav_map %}active{% endblock %}
+
+{% block page_heading %}Karte{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero sources-hero">
+  <div>
+    <div class="eyebrow">{{ app_name }} - {{ app_slogan }}</div>
+    <h2>Live-Weltkarte</h2>
+    <p>
+      Zoombare Weltkarte mit deinem Standort. Waehle Satelliten aus, um ihre
+      aktuelle Position sowie ihren ungefaehren Sichtbarkeitsbereich (Footprint
+      bei 0 Grad Elevation) live auf der Karte zu sehen.
+    </p>
+  </div>
+</section>
+
+<div class="pass-center-grid">
+  <div class="add-source-panel">
+    <div class="add-source-panel-header">
+      <span class="label">SATELLITEN AUSWAEHLEN</span>
+      <span class="history-count">{{ satellites|length }} verfuegbar</span>
+    </div>
+
+    <input
+      type="search"
+      id="map-satellite-search"
+      class="satellite-search-input"
+      placeholder="Suche nach Name oder NORAD-ID..."
+      autocomplete="off"
+    />
+
+    {% if satellites %}
+      <div class="table-scroll">
+        <table class="mission-table" id="map-satellite-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Name</th>
+              <th>NORAD-ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for satellite in satellites %}
+              <tr
+                data-name="{{ satellite.name|display_name|lower }}"
+                data-norad="{{ satellite.norad_id|lower }}"
+              >
+                <td>
+                  <input
+                    type="checkbox"
+                    class="map-satellite-checkbox"
+                    value="{{ loop.index0 }}"
+                    data-name="{{ satellite.name|display_name }}"
+                  />
+                </td>
+                <td>{{ satellite.name|display_name }}</td>
+                <td>{{ satellite.norad_id }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="satellite-empty-block" id="map-satellite-empty" hidden>
+        Keine Satelliten fuer diese Suche gefunden.
+      </p>
+    {% else %}
+      <div class="satellite-empty-block">
+        <strong>Keine TLE-Daten verfuegbar</strong>
+        <p>Es wurden noch keine Satellitendaten geladen.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="map-card">
+    <div
+      id="world-map"
+      class="ground-map world-map"
+      data-observer-lat="{{ observer_latitude_deg }}"
+      data-observer-lon="{{ observer_longitude_deg }}"
+      data-observer-name="{{ observer_name }}"
+    ></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""
+></script>
+<script>
+  (function () {
+    const mapContainer = document.getElementById("world-map");
+    if (!mapContainer || typeof L === "undefined") {
+      return;
+    }
+
+    const obsLat = Number(mapContainer.dataset.observerLat);
+    const obsLon = Number(mapContainer.dataset.observerLon);
+    const obsName = mapContainer.dataset.observerName || "Standort";
+
+    const worldMap = L.map(mapContainer, { worldCopyJump: true }).setView(
+      [obsLat, obsLon],
+      2,
+    );
+
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 19,
+      },
+    ).addTo(worldMap);
+
+    L.circleMarker([obsLat, obsLon], {
+      radius: 7,
+      color: "#f2c14e",
+      fillColor: "#f2c14e",
+      fillOpacity: 0.9,
+      weight: 2,
+    })
+      .addTo(worldMap)
+      .bindTooltip(obsName);
+
+    function footprintRadiusMeters(altitudeKm) {
+      const earthRadiusKm = 6371;
+      const ratio = earthRadiusKm / (earthRadiusKm + altitudeKm);
+      const clamped = Math.min(1, Math.max(-1, ratio));
+      const centralAngle = Math.acos(clamped);
+      return earthRadiusKm * centralAngle * 1000;
+    }
+
+    const layers = new Map();
+
+    function removeSatelliteLayer(id) {
+      const entry = layers.get(id);
+      if (!entry) return;
+      worldMap.removeLayer(entry.marker);
+      worldMap.removeLayer(entry.circle);
+      layers.delete(id);
+    }
+
+    function upsertSatelliteLayer(position) {
+      const id = String(position.id);
+      const latLng = [position.lat_deg, position.lon_deg];
+      const radius = footprintRadiusMeters(position.alt_km);
+
+      let entry = layers.get(id);
+      if (!entry) {
+        const marker = L.circleMarker(latLng, {
+          radius: 5,
+          color: "#ffffff",
+          fillColor: "#4ec9f0",
+          fillOpacity: 1,
+          weight: 2,
+        })
+          .addTo(worldMap)
+          .bindTooltip(
+            position.name + " (" + Math.round(position.alt_km) + " km)",
+          );
+
+        const circle = L.circle(latLng, {
+          radius: radius,
+          color: "#4ec9f0",
+          weight: 1,
+          fillColor: "#4ec9f0",
+          fillOpacity: 0.08,
+        }).addTo(worldMap);
+
+        entry = { marker: marker, circle: circle };
+        layers.set(id, entry);
+      } else {
+        entry.marker.setLatLng(latLng);
+        entry.circle.setLatLng(latLng);
+        entry.circle.setRadius(radius);
+        entry.marker.setTooltipContent(
+          position.name + " (" + Math.round(position.alt_km) + " km)",
+        );
+      }
+    }
+
+    function selectedIds() {
+      return Array.from(
+        document.querySelectorAll(".map-satellite-checkbox:checked"),
+      ).map((checkbox) => checkbox.value);
+    }
+
+    let refreshTimer = null;
+
+    async function refreshPositions() {
+      const ids = selectedIds();
+
+      Array.from(layers.keys()).forEach((id) => {
+        if (ids.indexOf(id) === -1) {
+          removeSatelliteLayer(id);
+        }
+      });
+
+      if (ids.length === 0) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          "/api/satellites/positions?indices=" + encodeURIComponent(ids.join(",")),
+        );
+        if (!response.ok) return;
+        const data = await response.json();
+        (data.positions || []).forEach(upsertSatelliteLayer);
+      } catch (error) {
+        console.error("Fehler beim Laden der Satellitenpositionen", error);
+      }
+    }
+
+    function scheduleRefresh() {
+      refreshPositions();
+      if (refreshTimer) return;
+      refreshTimer = window.setInterval(refreshPositions, 15000);
+    }
+
+    document.querySelectorAll(".map-satellite-checkbox").forEach((checkbox) => {
+      checkbox.addEventListener("change", scheduleRefresh);
+    });
+
+    const searchInput = document.getElementById("map-satellite-search");
+    const tableBody = document.querySelector("#map-satellite-table tbody");
+    const rows = tableBody ? Array.from(tableBody.querySelectorAll("tr")) : [];
+    const emptyState = document.getElementById("map-satellite-empty");
+
+    function applyFilter() {
+      const query = (searchInput.value || "").trim().toLowerCase();
+      let visible = 0;
+      rows.forEach((row) => {
+        const matches =
+          !query ||
+          row.dataset.name.indexOf(query) !== -1 ||
+          row.dataset.norad.indexOf(query) !== -1;
+        row.hidden = !matches;
+        if (matches) visible += 1;
+      });
+      if (emptyState) {
+        emptyState.hidden = visible !== 0;
+      }
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener("input", applyFilter);
+    }
+  })();
+</script>
+{% endblock %}
