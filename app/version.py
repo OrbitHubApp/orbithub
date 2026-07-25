@@ -1,2 +1,2 @@
-VERSION = "0.2.0-alpha"
-CODENAME = "Horizon"
+VERSION = "1.0.0-beta"
+CODENAME = "Moon"
