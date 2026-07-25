@@ -402,6 +402,20 @@ def format_duration() -> str:
     return f"{remaining_seconds:.1f} Sek."
 
 
+def format_tle_file_time() -> str:
+    """Format the modification time of the current TLE dataset file."""
+    if not TLE_FILE.exists():
+        return "Noch nie"
+
+    mtime = datetime.fromtimestamp(
+        TLE_FILE.stat().st_mtime,
+        tz=timezone.utc,
+    )
+    local = mtime.astimezone()
+
+    return local.strftime("%d.%m.%Y, %H:%M:%S")
+
+
 @app.on_event("startup")
 async def startup_event() -> None:
     await update_tle()
@@ -1366,6 +1380,7 @@ async def map_page(request: Request):
             "observer_locator": observer.locator,
             "observer_latitude_deg": observer.latitude_deg,
             "observer_longitude_deg": observer.longitude_deg,
+            "tle_generated": format_tle_file_time(),
         },
     )
 

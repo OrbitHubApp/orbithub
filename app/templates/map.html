@@ -86,7 +86,20 @@
     {% endif %}
   </div>
 
-  <div class="map-card">
+  <div class="map-card" id="map-card">
+    <div class="map-card-header">
+      <span class="label">WELTKARTE</span>
+      <span class="history-count" id="map-tle-generated">
+        TLE-Datensatz vom {{ tle_generated }}
+      </span>
+      <button
+        type="button"
+        id="map-fullscreen-btn"
+        class="source-action-button secondary"
+      >
+        Vollbild
+      </button>
+    </div>
     <div
       id="world-map"
       class="ground-map world-map"
@@ -120,6 +133,13 @@
       [obsLat, obsLon],
       2,
     );
+
+    if (window.ResizeObserver) {
+      const mapResizeObserver = new ResizeObserver(() => {
+        worldMap.invalidateSize();
+      });
+      mapResizeObserver.observe(mapContainer);
+    }
 
     L.tileLayer(
       "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -176,6 +196,12 @@
           .addTo(worldMap)
           .bindTooltip(
             position.name + " (" + Math.round(position.alt_km) + " km)",
+            {
+              permanent: true,
+              direction: "top",
+              offset: [0, -8],
+              className: "satellite-label",
+            },
           );
 
         const circle = L.circle(latLng, {
@@ -237,9 +263,51 @@
       refreshTimer = window.setInterval(refreshPositions, 15000);
     }
 
+    const SELECTION_STORAGE_KEY = "orbithub-map-selected-ids";
+
+    function saveSelection() {
+      try {
+        window.localStorage.setItem(
+          SELECTION_STORAGE_KEY,
+          JSON.stringify(selectedIds()),
+        );
+      } catch (error) {
+        /* localStorage evtl. nicht verfuegbar, keine weitere Aktion noetig */
+      }
+    }
+
+    function restoreSelection() {
+      let saved = [];
+      try {
+        saved = JSON.parse(
+          window.localStorage.getItem(SELECTION_STORAGE_KEY) || "[]",
+        );
+      } catch (error) {
+        saved = [];
+      }
+      if (!Array.isArray(saved) || saved.length === 0) return;
+
+      const savedSet = new Set(saved.map(String));
+      document
+        .querySelectorAll(".map-satellite-checkbox")
+        .forEach((checkbox) => {
+          if (savedSet.has(checkbox.value)) {
+            checkbox.checked = true;
+          }
+        });
+    }
+
     document.querySelectorAll(".map-satellite-checkbox").forEach((checkbox) => {
-      checkbox.addEventListener("change", scheduleRefresh);
+      checkbox.addEventListener("change", () => {
+        saveSelection();
+        scheduleRefresh();
+      });
     });
+
+    restoreSelection();
+    if (selectedIds().length > 0) {
+      scheduleRefresh();
+    }
 
     const searchInput = document.getElementById("map-satellite-search");
     const tableBody = document.querySelector("#map-satellite-table tbody");
@@ -264,6 +332,83 @@
 
     if (searchInput) {
       searchInput.addEventListener("input", applyFilter);
+    }
+
+    const fullscreenBtn = document.getElementById(
+      "map-fullscreen-btn",
+    );
+    const mapCard = document.getElementById("map-card");
+
+    function isFullscreenActive() {
+      return Boolean(document.fullscreenElement);
+    }
+
+    function updateFullscreenLabel() {
+      if (!fullscreenBtn) return;
+      const active =
+        isFullscreenActive() ||
+        mapCard.classList.contains("map-card-fullscreen-fallback");
+      fullscreenBtn.textContent = active ? "Vollbild beenden" : "Vollbild";
+    }
+
+    if (fullscreenBtn && mapCard) {
+      fullscreenBtn.addEventListener("click", () => {
+        if (isFullscreenActive()) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+          return;
+        }
+
+        const inFallback = mapCard.classList.contains(
+          "map-card-fullscreen-fallback",
+        );
+
+        if (inFallback) {
+          mapCard.classList.remove("map-card-fullscreen-fallback");
+          updateFullscreenLabel();
+          window.setTimeout(() => {
+            worldMap.invalidateSize();
+            worldMap.setView(worldMap.getCenter(), worldMap.getZoom());
+          }, 50);
+          window.setTimeout(() => {
+            worldMap.invalidateSize();
+            worldMap.setView(worldMap.getCenter(), worldMap.getZoom());
+          }, 350);
+          return;
+        }
+
+        function useFallback() {
+          mapCard.classList.add("map-card-fullscreen-fallback");
+          updateFullscreenLabel();
+          window.setTimeout(() => {
+            worldMap.invalidateSize();
+            worldMap.setView(worldMap.getCenter(), worldMap.getZoom());
+          }, 50);
+          window.setTimeout(() => {
+            worldMap.invalidateSize();
+            worldMap.setView(worldMap.getCenter(), worldMap.getZoom());
+          }, 350);
+        }
+
+        if (mapCard.requestFullscreen) {
+          mapCard.requestFullscreen().catch(useFallback);
+        } else {
+          useFallback();
+        }
+      });
+
+      document.addEventListener("fullscreenchange", () => {
+        updateFullscreenLabel();
+        window.setTimeout(() => {
+          worldMap.invalidateSize();
+          worldMap.setView(worldMap.getCenter(), worldMap.getZoom());
+        }, 100);
+        window.setTimeout(() => {
+          worldMap.invalidateSize();
+          worldMap.setView(worldMap.getCenter(), worldMap.getZoom());
+        }, 400);
+      });
     }
   })();
 </script>

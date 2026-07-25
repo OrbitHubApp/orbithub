@@ -1909,3 +1909,67 @@ a.source-action-button {
     height: 380px;
   }
 }
+
+
+/* Karte / map-card header und Vollbild */
+.map-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.map-card-header .label {
+  flex-shrink: 0;
+  order: 1;
+}
+
+.map-card-header .history-count {
+  order: 3;
+  flex-basis: 100%;
+  white-space: nowrap;
+}
+
+.map-card-header #map-fullscreen-btn {
+  order: 2;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.satellite-label {
+  background: rgba(4, 20, 33, 0.85);
+  border: 1px solid var(--mission-border);
+  color: #eaf4ff;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.satellite-label::before {
+  border-top-color: rgba(4, 20, 33, 0.85);
+}
+
+.map-card:fullscreen,
+.map-card:-webkit-full-screen,
+.map-card.map-card-fullscreen-fallback {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  padding: 16px;
+  background: var(--mission-bg);
+}
+
+.map-card:fullscreen #world-map,
+.map-card:-webkit-full-screen #world-map,
+.map-card.map-card-fullscreen-fallback #world-map {
+  flex: 1;
+}
+
+.map-card.map-card-fullscreen-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
