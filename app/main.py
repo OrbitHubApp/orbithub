@@ -1,5 +1,6 @@
 from dataclasses import asdict
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import json
 from math import cos, radians, sin
 import re
@@ -368,6 +369,9 @@ async def update_tle() -> None:
         )
 
 
+BERLIN_TZ = ZoneInfo("Europe/Berlin")
+
+
 def _time_display_pref() -> str:
     return load_observer_settings().time_display
 
@@ -376,7 +380,7 @@ def _apply_time_display(value: datetime) -> datetime:
     if _time_display_pref() == "utc":
         return value.astimezone(timezone.utc)
 
-    return value.astimezone()
+    return value.astimezone(BERLIN_TZ)
 
 
 def format_time_value(value: datetime, fmt: str) -> str:
