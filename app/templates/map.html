@@ -105,6 +105,12 @@
       >
         Vollbild
       </button>
+      <label class="map-track-label" for="map-track-select">
+        Bahnverfolgung
+        <select id="map-track-select" class="map-track-select">
+          <option value="">Keine</option>
+        </select>
+      </label>
     </div>
     <div
       id="world-map"
@@ -186,6 +192,163 @@
 
     const layers = new Map();
 
+  const satelliteDivIcon = L.divIcon({
+    className: "satellite-icon-marker",
+    html:
+      '<svg viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg">' +
+      '<g stroke="#ffffff" stroke-width="1" stroke-linejoin="round" stroke-linecap="round">' +
+      '<line x1="12" y1="9.3" x2="12" y2="5.4"></line>' +
+      '<circle cx="12" cy="4.6" r="1" fill="#ffd166"></circle>' +
+      '<line x1="7.6" y1="12" x2="9.3" y2="12"></line>' +
+      '<line x1="14.7" y1="12" x2="16.4" y2="12"></line>' +
+      '<rect x="2.4" y="9" width="5.2" height="6" rx="0.6" fill="#0ea5c4"></rect>' +
+      '<rect x="16.4" y="9" width="5.2" height="6" rx="0.6" fill="#0ea5c4"></rect>' +
+      '<rect x="9.3" y="9.3" width="5.4" height="5.4" rx="1" fill="#0b3d5c"></rect>' +
+      "</g>" +
+      "</svg>",
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+
+  const trackLayerGroup = L.layerGroup().addTo(worldMap);
+  const trackSelect = document.getElementById("map-track-select");
+  let currentTrackData = null;
+  let trackRefreshTimer = null;
+
+  function splitTrackSegments(points) {
+    const segments = [];
+    let current = [];
+    for (let index = 0; index < points.length; index += 1) {
+      const point = points[index];
+      if (current.length > 0) {
+        const previous = current[current.length - 1];
+        if (Math.abs(point.lon_deg - previous.lon_deg) > 180) {
+          segments.push(current);
+          current = [];
+        }
+      }
+      current.push(point);
+    }
+    if (current.length > 0) {
+      segments.push(current);
+    }
+    return segments;
+  }
+
+  function renderTrack() {
+    trackLayerGroup.clearLayers();
+    if (!currentTrackData || currentTrackData.length === 0) return;
+
+    const now = Date.now();
+    const past = currentTrackData.filter((point) => point.time <= now);
+    const future = currentTrackData.filter((point) => point.time >= now);
+
+    if (past.length > 1) {
+      splitTrackSegments(past).forEach((segment) => {
+        L.polyline(
+          segment.map((point) => [point.lat_deg, point.lon_deg]),
+          {
+            color: "#7894ad",
+            weight: 2,
+            opacity: 0.7,
+            dashArray: "1, 6",
+            className: "satellite-track-past",
+          },
+        ).addTo(trackLayerGroup);
+      });
+    }
+
+    if (future.length > 1) {
+      splitTrackSegments(future).forEach((segment) => {
+        L.polyline(
+          segment.map((point) => [point.lat_deg, point.lon_deg]),
+          {
+            color: "#4ec9f0",
+            weight: 2.5,
+            opacity: 0.9,
+            className: "satellite-track-future",
+          },
+        ).addTo(trackLayerGroup);
+      });
+    }
+  }
+
+  async function fetchTrack() {
+    if (!trackSelect || !trackSelect.value) return;
+    try {
+      const response = await fetch(
+        "/api/satellites/track?index=" +
+          encodeURIComponent(trackSelect.value) +
+          "&minutes_back=15&minutes_forward=45",
+      );
+      if (!response.ok) return;
+      const data = await response.json();
+      currentTrackData = (data.track || []).map((point) => ({
+        lat_deg: point.lat_deg,
+        lon_deg: point.lon_deg,
+        time: new Date(point.timestamp).getTime(),
+      }));
+      renderTrack();
+    } catch (error) {
+      /* Netzwerkfehler ignorieren, naechster Versuch folgt */
+    }
+  }
+
+  function stopTrack() {
+    currentTrackData = null;
+    trackLayerGroup.clearLayers();
+    if (trackRefreshTimer) {
+      window.clearInterval(trackRefreshTimer);
+      trackRefreshTimer = null;
+    }
+  }
+
+  function startTrack() {
+    fetchTrack();
+    if (trackRefreshTimer) window.clearInterval(trackRefreshTimer);
+    trackRefreshTimer = window.setInterval(fetchTrack, 30000);
+  }
+
+  function updateTrackOptions() {
+    if (!trackSelect) return;
+    const previousValue = trackSelect.value;
+    const checkboxes = Array.from(
+      document.querySelectorAll(".map-satellite-checkbox:checked"),
+    );
+
+    trackSelect.innerHTML = "";
+    const noneOption = document.createElement("option");
+    noneOption.value = "";
+    noneOption.textContent = "Keine";
+    trackSelect.appendChild(noneOption);
+
+    checkboxes.forEach((checkbox) => {
+      const option = document.createElement("option");
+      option.value = checkbox.value;
+      option.textContent = checkbox.dataset.name || checkbox.value;
+      trackSelect.appendChild(option);
+    });
+
+    const stillAvailable = checkboxes.some(
+      (checkbox) => checkbox.value === previousValue,
+    );
+    if (stillAvailable) {
+      trackSelect.value = previousValue;
+    } else if (previousValue) {
+      stopTrack();
+    }
+  }
+
+  if (trackSelect) {
+    trackSelect.addEventListener("change", () => {
+      if (trackSelect.value) {
+        startTrack();
+      } else {
+        stopTrack();
+      }
+    });
+  }
+
     function removeSatelliteLayer(id) {
       const entry = layers.get(id);
       if (!entry) return;
@@ -201,14 +364,7 @@
 
       let entry = layers.get(id);
       if (!entry) {
-        const marker = L.circleMarker(latLng, {
-          radius: 5,
-          color: "#ffffff",
-          fillColor: "#4ec9f0",
-          fillOpacity: 1,
-          weight: 2,
-          className: "satellite-marker",
-        })
+      const marker = L.marker(latLng, { icon: satelliteDivIcon })
           .addTo(worldMap)
           .bindTooltip(
             position.name + " (" + Math.round(position.alt_km) + " km)",
@@ -269,6 +425,7 @@
         if (!response.ok) return;
         const data = await response.json();
         (data.positions || []).forEach(upsertSatelliteLayer);
+        if (currentTrackData) renderTrack();
       } catch (error) {
         console.error("Fehler beim Laden der Satellitenpositionen", error);
       }
@@ -318,10 +475,12 @@
       checkbox.addEventListener("change", () => {
         saveSelection();
         scheduleRefresh();
+        updateTrackOptions();
       });
     });
 
     restoreSelection();
+    updateTrackOptions();
     if (selectedIds().length > 0) {
       scheduleRefresh();
     }

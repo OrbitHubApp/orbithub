@@ -163,6 +163,37 @@ class PassPredictor:
             "alt_km": round(subpoint.elevation.km, 2),
         }
 
+    def ground_track(
+        self,
+        record: TLERecord,
+        minutes_back: float = 15.0,
+        minutes_forward: float = 45.0,
+        sample_count: int = 61,
+    ) -> tuple[SatelliteTrackPoint, ...]:
+        """Berechnet die Bodenspur eines Satelliten fuer die Kartenansicht.
+
+        Liefert eine Reihe von Subsatellitenpositionen von `minutes_back`
+        Minuten in der Vergangenheit bis `minutes_forward` Minuten in der
+        Zukunft, damit der bisherige und der kommende Bahnverlauf auf der
+        Weltkarte sichtbar werden.
+        """
+        satellite = EarthSatellite(
+            record.line1,
+            record.line2,
+            record.name,
+            self.timescale,
+    )
+        now = datetime.now(timezone.utc)
+        start_time = now - timedelta(minutes=minutes_back)
+        end_time = now + timedelta(minutes=minutes_forward)
+
+        return self._build_track_points(
+            satellite,
+            start_time,
+            end_time,
+            sample_count,
+    )
+
     def predict(
         self,
         record: TLERecord,

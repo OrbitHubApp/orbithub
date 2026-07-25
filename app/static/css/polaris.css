@@ -1983,3 +1983,51 @@ a.source-action-button {
 .satellite-footprint {
   transition: cx 1.4s linear, cy 1.4s linear;
 }
+
+/* Karte / Satelliten-Icon-Marker */
+.satellite-icon-marker {
+  background: transparent;
+  border: none;
+}
+
+.satellite-icon-marker svg {
+  filter: drop-shadow(0 1px 2px rgba(4, 20, 33, 0.55));
+}
+
+.leaflet-marker-icon.satellite-icon-marker {
+  transition: transform 1.2s linear;
+}
+
+/* Karte / Bahnverfolgung */
+.map-card-header .map-track-label {
+  order: 4;
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #7894ad;
+}
+
+.map-track-select {
+  flex: 1;
+  min-height: 34px;
+  max-width: 240px;
+  box-sizing: border-box;
+  border: 1px solid rgba(92, 157, 190, 0.28);
+  border-radius: 8px;
+  background: rgba(5, 20, 34, 0.82);
+  color: #dff5ff;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.map-track-select:focus {
+  outline: none;
+  border-color: rgba(68, 217, 255, 0.65);
+  box-shadow: 0 0 0 3px rgba(68, 217, 255, 0.08);
+}

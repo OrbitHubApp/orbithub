@@ -1446,6 +1446,55 @@ async def satellite_positions(indices: str = "") -> dict:
     return {"positions": positions}
 
 
+@app.get("/api/satellites/track")
+async def satellite_track(
+    index: int,
+    minutes_back: float = 15.0,
+    minutes_forward: float = 45.0,
+) -> dict:
+    """Liefert die Bodenspur (Ground-Track) eines Satelliten fuer die Kartenansicht."""
+    parser = TLEParser()
+    records = (
+        parser.parse_file(TLE_FILE)
+        if TLE_FILE.exists()
+        else []
+    )
+    records = sorted(
+        records,
+        key=lambda record: display_satellite_name(
+            record.name,
+        ).lower(),
+    )
+
+    if index < 0 or index >= len(records):
+        return {"track": []}
+
+    record = records[index]
+    observer = load_observer_settings()
+    predictor = PassPredictor(
+        latitude_deg=observer.latitude_deg,
+        longitude_deg=observer.longitude_deg,
+        elevation_m=observer.elevation_m,
+    )
+
+    track_points = predictor.ground_track(
+        record,
+        minutes_back=minutes_back,
+        minutes_forward=minutes_forward,
+    )
+
+    return {
+        "track": [
+            {
+                "timestamp": point.timestamp.isoformat(),
+                "lat_deg": point.lat_deg,
+                "lon_deg": point.lon_deg,
+            }
+            for point in track_points
+        ],
+    }
+
+
 @app.get("/history")
 async def history_page(request: Request):
     entries = load_history_entries()
