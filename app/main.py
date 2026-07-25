@@ -368,6 +368,32 @@ async def update_tle() -> None:
         )
 
 
+def _time_display_pref() -> str:
+    return load_observer_settings().time_display
+
+
+def _apply_time_display(value: datetime) -> datetime:
+    if _time_display_pref() == "utc":
+        return value.astimezone(timezone.utc)
+
+    return value.astimezone()
+
+
+def format_time_value(value: datetime, fmt: str) -> str:
+    if value is None:
+        return ""
+
+    return _apply_time_display(value).strftime(fmt)
+
+
+def time_zone_label() -> str:
+    return "GMT" if _time_display_pref() == "utc" else "Ortszeit"
+
+
+templates.env.filters["fmt_time"] = format_time_value
+templates.env.globals["time_zone_label"] = time_zone_label
+
+
 def format_update_time() -> str:
     updated_utc = status["updated_utc"]
 
@@ -378,7 +404,7 @@ def format_update_time() -> str:
         updated_utc
     )
 
-    updated_local = updated_datetime.astimezone()
+    updated_local = _apply_time_display(updated_datetime)
 
     return updated_local.strftime(
         "%d.%m.%Y, %H:%M:%S"
@@ -411,7 +437,7 @@ def format_tle_file_time() -> str:
         TLE_FILE.stat().st_mtime,
         tz=timezone.utc,
     )
-    local = mtime.astimezone()
+    local = _apply_time_display(mtime)
 
     return local.strftime("%d.%m.%Y, %H:%M:%S")
 
@@ -626,6 +652,10 @@ async def update_settings(request: Request) -> dict:
     locator = str(payload.get("locator", "")).strip().upper()
     qth_name = str(payload.get("qth_name", "")).strip() or "QTH"
 
+    time_display = str(payload.get("time_display", "local")).strip().lower()
+    if time_display not in ("local", "utc"):
+        time_display = "local"
+
     latitude_deg = None
     longitude_deg = None
 
@@ -676,6 +706,7 @@ async def update_settings(request: Request) -> dict:
         elevation_m=elevation_m,
         default_minimum_elevation_deg=default_minimum_elevation_deg,
         horizon_segments=tuple(horizon_segments),
+        time_display=time_display,
     )
 
     save_observer_settings(settings)

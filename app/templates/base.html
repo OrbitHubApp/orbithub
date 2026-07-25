@@ -47,7 +47,7 @@
   {% block head %}{% endblock %}
 </head>
 
-<body data-refresh-seconds="{{ refresh_seconds | default(60) }}">
+<body data-refresh-seconds="{{ refresh_seconds | default(60) }}" data-time-display="{{ observer.time_display }}">
 
   <button
     class="mobile-menu-button"

@@ -136,6 +136,14 @@
         placeholder="10"
       >
     </label>
+
+    <label>
+      <span>Zeitanzeige</span>
+      <select id="settings-time-display">
+        <option value="local" {% if settings.time_display != "utc" %}selected{% endif %}>Ortszeit</option>
+        <option value="utc" {% if settings.time_display == "utc" %}selected{% endif %}>GMT / UTC</option>
+      </select>
+    </label>
   </div>
 </section>
 
@@ -362,6 +370,9 @@
       elevation_m: document.getElementById("settings-elevation").value,
       default_minimum_elevation_deg: document.getElementById(
         "settings-default-min-elevation"
+      ).value,
+      time_display: document.getElementById(
+        "settings-time-display"
       ).value,
       horizon_segments: segments,
     };

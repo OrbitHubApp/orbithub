@@ -4,6 +4,7 @@
   );
 
   const clock = document.getElementById("local-clock");
+  const clockUseUtc = document.body.dataset.timeDisplay === "utc";
   const countdown = document.getElementById(
     "refresh-countdown"
   );
@@ -21,6 +22,7 @@
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
+        timeZone: clockUseUtc ? "UTC" : undefined,
       }
     ).format(new Date());
   }
@@ -346,6 +348,11 @@
       return;
     }
 
+    if (document.body.dataset.timeDisplay === "utc") {
+      timezoneElement.textContent = "GMT";
+      return;
+    }
+
     try {
       const parts = new Intl.DateTimeFormat(
         "de-DE",
@@ -633,16 +640,24 @@
   }
 
   function formatTime(date) {
-    return pad(date.getHours()) + ":" + pad(date.getMinutes()) + ":" + pad(date.getSeconds());
+    const useUtc = document.body.dataset.timeDisplay === "utc";
+    const hours = useUtc ? date.getUTCHours() : date.getHours();
+    const minutes = useUtc ? date.getUTCMinutes() : date.getMinutes();
+    const seconds = useUtc ? date.getUTCSeconds() : date.getSeconds();
+    return pad(hours) + ":" + pad(minutes) + ":" + pad(seconds);
   }
 
   function formatDateTime(date) {
+    const useUtc = document.body.dataset.timeDisplay === "utc";
+    const day = useUtc ? date.getUTCDate() : date.getDate();
+    const month = useUtc ? date.getUTCMonth() : date.getMonth();
+    const year = useUtc ? date.getUTCFullYear() : date.getFullYear();
     return (
-      pad(date.getDate()) +
+      pad(day) +
       "." +
-      pad(date.getMonth() + 1) +
+      pad(month + 1) +
       "." +
-      date.getFullYear() +
+      year +
       " " +
       formatTime(date)
     );

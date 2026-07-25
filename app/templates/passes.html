@@ -135,17 +135,17 @@
         <dl class="pass-summary-list">
           <div>
             <dt>Aufgang</dt>
-            <dd id="summary-rise">{{ passes[0].rise_time.astimezone().strftime("%H:%M:%S") }}</dd>
+            <dd id="summary-rise">{{ passes[0].rise_time | fmt_time("%H:%M:%S") }}</dd>
           </div>
 
           <div>
             <dt>Maximum</dt>
-            <dd id="summary-max">{{ passes[0].culmination_time.astimezone().strftime("%H:%M:%S") }}</dd>
+            <dd id="summary-max">{{ passes[0].culmination_time | fmt_time("%H:%M:%S") }}</dd>
           </div>
 
           <div>
             <dt>Untergang</dt>
-            <dd id="summary-set">{{ passes[0].set_time.astimezone().strftime("%H:%M:%S") }}</dd>
+            <dd id="summary-set">{{ passes[0].set_time | fmt_time("%H:%M:%S") }}</dd>
           </div>
 
           <div>
@@ -193,9 +193,9 @@
 
     {% if passes %}
       <p id="next-pass-summary">
-        {{ passes[0].rise_time.astimezone().strftime("%d.%m.%Y %H:%M:%S") }}
+        {{ passes[0].rise_time | fmt_time("%d.%m.%Y %H:%M:%S") }}
         bis
-        {{ passes[0].set_time.astimezone().strftime("%H:%M:%S") }}
+        {{ passes[0].set_time | fmt_time("%H:%M:%S") }}
         · Maximum {{ "%.1f"|format(passes[0].max_elevation_deg) }}°
       </p>
 
@@ -309,19 +309,19 @@
           {% for pass in passes %}
             <tr class="pass-row{% if loop.first %} active{% endif %}" data-pass-index="{{ loop.index0 }}">
               <td class="pass-date">
-                {{ pass.rise_time.astimezone().strftime("%d.%m.") }}
+                {{ pass.rise_time | fmt_time("%d.%m.") }}
               </td>
 
               <td>
-                {{ pass.rise_time.astimezone().strftime("%H:%M:%S") }}
+                {{ pass.rise_time | fmt_time("%H:%M:%S") }}
               </td>
 
               <td>
-                {{ pass.culmination_time.astimezone().strftime("%H:%M:%S") }}
+                {{ pass.culmination_time | fmt_time("%H:%M:%S") }}
               </td>
 
               <td>
-                {{ pass.set_time.astimezone().strftime("%H:%M:%S") }}
+                {{ pass.set_time | fmt_time("%H:%M:%S") }}
               </td>
 
               <td>

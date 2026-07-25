@@ -18,6 +18,7 @@ DEFAULT_SETTINGS = {
     "elevation_m": 50.0,
     "default_minimum_elevation_deg": 10.0,
     "horizon_segments": [],
+    "time_display": "local",
 }
 
 
@@ -40,6 +41,7 @@ class ObserverSettings:
     horizon_segments: tuple[HorizonSegment, ...] = field(
         default_factory=tuple,
     )
+    time_display: str = "local"
 
     def minimum_elevation_at(self, azimuth_deg: float) -> float:
         """Required minimum elevation for a given azimuth, taking the
@@ -120,6 +122,14 @@ def load_observer_settings() -> ObserverSettings:
             DEFAULT_SETTINGS["default_minimum_elevation_deg"],
         ),
         horizon_segments=segments,
+        time_display=(
+            str(data.get("time_display", DEFAULT_SETTINGS["time_display"]))
+            if str(
+                data.get("time_display", DEFAULT_SETTINGS["time_display"])
+            )
+            in ("local", "utc")
+            else DEFAULT_SETTINGS["time_display"]
+        ),
     )
 
 
@@ -139,6 +149,7 @@ def save_observer_settings(settings: ObserverSettings) -> None:
         "horizon_segments": [
             asdict(segment) for segment in settings.horizon_segments
         ],
+        "time_display": settings.time_display,
     }
 
     OBSERVER_SETTINGS_FILE.write_text(
