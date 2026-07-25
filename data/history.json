@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-07-25",
+    "time": "21:10",
+    "message": "Wichtiger Bugfix bei der Datenqualität: Wenn CelesTrak kurzzeitig nicht erreichbar war, ist OrbitHub automatisch auf die Ersatzquelle SatNOGS ausgewichen - dort steckte jedoch für die ISS ein über drei Jahre alter Karteileichen-Datensatz (Stand Januar 2023) neben dem aktuellen Eintrag. OrbitHub prüft neue Bahndaten jetzt vor der Übernahme auf Aktualität und bereinigt doppelte Katalogeinträge automatisch, damit so etwas nicht mehr unbemerkt bleibt."
+  },
+  {
+    "date": "2026-07-25",
+    "time": "20:55",
+    "message": "Bugfix: Die Ortszeit-Anzeige rechnete bisher fälschlich in UTC statt in echte Berliner Zeit um, weil der Server-Container standardmäßig auf UTC eingestellt ist. Betroffen waren alle als 'Ortszeit' angezeigten Werte (Überflugzeiten, TLE-Datenstand). Jetzt wird ausdrücklich Europe/Berlin verwendet, sodass die Zeiten wieder stimmen."
+  },
+  {
+    "date": "2026-07-25",
     "time": "20:23",
     "message": "Neue Einstellung: Zeitanzeige zwischen Ortszeit und GMT/UTC wählbar. Betrifft die Live-Uhr im Kopfbereich, die Überflug-Übersicht sowie die Polarplot-Zeiten auf der Karte."
   },
