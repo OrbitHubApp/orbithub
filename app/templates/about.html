@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}OrbitHub - Über OrbitHub{% endblock %}
+
+{% block nav_about %}active{% endblock %}
+
+{% block page_heading %}Über OrbitHub{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero sources-hero">
+  <div>
+    <div class="eyebrow">{{ app_name }} - {{ app_slogan }}</div>
+    <h2>Version {{ version }} (Codename: {{ codename }})</h2>
+    <p>
+      Selbst gehostet auf einem Raspberry Pi 3B.
+      Betrieben und entwickelt von DL7AG, Christian Henkel, {{ observer_name }} (Locator {{ observer_locator }}).
+    </p>
+  </div>
+</section>
+
+<div class="add-source-panel">
+  <span class="label">WAS IST ORBITHUB</span>
+  <h3>Satellitenuüberflüge, lokal berechnet</h3>
+  <p>
+    OrbitHub ist eine selbst gehostete Webanwendung zur Vorhersage von Satellitenuüberflügen, entwickelt für den Einsatz im Amateurfunk. Statt sich auf externe Onlinedienste zu verlassen, berechnet OrbitHub alle Bahndaten lokal, auf eigener Hardware, ohne dass Beobachtungsstandort oder Nutzungsdaten das eigene Netzwerk verlassen.
+  </p>
+  <p>
+    Im Zentrum steht die Frage, die sich jeder Satelliten-Beobachter stellt: Wann und wo am Himmel wird ein bestimmter Satellit als nächstes sichtbar sein, und wie lange? OrbitHub beantwortet das mit präzisen, auf den eigenen Standort zugeschnittenen Vorhersagen.
+  </p>
+</div>
+
+<div class="add-source-panel">
+  <span class="label">FUNKTIONEN IM ÜBERBLICK</span>
+  <h3>Übersicht</h3>
+  <p>Das Dashboard zeigt auf einen Blick den Status der Anlage: den nächsten anstehenden Überflug mit Live-Countdown, den Zustand der Bahndaten (Alter, Quelle, Anzahl Datensätze) sowie grundlegende Systemmetriken des Raspberry Pi.</p>
+
+  <h3>Satellitenkatalog</h3>
+  <p>Durchsuchbare Liste aller verfügbaren Satelliten mit NORAD-ID, aus der ein Satellit für die Überflugberechnung ausgewählt werden kann.</p>
+
+  <h3>Überflüge</h3>
+  <p>
+    Das Herzstück von OrbitHub: Für einen gewählten Satelliten werden alle Überflüge innerhalb eines einstellbaren Zeitraums (z. B. 24 Stunden) berechnet, jeweils mit Aufgangs-, Kulminations- und Untergangszeit, maximaler Elevation sowie Auf- und Untergangsazimut. Zwei Visualisierungen stehen zur Verfügung: ein klassischer Polarplot (Himmelsansicht von unten, inklusive optionaler Abschattung durch eine benutzerdefinierte Horizontmaske) sowie eine interaktive Weltkarte mit Bodenspur, eigenem Standort, Sichtbarkeitsradius (Footprint) im Kulminationspunkt und AOS-/LOS-Markierungen.
+  </p>
+
+  <h3>Karte &amp; Historie</h3>
+  <p>In Vorbereitung: eine permanente, eigenständige Kartenansicht sowie ein Rückblick auf vergangene Überflüge.</p>
+
+  <h3>Daten &amp; Quellen</h3>
+  <p>
+    OrbitHub bezieht aktuelle Bahndaten (TLE, Two-Line Elements) wahlweise von SatNOGS (der offenen Satellitendatenbank der Amateurfunk-Community) oder von CelesTrak (dem klassischen NORAD-Katalog aktiver Satelliten). Eine bevorzugte Quelle lässt sich festlegen, inklusive automatischem Fallback, falls diese einmal nicht erreichbar ist. Zusätzlich lassen sich beliebige eigene TLE-Quellen per URL hinzufügen; OrbitHub prüft deren Gültigkeit, bevor sie gespeichert werden.
+  </p>
+
+  <h3>Downloads &amp; API</h3>
+  <p>
+    Die aktuellen Bahndaten stehen als Datei zum Download bereit, unter anderem im Standardformat sowie kompatibel zu SatGazer. Über eine schlanke HTTP-API lassen sich dieselben Daten auch programmatisch abrufen, etwa für eigene Skripte oder externe Ground-Station-Software.
+  </p>
+
+  <h3>Einstellungen</h3>
+  <p>
+    Hier werden der eigene Standort (Rufzeichen, QTH-Name, Maidenhead-Locator, geografische Koordinaten und Höhe), eine Mindestelevation für Überflüge sowie eine individuelle Horizontmaske hinterlegt. Letztere erlaubt es, Himmelsbereiche auszuschließen, die durch Gebäude, Bäume oder Gelände real verdeckt sind. Vorhersagen berücksichtigen das entsprechend.
+  </p>
+</div>
+
+<div class="add-source-panel">
+  <span class="label">TECHNIK DAHINTER</span>
+  <h3>Wie OrbitHub rechnet</h3>
+  <p>
+    OrbitHub basiert auf Python (FastAPI) im Backend und einem bewusst schlanken Frontend aus Jinja2-Templates, Vanilla JavaScript und CSS, ganz ohne Build-Prozess oder externe Frameworks. Die eigentliche Bahnmechanik übernimmt die Skyfield-Bibliothek auf Basis des WGS84-Erdmodells, wodurch Position, Elevation, Azimut und Bodenspur eines Satelliten für jeden beliebigen Zeitpunkt präzise berechnet werden können. Die Weltkarten-Darstellung nutzt Leaflet mit einem kostenlosen, kartenschlüsselfreien Kartenstil von CARTO. Betrieben wird die gesamte Anwendung in einem Docker-Container, was Updates und einen sauberen, reproduzierbaren Betrieb auf dem Raspberry Pi vereinfacht.
+  </p>
+</div>
+
+{% endblock %}
