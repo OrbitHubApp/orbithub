@@ -566,6 +566,8 @@ async def passes_page(
             "horizon_shadow_segments": horizon_shadow_segments,
             "observer_name": observer.qth_name,
             "observer_locator": observer.locator,
+            "observer_latitude_deg": observer.latitude_deg,
+            "observer_longitude_deg": observer.longitude_deg,
             "minimum_elevation": (
                 minimum_elevation
             ),

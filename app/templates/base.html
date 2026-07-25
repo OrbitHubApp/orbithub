@@ -36,12 +36,12 @@
 
   <link
     rel="stylesheet"
-    href="{{ url_for('static', path='css/style.css') }}"
+    href="{{ url_for('static', path='css/style.css') }}?v={{ version }}"
   >
 
   <link
     rel="stylesheet"
-    href="{{ url_for('static', path='css/polaris.css') }}"
+    href="{{ url_for('static', path='css/polaris.css') }}?v={{ version }}"
   >
 
   {% block head %}{% endblock %}
@@ -285,7 +285,7 @@
   </div>
 
   <script
-    src="{{ url_for('static', path='js/dashboard.js') }}"
+    src="{{ url_for('static', path='js/dashboard.js') }}?v={{ version }}"
   ></script>
 
   {% block scripts %}{% endblock %}

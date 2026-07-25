@@ -1496,7 +1496,8 @@ body::before {
 }
 
 .polarplot-card,
-.pass-summary-card {
+.pass-summary-card,
+.map-card {
   border: 1px solid rgba(70, 174, 231, 0.16);
   border-radius: 14px;
   background: rgba(4, 20, 33, 0.55);
@@ -1677,6 +1678,37 @@ body::before {
   }
 }
 
+.map-card {
+  padding: 16px;
+}
+
+.ground-map {
+  width: 100%;
+  height: 320px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(4, 20, 33, 0.85);
+}
+
+.ground-map .leaflet-control-attribution {
+  background: rgba(4, 20, 33, 0.72);
+  color: #9fb4c7;
+}
+
+.ground-map .leaflet-control-attribution a {
+  color: #4ec9f0;
+}
+
+.ground-map .leaflet-bar a {
+  background: rgba(4, 20, 33, 0.88);
+  color: #e7f1fa;
+  border-color: rgba(70, 174, 231, 0.16);
+}
+
+.ground-map .leaflet-bar a:hover {
+  background: rgba(70, 174, 231, 0.25);
+}
+
 /* OrbitHub: Satellitenkatalog */
 
 .satellite-search-card {
@@ -1757,6 +1789,10 @@ a.source-action-button {
 .passes-right-column .polarplot-card {
   margin-top: 14px;
   flex: 1;
+}
+
+.passes-right-column .map-card {
+  margin-top: 14px;
 }
 
 .passes-right-column .satellite-empty-block {

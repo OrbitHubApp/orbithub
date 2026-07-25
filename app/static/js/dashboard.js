@@ -129,13 +129,13 @@
   function formatPercent(value) {
     return Number.isFinite(value)
       ? `${value.toFixed(1)} %`
-      : "–";
+      : "-";
   }
 
   function formatTemperature(value) {
     return Number.isFinite(value)
       ? `${value.toFixed(1)} °C`
-      : "–";
+      : "-";
   }
 
   async function updateSystemMetrics() {
@@ -568,6 +568,66 @@
   const aosLabel = document.getElementById("polarplot-aos-label");
   const losLabel = document.getElementById("polarplot-los-label");
 
+  const mapContainer = document.getElementById("ground-map");
+  let groundMap = null;
+  let obsLat = null;
+  let obsLon = null;
+  let trackLine = null;
+  let footprintCircle = null;
+  let riseMarker = null;
+  let setMarker = null;
+  let satMarker = null;
+
+  if (mapContainer && window.L) {
+    obsLat = Number(mapContainer.dataset.observerLat);
+    obsLon = Number(mapContainer.dataset.observerLon);
+
+    groundMap = L.map(mapContainer, { worldCopyJump: true }).setView(
+      [obsLat, obsLon],
+      3,
+    );
+
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 19,
+      },
+    ).addTo(groundMap);
+
+    L.circleMarker([obsLat, obsLon], {
+      radius: 6,
+      color: "#f2c14e",
+      fillColor: "#f2c14e",
+      fillOpacity: 0.9,
+      weight: 2,
+    })
+      .addTo(groundMap)
+      .bindTooltip(mapContainer.dataset.observerName || "Standort");
+  }
+
+  function footprintRadiusMeters(altitudeKm) {
+    const earthRadiusKm = 6371;
+    const ratio = earthRadiusKm / (earthRadiusKm + altitudeKm);
+    const clamped = Math.min(1, Math.max(-1, ratio));
+    const centralAngle = Math.acos(clamped);
+    return earthRadiusKm * centralAngle * 1000;
+  }
+
+  function splitAntimeridian(latLngs) {
+    const segments = [[]];
+    latLngs.forEach((point, index) => {
+      const previous = latLngs[index - 1];
+      if (previous && Math.abs(point[1] - previous[1]) > 180) {
+        segments.push([]);
+      }
+      segments[segments.length - 1].push(point);
+    });
+    return segments.length > 1 ? segments : latLngs;
+  }
+
   function pad(number) {
     return String(number).padStart(2, "0");
   }
@@ -647,6 +707,74 @@
         losLabel.setAttribute("y", lastPoint.y - 7);
       }
     }
+
+  if (groundMap && passData.track_points.length > 0) {
+    const points = passData.track_points;
+    const latLngs = splitAntimeridian(
+      points.map((point) => [point.lat, point.lon]),
+    );
+
+    if (trackLine) groundMap.removeLayer(trackLine);
+    trackLine = L.polyline(latLngs, {
+      color: "#4ec9f0",
+      weight: 3,
+      opacity: 0.85,
+    }).addTo(groundMap);
+
+    const peak = points.reduce(
+      (best, point) => (point.el > best.el ? point : best),
+      points[0],
+    );
+
+    if (footprintCircle) groundMap.removeLayer(footprintCircle);
+    footprintCircle = L.circle([peak.lat, peak.lon], {
+      radius: footprintRadiusMeters(peak.alt_km),
+      color: "#4ec9f0",
+      weight: 1,
+      fillColor: "#4ec9f0",
+      fillOpacity: 0.08,
+      dashArray: "4 6",
+    }).addTo(groundMap);
+
+    const first = points[0];
+    const last = points[points.length - 1];
+
+    if (riseMarker) groundMap.removeLayer(riseMarker);
+    riseMarker = L.circleMarker([first.lat, first.lon], {
+      radius: 5,
+      color: "#5fd97a",
+      fillColor: "#5fd97a",
+      fillOpacity: 1,
+    })
+      .addTo(groundMap)
+      .bindTooltip("AOS");
+
+    if (setMarker) groundMap.removeLayer(setMarker);
+    setMarker = L.circleMarker([last.lat, last.lon], {
+      radius: 5,
+      color: "#e0575b",
+      fillColor: "#e0575b",
+      fillOpacity: 1,
+    })
+      .addTo(groundMap)
+      .bindTooltip("LOS");
+
+    if (satMarker) groundMap.removeLayer(satMarker);
+    satMarker = L.circleMarker([peak.lat, peak.lon], {
+      radius: 4,
+      color: "#ffffff",
+      fillColor: "#0b1b2b",
+      fillOpacity: 1,
+      weight: 2,
+    }).addTo(groundMap);
+
+    const boundsSource = points.map((point) => [point.lat, point.lon]);
+    const bounds = L.latLngBounds(boundsSource);
+    if (obsLat !== null && obsLon !== null) {
+      bounds.extend([obsLat, obsLon]);
+    }
+    groundMap.fitBounds(bounds, { padding: [24, 24], maxZoom: 6 });
+  }
 
     if (countdownPanel) {
       countdownPanel.dataset.riseUtc = passData.rise_iso;

@@ -15,6 +15,9 @@ class SatelliteTrackPoint:
     elevation_deg: float
     polar_x: float
     polar_y: float
+    lat_deg: float
+    lon_deg: float
+    alt_km: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +80,10 @@ class PassPredictor:
 
             altitude, azimuth, _ = difference.altaz()
 
+            subpoint = wgs84.subpoint(
+                satellite.at(skyfield_time)
+            )
+
             azimuth_deg = azimuth.degrees % 360.0
             elevation_deg = max(
                 0.0,
@@ -116,6 +123,18 @@ class PassPredictor:
                     ),
                     polar_y=round(
                         polar_y,
+                        2,
+                    ),
+                    lat_deg=round(
+                        subpoint.latitude.degrees,
+                        4,
+                    ),
+                    lon_deg=round(
+                        subpoint.longitude.degrees,
+                        4,
+                    ),
+                    alt_km=round(
+                        subpoint.elevation.km,
                         2,
                     ),
                 )
