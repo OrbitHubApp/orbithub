@@ -1,6 +1,11 @@
 [
   {
     "date": "2026-07-25",
+    "time": "17:25",
+    "message": "Karte: Vollbildansicht zeigt jetzt nur noch eine einzelne Weltkarte ohne Duplikate (z.B. mehrfaches Australien); dunkles Kartenlayout durch helleres, freundlicheres Layout ersetzt."
+  },
+  {
+    "date": "2026-07-25",
     "time": "17:13",
     "message": "Karte: Vollbild-Fix und Live-Update verbessert. Der Vollbildmodus wurde bisher durch den automatischen Seiten-Reload nach 60 Sekunden unterbrochen; die Kartenseite pausiert diesen Reload jetzt dauerhaft. Die Positionen der Satelliten werden alle 5 Sekunden aktualisiert und bewegen sich durch eine sanfte CSS-Animation fließend über die Karte."
   },
