@@ -1,6 +1,11 @@
 [
   {
     "date": "2026-07-25",
+    "time": "16:09",
+    "message": "Neue Kartenseite: zoombare Weltkarte mit Live-Positionen und Sichtbarkeitsbereichen frei auswÃ¤hlbarer Satelliten. Zudem einen Fehler behoben, bei dem Satelliten mit doppelter NORAD-ID (z.B. ISS und ISS (ZARYA)) sich gegenseitig auf der Karte Ã¼berschrieben haben."
+  },
+  {
+    "date": "2026-07-25",
     "time": "15:37",
     "message": "Historie-Texte auf richtiges Deutsch mit Umlauten korrigiert (Seite, Einträge, Skript)"
   },
