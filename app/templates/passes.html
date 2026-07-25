@@ -199,7 +199,11 @@
           <line class="polarplot-axis" x1="100" y1="10" x2="100" y2="190" />
           <line class="polarplot-axis" x1="10" y1="100" x2="190" y2="100" />
 
-          <text class="polarplot-direction" x="100" y="7">N</text>
+          {% for segment in horizon_shadow_segments %}
+        <path class="polarplot-shadow" d="{{ segment.d }}" />
+        {% endfor %}
+
+        <text class="polarplot-direction" x="100" y="7">N</text>
           <text class="polarplot-direction" x="193" y="104">O</text>
           <text class="polarplot-direction" x="100" y="199">S</text>
           <text class="polarplot-direction" x="7" y="104">W</text>

@@ -1,6 +1,7 @@
 from dataclasses import asdict
 from datetime import datetime, timezone
 import json
+from math import cos, radians, sin
 import re
 import time
 from urllib.parse import urlparse
@@ -78,6 +79,46 @@ def display_satellite_name(name: str) -> str:
 
 templates.env.filters["display_name"] = display_satellite_name
 templates.env.globals["observer_settings"] = load_observer_settings
+
+
+def _polarplot_point(azimuth_deg: float, radius: float) -> tuple[float, float]:
+    azimuth_rad = radians(azimuth_deg)
+    x = 100 + radius * sin(azimuth_rad)
+    y = 100 - radius * cos(azimuth_rad)
+    return round(x, 2), round(y, 2)
+
+
+def _horizon_shadow_path(
+    azimuth_from_deg: float,
+    azimuth_to_deg: float,
+    minimum_elevation_deg: float,
+) -> str | None:
+    """SVG path for the blocked donut-sector of a horizon segment on the polarplot."""
+    span = (azimuth_to_deg - azimuth_from_deg) % 360.0
+    if span <= 0:
+        return None
+
+    minimum_elevation_deg = max(0.0, min(90.0, minimum_elevation_deg))
+    radius_outer = 90.0
+    radius_inner = 90.0 - minimum_elevation_deg
+    if radius_inner >= radius_outer:
+        return None
+
+    azimuth_start = azimuth_from_deg % 360.0
+    azimuth_end = azimuth_start + span
+    large_arc = 1 if span > 180 else 0
+
+    outer_start = _polarplot_point(azimuth_start, radius_outer)
+    outer_end = _polarplot_point(azimuth_end, radius_outer)
+    inner_end = _polarplot_point(azimuth_end, radius_inner)
+    inner_start = _polarplot_point(azimuth_start, radius_inner)
+
+    return (
+        f"M {outer_start[0]} {outer_start[1]} "
+        f"A {radius_outer} {radius_outer} 0 {large_arc} 1 {outer_end[0]} {outer_end[1]} "
+        f"L {inner_end[0]} {inner_end[1]} "
+        f"A {radius_inner} {radius_inner} 0 {large_arc} 0 {inner_start[0]} {inner_start[1]} Z"
+    )
 
 source_manager = SourceManager(SOURCE_URLS)
 
@@ -489,6 +530,22 @@ async def passes_page(
             observer_settings=observer,
         )
 
+    horizon_shadow_segments = [
+        {"d": path}
+        for path in (
+            _horizon_shadow_path(
+                segment.azimuth_from_deg,
+                segment.azimuth_to_deg,
+                max(
+                    segment.minimum_elevation_deg,
+                    observer.default_minimum_elevation_deg,
+                ),
+            )
+            for segment in observer.horizon_segments
+        )
+        if path is not None
+    ]
+
     return templates.TemplateResponse(
         name="passes.html",
         context={
@@ -506,6 +563,7 @@ async def passes_page(
                 selected_record
             ),
             "passes": satellite_passes,
+            "horizon_shadow_segments": horizon_shadow_segments,
             "observer_name": observer.qth_name,
             "observer_locator": observer.locator,
             "minimum_elevation": (

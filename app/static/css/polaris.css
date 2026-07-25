@@ -1480,7 +1480,7 @@ body::before {
   .mission-table {
     min-width: 900px;
   }
-}â
+}
 
 /* OrbitHub polar pass display */
 .pass-center-grid {
@@ -1528,6 +1528,13 @@ body::before {
 .polarplot-axis {
   stroke: rgba(123, 184, 218, 0.18);
   stroke-width: 1;
+}
+
+.polarplot-shadow {
+  fill: rgba(2, 8, 14, 0.55);
+  stroke: rgba(255, 90, 90, 0.25);
+  stroke-width: 0.6;
+  pointer-events: none;
 }
 
 .polarplot-direction {
