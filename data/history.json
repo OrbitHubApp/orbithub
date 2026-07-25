@@ -1,6 +1,11 @@
 [
   {
     "date": "2026-07-25",
+    "time": "17:58",
+    "message": "Karte: Waehlbare Bahnverfolgung fuer einen ausgewaehlten Satelliten hinzugefuegt (Bodenspur von 15 Minuten in der Vergangenheit bis 45 Minuten in der Zukunft, gestrichelt/durchgezogen dargestellt). Satellitenpositionen werden nun als kleines Satelliten-Icon statt als Kreis angezeigt."
+  },
+  {
+    "date": "2026-07-25",
     "time": "17:25",
     "message": "Karte: Vollbildansicht zeigt jetzt nur noch eine einzelne Weltkarte ohne Duplikate (z.B. mehrfaches Australien); dunkles Kartenlayout durch helleres, freundlicheres Layout ersetzt."
   },
