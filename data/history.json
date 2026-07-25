@@ -1,6 +1,11 @@
 [
   {
     "date": "2026-07-25",
+    "time": "23:00",
+    "message": "Logo erneut ausgetauscht (drittes Motiv). Hinweis: Die dunkle Nachtseite der Erde in dieser Grafik hat eine sehr aehnliche Farbe wie der Sidebar-Hintergrund und ist dadurch kaum sichtbar - nur der blaue Schwungbogen, die Antennenwellen und der Schriftzug heben sich ab. Auf Wunsch bleibt es vorerst so."
+  },
+  {
+    "date": "2026-07-25",
     "time": "22:45",
     "message": "Logo verfeinert: Die neue Grafik hat jetzt einen transparenten Hintergrund und fuegt sich damit nahtlos in den dunklen Seitenmenue-Hintergrund ein. Zusaetzlich wurden die Abstaende zwischen den Menuepunkten im Seitenmenue verringert, damit die Navigation kompakter wirkt."
   },
