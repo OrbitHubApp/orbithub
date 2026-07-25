@@ -135,10 +135,17 @@
     const obsLon = Number(mapContainer.dataset.observerLon);
     const obsName = mapContainer.dataset.observerName || "Standort";
 
-    const worldMap = L.map(mapContainer, { worldCopyJump: true }).setView(
-      [obsLat, obsLon],
-      2,
-    );
+    const WORLD_BOUNDS = [
+      [-85, -180],
+      [85, 180],
+    ];
+
+    const worldMap = L.map(mapContainer, {
+      worldCopyJump: false,
+      maxBounds: WORLD_BOUNDS,
+      maxBoundsViscosity: 1.0,
+      minZoom: 2,
+    }).setView([obsLat, obsLon], 2);
 
     if (window.ResizeObserver) {
       const mapResizeObserver = new ResizeObserver(() => {
@@ -148,12 +155,14 @@
     }
 
     L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
       {
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende &copy; <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: "abcd",
         maxZoom: 19,
+        noWrap: true,
+        bounds: WORLD_BOUNDS,
       },
     ).addTo(worldMap);
 
