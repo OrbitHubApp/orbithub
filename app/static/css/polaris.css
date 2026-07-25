@@ -65,12 +65,12 @@ body::before {
 }
 
 .mission-navigation {
-  gap: 6px;
+  gap: 3px;
 }
 
 .mission-navigation .nav-item {
-  min-height: 50px;
-  padding: 10px 13px;
+  min-height: 40px;
+  padding: 7px 13px;
   border-radius: 12px;
   font-size: 0.92rem;
 }
