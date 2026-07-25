@@ -22,6 +22,7 @@ from app.config import (
     DASHBOARD_REFRESH_SECONDS,
     CUSTOM_SOURCES_FILE,
     DATA_DIR,
+    HISTORY_FILE,
     SOURCE_SETTINGS_FILE,
     SOURCE_URLS,
     TLE_FILE,
@@ -1303,6 +1304,63 @@ async def about_page(request: Request):
             "codename": CODENAME,
             "observer_name": settings.qth_name,
             "observer_locator": settings.locator,
+        },
+    )
+
+
+_GERMAN_MONTHS = [
+    "Januar", "Februar", "Maerz", "April", "Mai", "Juni",
+    "Juli", "August", "September", "Oktober", "November", "Dezember",
+]
+
+
+def format_history_date(date_str: str) -> str:
+    """Formatiert YYYY-MM-DD als deutsches Datum, z. B. 25. Juli 2026."""
+    try:
+        year, month, day = date_str.split("-")
+        return f"{int(day)}. {_GERMAN_MONTHS[int(month) - 1]} {year}"
+    except (ValueError, IndexError):
+        return date_str
+
+
+def load_history_entries() -> list[dict]:
+    """Laedt die Aenderungshistorie aus data/history.json (neueste zuerst)."""
+    if not HISTORY_FILE.exists():
+        return []
+    try:
+        raw = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    return raw if isinstance(raw, list) else []
+
+
+@app.get("/history")
+async def history_page(request: Request):
+    entries = load_history_entries()
+
+    days: list[dict] = []
+    current_date = None
+    for entry in entries:
+        date = entry.get("date", "")
+        if date != current_date:
+            days.append(
+                {
+                    "date": date,
+                    "date_label": format_history_date(date),
+                    "entries": [],
+                }
+            )
+            current_date = date
+        days[-1]["entries"].append(entry)
+
+    return templates.TemplateResponse(
+        name="history.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "days": days,
+            "total_entries": len(entries),
         },
     )
 

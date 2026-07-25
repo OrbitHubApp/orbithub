@@ -1826,3 +1826,75 @@ a.source-action-button {
 .pass-row.active td strong {
   color: var(--cyan);
 }
+
+/* Historie / Aenderungslog */
+.history-panel {
+  margin-bottom: 0;
+}
+
+.history-count {
+  font-size: 0.78rem;
+  color: var(--mission-muted, #8fa8c2);
+}
+
+.history-timeline {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.history-day-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mission-cyan, #1dd9f2);
+  margin-bottom: 8px;
+}
+
+.history-entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(75, 219, 255, 0.1);
+  background: rgba(7, 24, 39, 0.5);
+  font-size: 0.85rem;
+}
+
+.history-time {
+  flex-shrink: 0;
+  min-width: 48px;
+  color: var(--mission-blue, #168cec);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.history-message {
+  flex: 1;
+  color: #d8e6f5;
+}
+
+.history-hash {
+  flex-shrink: 0;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.72rem;
+  color: var(--mission-muted, #8fa8c2);
+}
+
+.history-empty {
+  color: var(--mission-muted, #8fa8c2);
+  font-size: 0.85rem;
+  margin-top: 12px;
+}

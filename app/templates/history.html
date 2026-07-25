@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}OrbitHub - Historie{% endblock %}
+
+{% block nav_history %}active{% endblock %}
+
+{% block page_heading %}Historie{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero sources-hero">
+  <div>
+    <div class="eyebrow">{{ app_name }} - {{ app_slogan }}</div>
+    <h2>Aenderungshistorie</h2>
+    <p>
+      Automatisches Protokoll aller Aenderungen an OrbitHub, jeweils mit Datum und Uhrzeit.
+    </p>
+  </div>
+</section>
+
+<div class="add-source-panel history-panel">
+  <div class="add-source-panel-header">
+    <span class="label">PROTOKOLL</span>
+    <span class="history-count">{{ total_entries }} Eintraege</span>
+  </div>
+
+  {% if days %}
+    <div class="history-timeline">
+      {% for day in days %}
+        <div class="history-day">
+          <div class="history-day-label">{{ day.date_label }}</div>
+          <ul class="history-entries">
+            {% for entry in day.entries %}
+              <li class="history-entry">
+                <span class="history-time">{{ entry.time }}</span>
+                <span class="history-message">{{ entry.message }}</span>
+                {% if entry.hash %}<span class="history-hash">{{ entry.hash }}</span>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="history-empty">Noch keine Eintraege vorhanden.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

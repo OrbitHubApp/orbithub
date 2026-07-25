@@ -1,0 +1,199 @@
+[
+  {
+    "date": "2026-07-25",
+    "time": "15:21",
+    "message": "Historie-Seite mit automatischem Aenderungslog hinzugefuegt, Menuepunkt aktiviert"
+  },
+  {
+    "date": "2026-07-25",
+    "time": "11:07",
+    "message": "Add /about page with project info, activate nav link",
+    "hash": "b7bd5b0"
+  },
+  {
+    "date": "2026-07-25",
+    "time": "09:54",
+    "message": "Bump version to 1.0.0-beta \"Moon\"",
+    "hash": "08c6e09"
+  },
+  {
+    "date": "2026-07-25",
+    "time": "08:58",
+    "message": "Add ground track map (Leaflet + CARTO dark tiles) to Ueberfluege page",
+    "hash": "9d541bb"
+  },
+  {
+    "date": "2026-07-25",
+    "time": "07:45",
+    "message": "Ueberflugliste: Datum nur einmal pro Zeile, Zeitspalten kompakt",
+    "hash": "651ce13"
+  },
+  {
+    "date": "2026-07-25",
+    "time": "07:24",
+    "message": "Settings: Hoehenrechner (Meter+Entfernung) fuer Horizont-Segmente",
+    "hash": "7088659"
+  },
+  {
+    "date": "2026-07-25",
+    "time": "04:13",
+    "message": "Polarplot: gesperrten Himmelsbereich als Schatten anzeigen",
+    "hash": "ddabca0"
+  },
+  {
+    "date": "2026-07-24",
+    "time": "21:13",
+    "message": "Add observer settings page with custom horizon/visibility mask",
+    "hash": "cfc1cb3"
+  },
+  {
+    "date": "2026-07-24",
+    "time": "20:13",
+    "message": "Make pass list rows clickable to update polarplot and details",
+    "hash": "38665cf"
+  },
+  {
+    "date": "2026-07-24",
+    "time": "18:32",
+    "message": "Make pass countdown card more visually prominent",
+    "hash": "618c416"
+  },
+  {
+    "date": "2026-07-24",
+    "time": "18:13",
+    "message": "Add live countdown to next pass on Ueberfluege page",
+    "hash": "a609d61"
+  },
+  {
+    "date": "2026-07-24",
+    "time": "16:55",
+    "message": "Two-column layout for passes page: filter+summary left, polarplot right",
+    "hash": "903defb"
+  },
+  {
+    "date": "2026-07-24",
+    "time": "16:44",
+    "message": "Restyle passes page with working panel classes to match app design",
+    "hash": "e2e0530"
+  },
+  {
+    "date": "2026-07-24",
+    "time": "16:37",
+    "message": "Strip leading 0 marker from satellite names and add name/NORAD sort to satellites page",
+    "hash": "7e10ba8"
+  },
+  {
+    "date": "2026-07-24",
+    "time": "16:28",
+    "message": "Add satellites catalog page with search and pass linking",
+    "hash": "c018a03"
+  },
+  {
+    "date": "2026-07-24",
+    "time": "15:48",
+    "message": "Initial commit: OrbitHub v0.2.0-alpha 'Horizon' baseline",
+    "hash": "d3208dd"
+  },
+  {
+    "date": "2026-07-24",
+    "time": "15:41",
+    "message": "Initial commit: OrbitHub v0.2.0-alpha 'Horizon' baseline",
+    "hash": "c1c84ca"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "20:38",
+    "message": "Add initial satellite pass prediction",
+    "hash": "f3bc611"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "18:49",
+    "message": "Add custom source editing",
+    "hash": "05b8bc4"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "18:28",
+    "message": "Add custom source deletion",
+    "hash": "e35527d"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "17:54",
+    "message": "Use source manager when adding custom sources",
+    "hash": "4d7af3c"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "17:44",
+    "message": "Use source manager for combined sources",
+    "hash": "413e0c4"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "17:41",
+    "message": "Add central TLE source manager",
+    "hash": "2dcf52b"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "17:29",
+    "message": "Add custom TLE source management",
+    "hash": "05c8dc2"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "16:33",
+    "message": "Add selectable TLE source manager",
+    "hash": "235fb83"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "16:22",
+    "message": "Remove Raspberry Pi model from header",
+    "hash": "56ce389"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "16:20",
+    "message": "Keep Raspberry Pi model visible in header",
+    "hash": "b87b02b"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "16:16",
+    "message": "Show Raspberry Pi model and clearer reload timer",
+    "hash": "fd1fe58"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "16:01",
+    "message": "Add DL7AG operator profile and UTC time labels",
+    "hash": "27b7498"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "15:46",
+    "message": "Add TXT download and manual dataset update",
+    "hash": "f9b98b2"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "15:37",
+    "message": "Show live Raspberry Pi telemetry in header",
+    "hash": "53b32d8"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "15:33",
+    "message": "Add Raspberry Pi system metrics API",
+    "hash": "19526bb"
+  },
+  {
+    "date": "2026-07-23",
+    "time": "15:30",
+    "message": "Checkpoint: OrbitHub 0.2 Horizon",
+    "hash": "c3bf6de"
+  }
+]
