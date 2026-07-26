@@ -1,5 +1,9 @@
 # OrbitHub
 
+<p align="center">
+  <img src="app/static/img/orbithub-mission-logo.png" alt="OrbitHub Logo" width="220">
+</p>
+
 Selbst gehostete Webanwendung zur Vorhersage von Satellitenüberflügen für den Einsatz im Amateurfunk. OrbitHub berechnet alle Bahndaten lokal auf eigener Hardware (z. B. einem Raspberry Pi) – ohne dass Beobachtungsstandort oder Nutzungsdaten das eigene Netzwerk verlassen.
 
 Im Zentrum steht die Frage, die sich jeder Satelliten-Beobachter stellt: Wann und wo am Himmel wird ein bestimmter Satellit als Nächstes sichtbar sein, und wie lange? OrbitHub beantwortet das mit präzisen, auf den eigenen Standort zugeschnittenen Vorhersagen.
