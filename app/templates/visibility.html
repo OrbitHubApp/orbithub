@@ -174,7 +174,10 @@
         </select>
       </label>
 
-      <button type="submit" class="source-action-button">Anzeigen</button>
+      <button type="submit" class="source-action-button" id="visibility-submit-button">
+        <span class="button-spinner" aria-hidden="true"></span>
+        <span class="button-label">Anzeigen</span>
+      </button>
     </div>
   </form>
 </section>
@@ -368,6 +371,19 @@
       closeList();
     }
   });
+
+  var visibilityForm = document.querySelector(".add-source-form");
+  var submitButton = document.getElementById("visibility-submit-button");
+  if (visibilityForm && submitButton) {
+    visibilityForm.addEventListener("submit", function () {
+      submitButton.classList.add("is-loading");
+      submitButton.disabled = true;
+      var label = submitButton.querySelector(".button-label");
+      if (label) {
+        label.textContent = "Wird berechnet \u2026";
+      }
+    });
+  }
 })();
 </script>
 {% endblock %}

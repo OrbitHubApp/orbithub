@@ -1709,6 +1709,29 @@ body::before {
   background: rgba(70, 174, 231, 0.25);
 }
 
+/* OrbitHub: Lade-Feedback Anzeigen-Button (Visuell-Seite) */
+
+.source-action-button .button-spinner {
+  display: none;
+  width: 13px;
+  height: 13px;
+  margin-right: 7px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  vertical-align: -2px;
+}
+
+.source-action-button.is-loading {
+  cursor: wait;
+  opacity: 0.78;
+}
+
+.source-action-button.is-loading .button-spinner {
+  display: inline-block;
+  animation: orbithub-update-spin 700ms linear infinite;
+}
+
 /* OrbitHub: Satelliten-Kombifeld (Visuell-Seite) */
 
 .satellite-combobox-wrap {
