@@ -42,6 +42,11 @@ from app.services.stats_store import (
 from app.services.system_metrics import collect_system_metrics
 from app.services.tle_parser import TLEParser
 from app.services.pass_predictor import PassPredictor
+from app.services.favorites_store import (
+    add_favorite,
+    load_favorite_norad_ids,
+    remove_favorite,
+)
 from app.services.visibility import (
     assess_visibility,
     is_known_bright_satellite,
@@ -943,6 +948,36 @@ async def sources_page(request: Request):
             ),
         },
     )
+
+
+@app.post("/api/favorites/add")
+async def add_favorite_satellite(request: Request) -> dict:
+    payload = await request.json()
+
+    norad_id = str(payload.get("norad_id", "")).strip()
+    if not norad_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Keine NORAD-ID angegeben.",
+        )
+
+    favorites = add_favorite(norad_id)
+    return {"ok": True, "favorites": favorites}
+
+
+@app.post("/api/favorites/remove")
+async def remove_favorite_satellite(request: Request) -> dict:
+    payload = await request.json()
+
+    norad_id = str(payload.get("norad_id", "")).strip()
+    if not norad_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Keine NORAD-ID angegeben.",
+        )
+
+    favorites = remove_favorite(norad_id)
+    return {"ok": True, "favorites": favorites}
 
 
 @app.post("/api/sources/add")
@@ -1859,10 +1894,12 @@ async def visibility_page(
 
     bright_entries = []
     upcoming_visible_passes = []
+    favorite_norad_ids = load_favorite_norad_ids()
+    records_by_norad_id = {record.norad_id: record for record in records}
     bright_records = [
-        record
-        for record in records
-        if is_known_bright_satellite(record.name)
+        records_by_norad_id[norad_id]
+        for norad_id in favorite_norad_ids
+        if norad_id in records_by_norad_id
     ]
 
     for record in bright_records:

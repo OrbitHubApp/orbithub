@@ -34,12 +34,23 @@
 </section>
 
 <section class="source-summary-card visibility-bright-panel">
-  <span>Heute und in den nächsten Tagen sichtbar</span>
+  <span>Favoriten – Status der nächsten Sichtbarkeit</span>
 
   {% if bright_entries %}
   <div class="visibility-bright-grid">
     {% for entry in bright_entries %}
-    {% if entry.next_visible %}<a class="visibility-bright-card is-clickable" href="/visibility?satellite={{ entry.record.norad_id }}&amp;hours=168&amp;minimum_elevation={{ observer_default_minimum_elevation }}">{% else %}<article class="visibility-bright-card">{% endif %}
+    <div
+      class="visibility-bright-card is-clickable"
+      data-href="/visibility?satellite={{ entry.record.norad_id }}&amp;hours=168&amp;minimum_elevation={{ observer_default_minimum_elevation }}"
+      role="link"
+      tabindex="0"
+    >
+      <button
+        type="button"
+        class="favorite-remove-button"
+        data-norad-id="{{ entry.record.norad_id }}"
+        aria-label="{{ entry.record.name|display_name }} aus Favoriten entfernen"
+      >&times;</button>
       <h4>{{ entry.record.name|display_name }}</h4>
 
       {% if entry.next_visible %}
@@ -51,9 +62,9 @@
         Max. {{ "%.0f"|format(entry.next_visible.pass.max_elevation_deg) }}°
         ·
         {% if entry.next_visible.visibility.magnitude is not none %}
-          Helligkeit ca. {{ "%.1f"|format(entry.next_visible.visibility.magnitude) }} mag
+        Helligkeit ca. {{ "%.1f"|format(entry.next_visible.visibility.magnitude) }} mag
         {% else %}
-          Helligkeit unbekannt
+        Helligkeit unbekannt
         {% endif %}
       </p>
       {% else %}
@@ -61,13 +72,13 @@
         Kein sichtbarer Durchgang in der kommenden Woche.
       </p>
       {% endif %}
-    {% if entry.next_visible %}</a>{% else %}</article>{% endif %}
+    </div>
     {% endfor %}
   </div>
   {% else %}
   <p class="visibility-bright-detail">
-    Keine bekannten hellen Satelliten (z. B. ISS, Tiangong, Hubble) in den
-    aktuellen TLE-Daten gefunden.
+    Noch keine Favoriten. Unten einen Satelliten auswählen und auf
+    „☆ Merken“ klicken.
   </p>
   {% endif %}
 </section>
@@ -177,6 +188,10 @@
       <button type="submit" class="source-action-button" id="visibility-submit-button">
         <span class="button-spinner" aria-hidden="true"></span>
         <span class="button-label">Anzeigen</span>
+      </button>
+
+      <button type="button" class="source-action-button favorite-add-button" id="favorite-add-button">
+        <span class="button-label">☆ Merken</span>
       </button>
     </div>
   </form>
@@ -487,6 +502,53 @@
       }
     });
   });
+  var brightCards = document.querySelectorAll(".visibility-bright-card[data-href]");
+  brightCards.forEach(function (card) {
+    card.addEventListener("click", function (event) {
+      if (event.target.closest(".favorite-remove-button")) {
+        return;
+      }
+      window.location.href = card.getAttribute("data-href");
+    });
+    card.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        window.location.href = card.getAttribute("data-href");
+      }
+    });
+  });
+
+  document.querySelectorAll(".favorite-remove-button").forEach(function (button) {
+    button.addEventListener("click", function (event) {
+      event.stopPropagation();
+      var noradId = button.getAttribute("data-norad-id");
+      fetch("/api/favorites/remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ norad_id: noradId }),
+      }).then(function () {
+        window.location.reload();
+      });
+    });
+  });
+
+  var favoriteAddButton = document.getElementById("favorite-add-button");
+  var favoriteSelect = document.getElementById("satellite-combo-select");
+  if (favoriteAddButton && favoriteSelect) {
+    favoriteAddButton.addEventListener("click", function () {
+      var noradId = favoriteSelect.value;
+      if (!noradId) {
+        return;
+      }
+      fetch("/api/favorites/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ norad_id: noradId }),
+      }).then(function () {
+        window.location.reload();
+      });
+    });
+  }
 })();
 </script>
 {% endblock %}
