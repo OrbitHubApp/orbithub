@@ -853,7 +853,7 @@ async def update_settings(request: Request) -> dict:
 
     settings = ObserverSettings(
         callsign=callsign,
-        locator=locator or "JO62PL",
+        locator=locator or "JO62QG",
         qth_name=qth_name,
         latitude_deg=latitude_deg,
         longitude_deg=longitude_deg,
