@@ -16,3 +16,8 @@ backups/
 *backup*
 *.zip
 *.tar.gz
+
+# --- Public-Release-Ergaenzungen ---
+data/*.json
+data/*.tle
+!data/observer-settings.example.json

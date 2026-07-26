@@ -10,11 +10,11 @@ from app.config import DATA_DIR
 OBSERVER_SETTINGS_FILE = DATA_DIR / "observer-settings.json"
 
 DEFAULT_SETTINGS = {
-    "callsign": "DL7AG",
-    "locator": "JO62PL",
-    "qth_name": "Berlin",
-    "latitude_deg": 52.45,
-    "longitude_deg": 13.35,
+    "callsign": "N0CALL",
+    "locator": "JO62QG",
+    "qth_name": "Berlin (Beispiel)",
+    "latitude_deg": 52.52,
+    "longitude_deg": 13.405,
     "elevation_m": 50.0,
     "default_minimum_elevation_deg": 10.0,
     "horizon_segments": [],
