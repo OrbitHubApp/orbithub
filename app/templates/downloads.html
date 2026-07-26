@@ -89,50 +89,6 @@
   </article>
 </section>
 
-<section class="download-table-panel">
-  <table class="mission-table" id="download-table">
-    <thead>
-      <tr>
-        <th class="download-checkbox-col"></th>
-        <th>Name</th>
-        <th>NORAD-ID</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {% for satellite in satellites %}
-      <tr
-        data-name="{{ satellite.name|display_name|lower }}"
-        data-norad="{{ satellite.norad_id|lower }}"
-      >
-        <td>
-          <input
-            type="checkbox"
-            class="download-checkbox"
-            value="{{ satellite.norad_id }}"
-          >
-        </td>
-        <td>{{ satellite.name|display_name }}</td>
-        <td>{{ satellite.norad_id }}</td>
-      </tr>
-      {% endfor %}
-      {% if not satellites %}
-      <tr>
-        <td colspan="3">Keine TLE-Daten verfügbar.</td>
-      </tr>
-      {% endif %}
-    </tbody>
-  </table>
-
-  <p
-    class="satellite-empty-block"
-    id="download-empty-state"
-    hidden
-  >
-    Keine Satelliten für diese Suche gefunden.
-  </p>
-</section>
-
 <section class="source-summary-card download-action-card">
   <span>Download</span>
 
@@ -191,6 +147,50 @@
     Diese Links liefern immer den aktuellen Datenstand mit der aktuellen
     Auswahl - ideal zum automatischen Laden in externen
     Satellitenprogrammen. Ohne Auswahl liefern die Links alle Satelliten.
+  </p>
+</section>
+
+<section class="download-table-panel">
+  <table class="mission-table" id="download-table">
+    <thead>
+      <tr>
+        <th class="download-checkbox-col"></th>
+        <th>Name</th>
+        <th>NORAD-ID</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for satellite in satellites %}
+      <tr
+        data-name="{{ satellite.name|display_name|lower }}"
+        data-norad="{{ satellite.norad_id|lower }}"
+      >
+        <td>
+          <input
+            type="checkbox"
+            class="download-checkbox"
+            value="{{ satellite.norad_id }}"
+          >
+        </td>
+        <td>{{ satellite.name|display_name }}</td>
+        <td>{{ satellite.norad_id }}</td>
+      </tr>
+      {% endfor %}
+      {% if not satellites %}
+      <tr>
+        <td colspan="3">Keine TLE-Daten verfügbar.</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <p
+    class="satellite-empty-block"
+    id="download-empty-state"
+    hidden
+  >
+    Keine Satelliten für diese Suche gefunden.
   </p>
 </section>
 
