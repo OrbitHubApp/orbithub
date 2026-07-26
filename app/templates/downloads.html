@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}Downloads – {{ app_name }}{% endblock %}
+
+{% block nav_downloads %}active{% endblock %}
+
+{% block page_heading %}
+  Downloads
+{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero">
+  <div>
+    <div class="eyebrow">TLE-EXPORT</div>
+
+    <h2>Satelliten als TLE-Datei exportieren</h2>
+
+    <p>
+      Lade alle oder ausgewählte Satelliten als fertige TLE-Datei herunter.
+      Wähle das gewünschte Format und nutze den Link unten, um die Daten
+      auch automatisch in externe Satellitenprogramme zu laden.
+    </p>
+  </div>
+
+  <div class="hero-online">
+    <span class="hero-online-dot"></span>
+
+    <div>
+      <strong id="download-selected-count">0</strong>
+      <small>von {{ satellites|length }} ausgewählt</small>
+    </div>
+  </div>
+</section>
+
+<section class="source-summary satellite-summary-grid">
+  <article class="source-summary-card satellite-search-card">
+    <span>Suche</span>
+
+    <input
+      id="download-search-input"
+      class="satellite-search-input"
+      type="search"
+      placeholder="Name oder NORAD-ID ..."
+      autocomplete="off"
+    >
+  </article>
+
+  <article class="source-summary-card">
+    <span>Format</span>
+
+    <div class="download-format-toggle">
+      <label>
+        <input type="radio" name="tle-format" value="neu" checked>
+        Neues Format (3-Zeilen, mit Name)
+      </label>
+      <label>
+        <input type="radio" name="tle-format" value="alt">
+        Altes Format (2-Zeilen, ohne Name)
+      </label>
+    </div>
+  </article>
+
+  <article class="source-summary-card">
+    <span>Auswahl</span>
+
+    <div class="download-select-actions">
+      <button
+        type="button"
+        class="source-action-button secondary"
+        id="download-select-all"
+      >
+        Alle auswählen
+      </button>
+      <button
+        type="button"
+        class="source-action-button secondary"
+        id="download-select-none"
+      >
+        Auswahl aufheben
+      </button>
+    </div>
+  </article>
+</section>
+
+<section class="download-table-panel">
+  <table class="mission-table" id="download-table">
+    <thead>
+      <tr>
+        <th class="download-checkbox-col"></th>
+        <th>Name</th>
+        <th>NORAD-ID</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for satellite in satellites %}
+      <tr
+        data-name="{{ satellite.name|display_name|lower }}"
+        data-norad="{{ satellite.norad_id|lower }}"
+      >
+        <td>
+          <input
+            type="checkbox"
+            class="download-checkbox"
+            value="{{ satellite.norad_id }}"
+          >
+        </td>
+        <td>{{ satellite.name|display_name }}</td>
+        <td>{{ satellite.norad_id }}</td>
+      </tr>
+      {% endfor %}
+      {% if not satellites %}
+      <tr>
+        <td colspan="3">Keine TLE-Daten verfügbar.</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <p
+    class="satellite-empty-block"
+    id="download-empty-state"
+    hidden
+  >
+    Keine Satelliten für diese Suche gefunden.
+  </p>
+</section>
+
+<section class="source-summary-card download-action-card">
+  <span>Download</span>
+
+  <div class="download-actions">
+    <button
+      type="button"
+      class="source-action-button"
+      id="download-selected-button"
+    >
+      Auswahl herunterladen
+    </button>
+    <button
+      type="button"
+      class="source-action-button secondary"
+      id="download-all-button"
+    >
+      Alle herunterladen
+    </button>
+  </div>
+
+  <label class="download-link-label" for="download-link-field">
+    Stabiler Link für externe Programme
+  </label>
+
+  <div class="download-link-row">
+    <input type="text" id="download-link-field" readonly>
+    <button
+      type="button"
+      class="source-action-button secondary"
+      id="download-link-copy"
+    >
+      Kopieren
+    </button>
+  </div>
+
+  <p class="download-link-hint">
+    Dieser Link liefert immer den aktuellen Datenstand im gewählten Format
+    und mit der aktuellen Auswahl – ideal zum automatischen Laden in
+    externen Satellitenprogrammen. Ohne Auswahl liefert der Link alle
+    Satelliten.
+  </p>
+</section>
+
+<div
+  class="dataset-update-status"
+  id="download-status"
+  role="status"
+  aria-live="polite"
+></div>
+
+<script>
+  (() => {
+    const checkboxes = () =>
+      Array.from(document.querySelectorAll(".download-checkbox"));
+    const rows = () =>
+      Array.from(document.querySelectorAll("#download-table tbody tr"));
+    const searchInput = document.getElementById("download-search-input");
+    const selectedCountEl = document.getElementById(
+      "download-selected-count"
+    );
+    const linkField = document.getElementById("download-link-field");
+    const statusBox = document.getElementById("download-status");
+    const emptyState = document.getElementById("download-empty-state");
+
+    function currentFormat() {
+      const checked = document.querySelector(
+        'input[name="tle-format"]:checked'
+      );
+      return checked ? checked.value : "neu";
+    }
+
+    function selectedIds() {
+      return checkboxes()
+        .filter((box) => box.checked)
+        .map((box) => box.value);
+    }
+
+    function updateCount() {
+      selectedCountEl.textContent = selectedIds().length;
+    }
+
+    function buildUrl(useSelection) {
+      const params = new URLSearchParams();
+      params.set("format", currentFormat());
+      if (useSelection) {
+        const ids = selectedIds();
+        if (ids.length) {
+          params.set("ids", ids.join(","));
+        }
+      }
+      return `${window.location.origin}/downloads/tle?${params.toString()}`;
+    }
+
+    function updateLink() {
+      linkField.value = buildUrl(true);
+    }
+
+    function showStatus(message, kind) {
+      statusBox.textContent = message;
+      statusBox.className = `dataset-update-status ${kind}`;
+    }
+
+    checkboxes().forEach((box) => {
+      box.addEventListener("change", () => {
+        updateCount();
+        updateLink();
+      });
+    });
+
+    document.querySelectorAll('input[name="tle-format"]').forEach((radio) => {
+      radio.addEventListener("change", updateLink);
+    });
+
+    document
+      .getElementById("download-select-all")
+      .addEventListener("click", () => {
+        checkboxes().forEach((box) => {
+          if (box.closest("tr").style.display !== "none") {
+            box.checked = true;
+          }
+        });
+        updateCount();
+        updateLink();
+      });
+
+    document
+      .getElementById("download-select-none")
+      .addEventListener("click", () => {
+        checkboxes().forEach((box) => (box.checked = false));
+        updateCount();
+        updateLink();
+      });
+
+    document
+      .getElementById("download-selected-button")
+      .addEventListener("click", () => {
+        const ids = selectedIds();
+        if (!ids.length) {
+          showStatus(
+            "Bitte zuerst mindestens einen Satelliten auswählen.",
+            "is-error"
+          );
+          return;
+        }
+        window.location.href = buildUrl(true);
+      });
+
+    document
+      .getElementById("download-all-button")
+      .addEventListener("click", () => {
+        window.location.href = buildUrl(false);
+      });
+
+    document
+      .getElementById("download-link-copy")
+      .addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(linkField.value);
+          showStatus("Link wurde in die Zwischenablage kopiert.", "is-success");
+        } catch (error) {
+          linkField.select();
+          showStatus("Bitte den Link manuell kopieren.", "is-error");
+        }
+      });
+
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        const query = searchInput.value.trim().toLowerCase();
+        let visible = 0;
+
+        rows().forEach((row) => {
+          const matches =
+            !query ||
+            row.dataset.name.includes(query) ||
+            row.dataset.norad.includes(query);
+          row.style.display = matches ? "" : "none";
+          if (matches) {
+            visible += 1;
+          }
+        });
+
+        if (emptyState) {
+          emptyState.hidden = visible !== 0;
+        }
+      });
+    }
+
+    updateCount();
+    updateLink();
+  })();
+</script>
+
+{% endblock %}

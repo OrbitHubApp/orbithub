@@ -2031,3 +2031,90 @@ a.source-action-button {
   border-color: rgba(68, 217, 255, 0.65);
   box-shadow: 0 0 0 3px rgba(68, 217, 255, 0.08);
 }
+
+/* --- Downloads-Seite (TLE-Export) --- */
+
+.download-format-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.download-format-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.download-select-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.download-table-panel {
+  margin-top: 18px;
+}
+
+.download-checkbox-col {
+  width: 40px;
+}
+
+.download-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+
+.download-action-card {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.download-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.download-link-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.download-link-row {
+  display: flex;
+  gap: 8px;
+}
+
+.download-link-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(5, 20, 34, 0.82);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+}
+
+.download-link-row input[type="text"]:focus {
+  outline: none;
+  border-color: rgba(68, 217, 230, 0.65);
+  box-shadow: 0 0 0 3px rgba(68, 217, 230, 0.08);
+}
+
+.download-link-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}

@@ -30,6 +30,7 @@ from app.config import (
 )
 from app.exporters.satgazer import SatGazerExporter
 from app.exporters.standard import StandardExporter
+from app.exporters.classic import ClassicExporter
 from app.services.tle_parser import TLEParser
 from app.services.pass_predictor import PassPredictor
 from app.services.source_manager import SourceManager
@@ -1709,6 +1710,93 @@ async def satgazer_all_active():
     content = exporter.export(records)
 
     return PlainTextResponse(content)
+
+@app.get(
+    "/downloads",
+    include_in_schema=False,
+)
+async def downloads_page(request: Request):
+    parser = TLEParser()
+    records = (
+        parser.parse_file(TLE_FILE)
+        if TLE_FILE.exists()
+        else []
+    )
+    records = sorted(
+        records,
+        key=lambda record: display_satellite_name(record.name).lower(),
+    )
+    return templates.TemplateResponse(
+        name="downloads.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "version": VERSION,
+            "codename": CODENAME,
+            "refresh_seconds": DASHBOARD_REFRESH_SECONDS,
+            "satellites": records,
+        },
+    )
+
+
+@app.get(
+    "/downloads/tle",
+    include_in_schema=False,
+)
+async def download_tle_export(
+    format: str = "neu",
+    ids: str = "",
+) -> PlainTextResponse:
+    from datetime import datetime
+
+    if not TLE_FILE.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Noch keine TLE-Datei vorhanden.",
+        )
+
+    parser = TLEParser()
+    records = parser.parse_file(TLE_FILE)
+
+    selected_ids = {
+        part.strip()
+        for part in ids.split(",")
+        if part.strip()
+    }
+    if selected_ids:
+        records = [
+            record
+            for record in records
+            if record.norad_id in selected_ids
+        ]
+        if not records:
+            raise HTTPException(
+                status_code=404,
+                detail="Keine passenden Satelliten in der Auswahl gefunden.",
+            )
+
+    if format == "alt":
+        exporter = ClassicExporter()
+        format_tag = "2LE"
+    else:
+        exporter = StandardExporter()
+        format_tag = "3LE"
+
+    content = exporter.export(records)
+    scope_tag = "Auswahl" if selected_ids else "alle"
+    filename = (
+        f"OrbitHub-TLE-{scope_tag}-{format_tag}-"
+        f"{datetime.now():%Y-%m-%d}.txt"
+    )
+
+    return PlainTextResponse(
+        content,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
 
 @app.get(
     "/downloads/orbithub-tle.txt",
