@@ -54,14 +54,14 @@
         <input type="radio" name="tle-format" value="neu" checked>
         <span>
           <strong>Neues Format</strong>
-          <small>3-Zeilen, mit Name</small>
+          <small>3-Zeilen</small>
         </span>
       </label>
       <label class="download-format-option">
         <input type="radio" name="tle-format" value="alt">
         <span>
           <strong>Altes Format</strong>
-          <small>2-Zeilen, ohne Name</small>
+          <small>2-Zeilen</small>
         </span>
       </label>
     </div>
@@ -153,26 +153,44 @@
     </button>
   </div>
 
-  <label class="download-link-label" for="download-link-field">
-    Stabiler Link für externe Programme
-  </label>
+  <div class="download-links">
+    <div class="download-link-block">
+      <label class="download-link-label" for="download-link-neu">
+        Fester Link - Neues Format (3-Zeilen)
+      </label>
+      <div class="download-link-row">
+        <input type="text" id="download-link-neu" readonly>
+        <button
+          type="button"
+          class="source-action-button secondary"
+          data-copy-target="download-link-neu"
+        >
+          Kopieren
+        </button>
+      </div>
+    </div>
 
-  <div class="download-link-row">
-    <input type="text" id="download-link-field" readonly>
-    <button
-      type="button"
-      class="source-action-button secondary"
-      id="download-link-copy"
-    >
-      Kopieren
-    </button>
+    <div class="download-link-block">
+      <label class="download-link-label" for="download-link-alt">
+        Fester Link - Altes Format (2-Zeilen)
+      </label>
+      <div class="download-link-row">
+        <input type="text" id="download-link-alt" readonly>
+        <button
+          type="button"
+          class="source-action-button secondary"
+          data-copy-target="download-link-alt"
+        >
+          Kopieren
+        </button>
+      </div>
+    </div>
   </div>
 
   <p class="download-link-hint">
-    Dieser Link liefert immer den aktuellen Datenstand im gewählten Format
-    und mit der aktuellen Auswahl – ideal zum automatischen Laden in
-    externen Satellitenprogrammen. Ohne Auswahl liefert der Link alle
-    Satelliten.
+    Diese Links liefern immer den aktuellen Datenstand mit der aktuellen
+    Auswahl - ideal zum automatischen Laden in externen
+    Satellitenprogrammen. Ohne Auswahl liefern die Links alle Satelliten.
   </p>
 </section>
 
@@ -193,7 +211,8 @@
     const selectedCountEl = document.getElementById(
       "download-selected-count"
     );
-    const linkField = document.getElementById("download-link-field");
+    const linkFieldNeu = document.getElementById("download-link-neu");
+    const linkFieldAlt = document.getElementById("download-link-alt");
     const statusBox = document.getElementById("download-status");
     const emptyState = document.getElementById("download-empty-state");
 
@@ -214,9 +233,9 @@
       selectedCountEl.textContent = selectedIds().length;
     }
 
-    function buildUrl(useSelection) {
+    function buildUrl(format, useSelection) {
       const params = new URLSearchParams();
-      params.set("format", currentFormat());
+      params.set("format", format);
       if (useSelection) {
         const ids = selectedIds();
         if (ids.length) {
@@ -226,8 +245,9 @@
       return `${window.location.origin}/downloads/tle?${params.toString()}`;
     }
 
-    function updateLink() {
-      linkField.value = buildUrl(true);
+    function updateLinks() {
+      linkFieldNeu.value = buildUrl("neu", true);
+      linkFieldAlt.value = buildUrl("alt", true);
     }
 
     function showStatus(message, kind) {
@@ -238,12 +258,12 @@
     checkboxes().forEach((box) => {
       box.addEventListener("change", () => {
         updateCount();
-        updateLink();
+        updateLinks();
       });
     });
 
     document.querySelectorAll('input[name="tle-format"]').forEach((radio) => {
-      radio.addEventListener("change", updateLink);
+      radio.addEventListener("change", updateLinks);
     });
 
     document
@@ -255,7 +275,7 @@
           }
         });
         updateCount();
-        updateLink();
+        updateLinks();
       });
 
     document
@@ -263,7 +283,7 @@
       .addEventListener("click", () => {
         checkboxes().forEach((box) => (box.checked = false));
         updateCount();
-        updateLink();
+        updateLinks();
       });
 
     document
@@ -272,31 +292,34 @@
         const ids = selectedIds();
         if (!ids.length) {
           showStatus(
-            "Bitte zuerst mindestens einen Satelliten auswählen.",
+            "Bitte zuerst mindestens einen Satelliten ausgewählen.",
             "is-error"
           );
           return;
         }
-        window.location.href = buildUrl(true);
+        window.location.href = buildUrl(currentFormat(), true);
       });
 
     document
       .getElementById("download-all-button")
       .addEventListener("click", () => {
-        window.location.href = buildUrl(false);
+        window.location.href = buildUrl(currentFormat(), false);
       });
 
-    document
-      .getElementById("download-link-copy")
-      .addEventListener("click", async () => {
+    document.querySelectorAll("[data-copy-target]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const target = document.getElementById(
+          button.dataset.copyTarget
+        );
         try {
-          await navigator.clipboard.writeText(linkField.value);
+          await navigator.clipboard.writeText(target.value);
           showStatus("Link wurde in die Zwischenablage kopiert.", "is-success");
         } catch (error) {
-          linkField.select();
+          target.select();
           showStatus("Bitte den Link manuell kopieren.", "is-error");
         }
       });
+    });
 
     if (searchInput) {
       searchInput.addEventListener("input", () => {
@@ -321,7 +344,7 @@
     }
 
     updateCount();
-    updateLink();
+    updateLinks();
   })();
 </script>
 
