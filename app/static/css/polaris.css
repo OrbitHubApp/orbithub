@@ -2037,16 +2037,40 @@ a.source-action-button {
 .download-format-toggle {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 14px;
 }
 
-.download-format-toggle label {
+.download-format-option {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.88rem;
-  color: var(--text);
+  align-items: flex-start;
+  gap: 10px;
   cursor: pointer;
+}
+
+.download-format-option input[type="radio"] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.download-format-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.download-format-option strong {
+  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.download-format-option small {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
 }
 
 .download-select-actions {
