@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Sichtbarkeit – {{ app_name }}{% endblock %}
+{% block title %}Visuell – {{ app_name }}{% endblock %}
 
 {% block nav_visibility %}active{% endblock %}
 
 {% block page_heading %}
-  Sichtbarkeit
+  Visuell
 {% endblock %}
 
 {% block content %}
@@ -58,7 +58,7 @@
       </p>
       {% else %}
       <p class="visibility-bright-detail">
-        Kein sichtbarer Durchgang in den nächsten 3 Tagen.
+        Kein sichtbarer Durchgang in der kommenden Woche.
       </p>
       {% endif %}
     </article>
@@ -74,7 +74,7 @@
 
 <section class="download-table-panel">
   <h3 class="visibility-table-heading">
-    Alle sichtbaren Durchgänge in den nächsten 72 Stunden
+    Alle sichtbaren Durchgänge in der kommenden Woche
   </h3>
 
   {% if upcoming_visible_passes %}
@@ -115,8 +115,7 @@
   </div>
   {% else %}
   <p class="satellite-empty-block">
-    Kein sichtbarer Durchgang eines bekannten hellen Satelliten in den
-    nächsten 72 Stunden.
+    Kein sichtbarer Durchgang eines bekannten hellen Satelliten in der kommenden Woche.
   </p>
   {% endif %}
 </section>

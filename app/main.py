@@ -1867,7 +1867,7 @@ async def visibility_page(
     for record in bright_records:
         candidate_passes = predictor.predict(
             record,
-            hours=72,
+            hours=168,
             minimum_elevation_deg=(
                 observer.default_minimum_elevation_deg
             ),
