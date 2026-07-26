@@ -888,7 +888,7 @@ body::before {
 
 .sidebar-brand-operator {
   margin-top: -13px;
-  padding-right: 21px;
+  padding-right: 0;
   color: #8fa9c0;
   font-size: 0.72rem;
   text-align: right;
