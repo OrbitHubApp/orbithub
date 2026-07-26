@@ -1709,6 +1709,43 @@ body::before {
   background: rgba(70, 174, 231, 0.25);
 }
 
+/* OrbitHub: Klickbare Karten + Polarplot (Visuell-Seite) */
+
+.visibility-bright-card.is-clickable {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.visibility-bright-card.is-clickable:hover {
+  transform: translateY(-2px);
+  border-color: rgba(68, 217, 255, 0.4);
+  background: rgba(19, 32, 48, 0.85);
+}
+
+.polarplot-card-group {
+  margin-bottom: 20px;
+}
+
+.polarplot-card-summary {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: #b7d6e6;
+}
+
+.mission-table tbody tr.is-clickable-row {
+  cursor: pointer;
+}
+
+.mission-table tbody tr.is-clickable-row.is-active {
+  background: rgba(68, 217, 255, 0.12);
+}
+
 /* OrbitHub: Lade-Feedback Anzeigen-Button (Visuell-Seite) */
 
 .source-action-button .button-spinner {

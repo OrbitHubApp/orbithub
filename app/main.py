@@ -1902,6 +1902,22 @@ async def visibility_page(
 
     upcoming_visible_passes.sort(key=lambda entry: entry["pass"].rise_time)
 
+    horizon_shadow_segments = [
+        {"d": path}
+        for path in (
+            _horizon_shadow_path(
+                segment.azimuth_from_deg,
+                segment.azimuth_to_deg,
+                max(
+                    segment.minimum_elevation_deg,
+                    observer.default_minimum_elevation_deg,
+                ),
+            )
+            for segment in observer.horizon_segments
+        )
+        if path is not None
+    ]
+
     return templates.TemplateResponse(
         name="visibility.html",
         context={
@@ -1918,6 +1934,8 @@ async def visibility_page(
             "upcoming_visible_passes": upcoming_visible_passes,
             "hours": hours,
             "minimum_elevation": minimum_elevation,
+            "observer_default_minimum_elevation": observer.default_minimum_elevation_deg,
+            "horizon_shadow_segments": horizon_shadow_segments,
             "observer_name": observer.qth_name,
             "observer_locator": observer.locator,
         },
