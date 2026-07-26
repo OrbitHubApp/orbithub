@@ -313,10 +313,14 @@
       </tbody>
     </table>
   </div>
-  {% else %}
+  {% elif selected_satellite %}
   <p class="satellite-empty-block">
     Keine Durchgänge ab Beginn der nautischen Dämmerung im gewählten
     Zeitraum gefunden.
+  </p>
+  {% else %}
+  <p class="satellite-empty-block">
+    Bitte einen Satelliten auswählen, um die Durchgänge anzuzeigen.
   </p>
   {% endif %}
 </section>

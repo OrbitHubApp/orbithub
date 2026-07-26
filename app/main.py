@@ -1822,39 +1822,40 @@ async def visibility_page(
                 None,
             )
 
-        if selected_record is None:
-            selected_record = next(
-                (
-                    record
-                    for record in records
-                    if is_known_bright_satellite(record.name)
-                ),
-                records[0],
-            )
+            if selected_record is None:
+                selected_record = next(
+                    (
+                        record
+                        for record in records
+                        if is_known_bright_satellite(record.name)
+                    ),
+                    records[0],
+                )
 
-        raw_passes = predictor.predict(
-            selected_record,
-            hours=hours,
-            minimum_elevation_deg=minimum_elevation,
-            observer_settings=observer,
-        )
-
-        for satellite_pass in raw_passes:
-            result = assess_visibility(
+        if selected_record is not None:
+            raw_passes = predictor.predict(
                 selected_record,
-                observer.latitude_deg,
-                observer.longitude_deg,
-                observer.elevation_m,
-                satellite_pass.culmination_time,
+                hours=hours,
+                minimum_elevation_deg=minimum_elevation,
+                observer_settings=observer,
             )
-            if result.sun_altitude_deg > SUN_ALTITUDE_THRESHOLD_DEG:
-                continue
-            satellite_passes.append(
-                {
-                    "pass": satellite_pass,
-                    "visibility": result,
-                }
-            )
+
+            for satellite_pass in raw_passes:
+                result = assess_visibility(
+                    selected_record,
+                    observer.latitude_deg,
+                    observer.longitude_deg,
+                    observer.elevation_m,
+                    satellite_pass.culmination_time,
+                )
+                if result.sun_altitude_deg > SUN_ALTITUDE_THRESHOLD_DEG:
+                    continue
+                satellite_passes.append(
+                    {
+                        "pass": satellite_pass,
+                        "visibility": result,
+                    }
+                )
 
     bright_entries = []
     upcoming_visible_passes = []
