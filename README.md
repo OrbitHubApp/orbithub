@@ -62,4 +62,48 @@ Veröffentlicht unter der [MIT-Lizenz](LICENSE).
 
 ## Danksagung
 
-Ursprünglich entwickelt von Christian Henkel (DL7AG) für den Einsatz im Amateurfunk. Beiträge und Pull Requests sind willkommen.
+Entwickelt von Christian Henkel (DL7AG) für den Einsatz im Amateurfunk. Beiträge und Pull Requests sind willkommen.
+
+
+
+
+## Installation
+
+Hier ist eine kurze Version, die sich gut für die Webseite oder direkt für die GitHub-README eignet:
+
+OrbitHub auf dem Raspberry Pi installieren
+
+OrbitHub lässt sich direkt auf einem Raspberry Pi installieren. Voraussetzung ist ein Raspberry Pi mit einem aktuellen Raspberry Pi OS sowie eine bestehende Internetverbindung.
+
+1. System aktualisieren
+
+Öffne ein Terminal und aktualisiere zunächst das System:
+
+sudo apt update
+sudo apt upgrade -y
+
+2. Git installieren
+
+Falls Git noch nicht installiert ist:
+
+sudo apt install git -y
+
+3. OrbitHub herunterladen
+
+Klone das OrbitHub-Repository von GitHub:
+
+git clone https://github.com/OrbitHubApp/orbithub.git
+
+Wechsle anschließend in das Projektverzeichnis:
+
+cd orbithub
+
+4. OrbitHub installieren
+
+Folge nun den Installationsschritten des Projekts, um die benötigten Abhängigkeiten zu installieren und OrbitHub zu konfigurieren.
+
+Nach erfolgreicher Einrichtung kann OrbitHub auf dem Raspberry Pi gestartet und über einen Webbrowser im lokalen Netzwerk aufgerufen werden.
+
+Projekt auf GitHub:
+https://github.com/OrbitHubApp/orbithub
+
