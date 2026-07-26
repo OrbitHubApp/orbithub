@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+
+{% block title %}Überflüge – OrbitHub{% endblock %}
+
+{% block head %}
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""
+>
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""
+></script>
+{% endblock %}
+
+{% block nav_passes %}active{% endblock %}
+
+{% block page_heading %}Überflüge{% endblock %}
+
+{% block content %}
+{% if passes %}
+  <div
+    class="pass-countdown-panel"
+    id="pass-countdown"
+    data-rise-utc="{{ passes[0].rise_time.isoformat() }}"
+    data-set-utc="{{ passes[0].set_time.isoformat() }}"
+  >
+    <span class="pass-countdown-dot"></span>
+
+    <div class="pass-countdown-text">
+      <strong id="pass-countdown-label">Nächster Überflug in</strong>
+      <span id="pass-countdown-value" class="pass-countdown-value">--:--:--</span>
+    </div>
+
+    <div class="pass-countdown-sat">
+      {{ selected_satellite.name|display_name }}
+    </div>
+  </div>
+{% endif %}
+
+
+<section class="passes-top-grid">
+
+  <div class="passes-left-column">
+
+    <div class="add-source-panel">
+      <div class="label">PASS PREDICTION</div>
+      <h3>Nächste Satellitenüberflüge</h3>
+      <p>
+        Berechnet für {{ observer_name }}
+        · Locator {{ observer_locator }}
+        · Mindesthöhe {{ minimum_elevation }}°
+        · Zeitraum {{ hours }} Stunden
+      </p>
+
+      <form
+        class="add-source-form passes-form"
+        method="get"
+        action="/passes"
+      >
+        <div class="source-form-grid passes-form-grid">
+          <label>
+            <span>Satellit</span>
+
+            <select name="satellite">
+              {% for satellite in satellites %}
+                <option
+                  value="{{ satellite.norad_id }}"
+                  {% if selected_satellite and satellite.norad_id == selected_satellite.norad_id %}
+                    selected
+                  {% endif %}
+                >
+                  {{ satellite.name|display_name }}
+                  · NORAD {{ satellite.norad_id }}
+                </option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>
+            <span>Zeitraum</span>
+
+            <select name="hours">
+              <option value="24" {% if hours == 24 %}selected{% endif %}>
+                24 Stunden
+              </option>
+
+              <option value="48" {% if hours == 48 %}selected{% endif %}>
+                48 Stunden
+              </option>
+
+              <option value="72" {% if hours == 72 %}selected{% endif %}>
+                72 Stunden
+              </option>
+            </select>
+          </label>
+
+          <label>
+            <span>Mindesthöhe</span>
+
+            <select name="minimum_elevation">
+              {% for elevation in [0, 5, 10, 20, 30, 40] %}
+                <option
+                  value="{{ elevation }}"
+                  {% if minimum_elevation == elevation %}
+                    selected
+                  {% endif %}
+                >
+                  {{ elevation }}°
+                </option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+
+        <div class="source-form-actions">
+          <button
+            class="source-action-button primary"
+            type="submit"
+          >
+            Überflüge berechnen
+          </button>
+        </div>
+      </form>
+    </div>
+
+    {% if passes %}
+      <div class="add-source-panel">
+        <span class="label">ÜBERFLUGDATEN</span>
+        <h3>{{ selected_satellite.name|display_name }}</h3>
+
+        <dl class="pass-summary-list">
+          <div>
+            <dt>Aufgang</dt>
+            <dd id="summary-rise">{{ passes[0].rise_time | fmt_time("%H:%M:%S") }}</dd>
+          </div>
+
+          <div>
+            <dt>Maximum</dt>
+            <dd id="summary-max">{{ passes[0].culmination_time | fmt_time("%H:%M:%S") }}</dd>
+          </div>
+
+          <div>
+            <dt>Untergang</dt>
+            <dd id="summary-set">{{ passes[0].set_time | fmt_time("%H:%M:%S") }}</dd>
+          </div>
+
+          <div>
+            <dt>Maximale Höhe</dt>
+            <dd id="summary-elevation">{{ "%.1f"|format(passes[0].max_elevation_deg) }}°</dd>
+          </div>
+
+          <div>
+            <dt>Azimut Aufgang</dt>
+            <dd id="summary-azimuth-rise">{{ "%.1f"|format(passes[0].rise_azimuth_deg) }}°</dd>
+          </div>
+
+          <div>
+            <dt>Azimut Untergang</dt>
+            <dd id="summary-azimuth-set">{{ "%.1f"|format(passes[0].set_azimuth_deg) }}°</dd>
+          </div>
+
+          <div>
+            <dt>Dauer</dt>
+            <dd id="summary-duration">
+              {{ passes[0].duration_seconds // 60 }} Min.
+              {{ passes[0].duration_seconds % 60 }} Sek.
+            </dd>
+          </div>
+        </dl>
+      </div>
+    {% else %}
+      <div class="add-source-panel">
+        <span class="label">SATELLIT</span>
+
+        {% if selected_satellite %}
+          <h3>{{ selected_satellite.name|display_name }}</h3>
+          <p>NORAD {{ selected_satellite.norad_id }}</p>
+        {% else %}
+          <h3>Keine TLE-Daten verfügbar</h3>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  </div>
+
+  <div class="passes-right-column add-source-panel">
+    <div class="label">NEXT PASS</div>
+    <h3>Polarplot des nächsten Überflugs</h3>
+
+    {% if passes %}
+      <p id="next-pass-summary">
+        {{ passes[0].rise_time | fmt_time("%d.%m.%Y %H:%M:%S") }}
+        bis
+        {{ passes[0].set_time | fmt_time("%H:%M:%S") }}
+        · Maximum {{ "%.1f"|format(passes[0].max_elevation_deg) }}°
+      </p>
+
+      <div class="polarplot-card">
+        <svg
+          class="polarplot"
+          viewBox="0 0 200 200"
+          role="img"
+          aria-label="Polarplot des nächsten Satellitenüberflugs"
+        >
+          <circle class="polarplot-horizon" cx="100" cy="100" r="90" />
+          <circle class="polarplot-ring" cx="100" cy="100" r="60" />
+          <circle class="polarplot-ring" cx="100" cy="100" r="30" />
+
+          <line class="polarplot-axis" x1="100" y1="10" x2="100" y2="190" />
+          <line class="polarplot-axis" x1="10" y1="100" x2="190" y2="100" />
+
+          {% for segment in horizon_shadow_segments %}
+        <path class="polarplot-shadow" d="{{ segment.d }}" />
+        {% endfor %}
+
+        <text class="polarplot-direction" x="100" y="7">N</text>
+          <text class="polarplot-direction" x="193" y="104">O</text>
+          <text class="polarplot-direction" x="100" y="199">S</text>
+          <text class="polarplot-direction" x="7" y="104">W</text>
+
+          <text class="polarplot-elevation" x="104" y="42">60°</text>
+          <text class="polarplot-elevation" x="104" y="72">30°</text>
+          <text class="polarplot-elevation" x="104" y="103">90°</text>
+
+          <polyline
+            id="polarplot-track" class="polarplot-track"
+            points="{% for point in passes[0].track_points %}{{ point.polar_x }},{{ point.polar_y }} {% endfor %}"
+          />
+
+          <circle
+            id="polarplot-rise" class="polarplot-rise"
+            cx="{{ passes[0].track_points[0].polar_x }}"
+            cy="{{ passes[0].track_points[0].polar_y }}"
+            r="4"
+          />
+
+          <circle
+            id="polarplot-set" class="polarplot-set"
+            cx="{{ passes[0].track_points[-1].polar_x }}"
+            cy="{{ passes[0].track_points[-1].polar_y }}"
+            r="4"
+          />
+
+          <text
+            id="polarplot-aos-label" class="polarplot-marker-label"
+            x="{{ passes[0].track_points[0].polar_x }}"
+            y="{{ passes[0].track_points[0].polar_y - 7 }}"
+          >
+            AOS
+          </text>
+
+          <text
+            id="polarplot-los-label" class="polarplot-marker-label"
+            x="{{ passes[0].track_points[-1].polar_x }}"
+            y="{{ passes[0].track_points[-1].polar_y - 7 }}"
+          >
+            LOS
+          </text>
+        </svg>
+      </div>
+
+      <div class="map-card">
+        <div
+          id="ground-map"
+          class="ground-map"
+          data-observer-lat="{{ observer_latitude_deg }}"
+          data-observer-lon="{{ observer_longitude_deg }}"
+          data-observer-name="{{ observer_name }} ({{ observer_locator }})"
+        ></div>
+      </div>
+    {% else %}
+      <div class="satellite-empty-block">
+        <strong>Keine Überflüge gefunden</strong>
+        <p>
+          Im gewählten Zeitraum wurde kein Überflug oberhalb
+          von {{ minimum_elevation }}° berechnet.
+        </p>
+      </div>
+    {% endif %}
+  </div>
+
+</section>
+
+<section class="add-source-panel">
+  <div class="label">PASSES</div>
+  <h3>Überflugliste</h3>
+
+  {% if passes %}
+    <div class="table-scroll">
+      <table class="mission-table">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Aufgang</th>
+            <th>Maximum</th>
+            <th>Untergang</th>
+            <th>Max. Höhe</th>
+            <th>Azimut Aufgang</th>
+            <th>Azimut Untergang</th>
+            <th>Dauer</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for pass in passes %}
+            <tr class="pass-row{% if loop.first %} active{% endif %}" data-pass-index="{{ loop.index0 }}">
+              <td class="pass-date">
+                {{ pass.rise_time | fmt_time("%d.%m.") }}
+              </td>
+
+              <td>
+                {{ pass.rise_time | fmt_time("%H:%M:%S") }}
+              </td>
+
+              <td>
+                {{ pass.culmination_time | fmt_time("%H:%M:%S") }}
+              </td>
+
+              <td>
+                {{ pass.set_time | fmt_time("%H:%M:%S") }}
+              </td>
+
+              <td>
+                <strong>{{ "%.1f"|format(pass.max_elevation_deg) }}°</strong>
+              </td>
+
+              <td>
+                {{ "%.1f"|format(pass.rise_azimuth_deg) }}°
+              </td>
+
+              <td>
+                {{ "%.1f"|format(pass.set_azimuth_deg) }}°
+              </td>
+
+              <td>
+                {{ pass.duration_seconds // 60 }} Min.
+                {{ pass.duration_seconds % 60 }} Sek.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="satellite-empty-block">
+      <strong>Keine Überflüge gefunden</strong>
+      <p>
+        Im gewählten Zeitraum wurde kein Überflug oberhalb
+        von {{ minimum_elevation }}° berechnet.
+      </p>
+    </div>
+  {% endif %}
+</section>
+
+{% if passes %}
+<script id="passes-data" type="application/json">
+[
+{% for pass in passes %}
+  {
+    "rise_iso": "{{ pass.rise_time.isoformat() }}",
+    "culmination_iso": "{{ pass.culmination_time.isoformat() }}",
+    "set_iso": "{{ pass.set_time.isoformat() }}",
+    "max_elevation_deg": {{ pass.max_elevation_deg }},
+    "rise_azimuth_deg": {{ pass.rise_azimuth_deg }},
+    "set_azimuth_deg": {{ pass.set_azimuth_deg }},
+    "duration_seconds": {{ pass.duration_seconds }},
+    "track_points": [{% for point in pass.track_points %}{"x": {{ point.polar_x }}, "y": {{ point.polar_y }}, "lat": {{ point.lat_deg }}, "lon": {{ point.lon_deg }}, "alt_km": {{ point.alt_km }}, "el": {{ point.elevation_deg }}}{% if not loop.last %}, {% endif %}{% endfor %}]
+  }{% if not loop.last %},{% endif %}
+{% endfor %}
+]
+</script>
+{% endif %}
+
+{% endblock %}

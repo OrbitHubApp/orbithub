@@ -1,0 +1,2284 @@
+/* =========================================================
+   OrbitHub Mission Control / Polaris
+   ========================================================= */
+
+:root {
+  --mission-sidebar: 286px;
+  --mission-bg: #020d19;
+  --mission-panel: rgba(7, 25, 44, 0.88);
+  --mission-panel-strong: rgba(8, 29, 51, 0.96);
+  --mission-border: rgba(75, 151, 215, 0.24);
+  --mission-blue: #168cec;
+  --mission-cyan: #1dd9f2;
+  --mission-green: #22db76;
+  --mission-red: #ff4051;
+  --mission-purple: #9147ff;
+  --mission-muted: #8fa8c2;
+}
+
+body {
+  background:
+    radial-gradient(
+      circle at 53% -12%,
+      rgba(20, 112, 205, 0.22),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 94% 22%,
+      rgba(14, 157, 202, 0.12),
+      transparent 29%
+    ),
+    linear-gradient(
+      180deg,
+      #020b16 0%,
+      #041321 52%,
+      #020b15 100%
+    );
+}
+
+body::before {
+  opacity: 0.21;
+}
+
+.mission-sidebar {
+  width: var(--mission-sidebar);
+  padding: 22px 20px 18px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(3, 15, 29, 0.99),
+      rgba(2, 13, 25, 0.995)
+    );
+}
+
+.mission-brand {
+  display: block;
+  margin-bottom: 19px;
+  padding: 3px 0 12px;
+}
+
+.mission-brand img {
+  display: block;
+  width: 100%;
+  max-width: 235px;
+  height: auto;
+}
+
+.mission-navigation {
+  gap: 3px;
+}
+
+.mission-navigation .nav-item {
+  min-height: 40px;
+  padding: 7px 13px;
+  border-radius: 12px;
+  font-size: 0.92rem;
+}
+
+.mission-navigation .nav-item.active {
+  border-color: rgba(30, 157, 255, 0.55);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(15, 91, 180, 0.48),
+      rgba(13, 70, 127, 0.27)
+    );
+  box-shadow:
+    inset 0 0 24px rgba(14, 129, 229, 0.09),
+    0 9px 25px rgba(0, 0, 0, 0.2);
+}
+
+.nav-count {
+  min-width: 48px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #56d7ff;
+  background: rgba(18, 111, 213, 0.34);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.mission-system-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 16px 15px;
+  border: 1px solid rgba(31, 216, 117, 0.2);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(17, 87, 72, 0.17),
+      rgba(5, 29, 42, 0.7)
+    );
+}
+
+.system-pulse {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--mission-green);
+  box-shadow:
+    0 0 10px rgba(34, 219, 118, 0.9),
+    0 0 22px rgba(34, 219, 118, 0.35);
+}
+
+.mission-system-status strong {
+  display: block;
+  color: #e8fff2;
+  font-size: 0.78rem;
+}
+
+.mission-system-status small {
+  display: block;
+  margin-top: 4px;
+  color: #7892aa;
+  font-size: 0.65rem;
+}
+
+.app-shell {
+  margin-left: var(--mission-sidebar);
+}
+
+.mission-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 118px;
+  padding: 22px 38px;
+  border-bottom: 1px solid var(--mission-border);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(2, 13, 25, 0.96),
+      rgba(3, 20, 35, 0.91)
+    );
+  backdrop-filter: blur(20px);
+}
+
+.mission-heading h1 {
+  margin: 3px 0 4px;
+  font-size: 2rem;
+}
+
+.mission-heading p {
+  margin: 0;
+  color: var(--mission-muted);
+  font-size: 0.8rem;
+}
+
+.mission-heading p strong {
+  color: #d7f7ff;
+}
+
+.mission-header-status {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.header-status-card,
+.operator-card {
+  display: flex;
+  align-items: center;
+  min-height: 65px;
+  padding: 10px 14px;
+  border: 1px solid var(--mission-border);
+  border-radius: 12px;
+  background: rgba(5, 22, 39, 0.84);
+}
+
+.header-status-card {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 100px;
+}
+
+.header-status-card small {
+  color: #7894ad;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+}
+
+.header-status-card > strong {
+  margin-top: 5px;
+  color: #eaf8ff;
+  font-size: 0.82rem;
+}
+
+.live-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.live-card div {
+  display: flex;
+  flex-direction: column;
+}
+
+.live-card strong {
+  color: var(--mission-green);
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+}
+
+.live-card span:last-child {
+  margin-top: 4px;
+  color: #b3c6d8;
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+}
+
+.operator-card {
+  gap: 14px;
+  min-width: 150px;
+}
+
+.operator-card div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.operator-card strong {
+  color: #f5faff;
+  font-size: 1rem;
+}
+
+.operator-card small {
+  margin-top: 3px;
+  color: #7e99b1;
+  font-size: 0.64rem;
+}
+
+.operator-icon {
+  color: #dceeff;
+  font-size: 2rem;
+}
+
+.mission-content {
+  width: 100%;
+  max-width: 1660px;
+  padding: 28px 36px 20px;
+}
+
+.mission-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  min-height: 165px;
+  margin-bottom: 16px;
+  padding: 26px 30px;
+  overflow: hidden;
+  border: 1px solid var(--mission-border);
+  border-radius: 15px;
+  background:
+    linear-gradient(
+      105deg,
+      rgba(8, 31, 54, 0.97),
+      rgba(5, 22, 40, 0.93)
+    );
+}
+
+.mission-hero h2 {
+  margin: 5px 0 7px;
+  font-size: 1.75rem;
+}
+
+.mission-hero p {
+  max-width: 620px;
+  margin: 0;
+  color: #9bb1c6;
+  line-height: 1.5;
+}
+
+.hero-online {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 175px;
+}
+
+.hero-online-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--mission-green);
+  box-shadow: 0 0 15px rgba(34, 219, 118, 0.9);
+}
+
+.hero-online div {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-online strong {
+  color: var(--mission-green);
+  font-size: 1.05rem;
+}
+
+.hero-online small {
+  margin-top: 5px;
+  color: #88a1b9;
+  font-size: 0.7rem;
+}
+
+.hero-orbit-art {
+  position: absolute;
+  top: 50%;
+  right: 17px;
+  width: 165px;
+  height: 165px;
+  transform: translateY(-50%);
+  opacity: 0.73;
+}
+
+.orbit-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1px solid rgba(33, 163, 242, 0.33);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.orbit-ring-one {
+  width: 94px;
+  height: 94px;
+}
+
+.orbit-ring-two {
+  width: 145px;
+  height: 145px;
+}
+
+.orbit-satellite {
+  position: absolute;
+  top: 57px;
+  left: 62px;
+  color: #2bdcff;
+  font-size: 2.6rem;
+  text-shadow: 0 0 22px #1487ef;
+  transform: rotate(-25deg);
+}
+
+.mission-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mission-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 137px;
+  padding: 20px 22px;
+  overflow: hidden;
+  border: 1px solid var(--mission-border);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(8, 31, 54, 0.96),
+      rgba(5, 22, 40, 0.92)
+    );
+}
+
+.mission-card::after {
+  position: absolute;
+  right: -42px;
+  bottom: -62px;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  content: "";
+  background: rgba(28, 117, 207, 0.055);
+}
+
+.mission-card .label {
+  margin-bottom: 10px;
+  color: #88a7c0;
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.mission-card .value {
+  color: #f4f9ff;
+  font-size: 1.32rem;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+}
+
+.mission-card .value.metric {
+  font-size: 2.6rem;
+}
+
+.mission-card .value.compact {
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.card-note {
+  margin-top: 5px;
+  color: #859db4;
+  font-size: 0.72rem;
+}
+
+.metric-icon {
+  z-index: 2;
+  color: #168ff5;
+  font-size: 2.4rem;
+  font-weight: 300;
+}
+
+.live-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: #47ed91;
+  background: rgba(26, 181, 91, 0.17);
+  font-size: 0.63rem;
+  font-weight: 750;
+}
+
+.source-card {
+  border-color: rgba(33, 217, 121, 0.36);
+}
+
+.update-card {
+  border-color: rgba(35, 207, 224, 0.25);
+}
+
+.error-card {
+  border-color: rgba(255, 64, 81, 0.36);
+}
+
+.error-card .metric-icon {
+  color: var(--mission-green);
+}
+
+.change-card.positive {
+  border-color: rgba(34, 219, 118, 0.5);
+}
+
+.change-card.positive .metric-icon {
+  color: var(--mission-green);
+}
+
+.change-card.updated {
+  border-color: rgba(22, 140, 236, 0.58);
+}
+
+.change-card.removed {
+  border-color: rgba(255, 64, 81, 0.62);
+}
+
+.change-card.removed .label,
+.change-card.removed .metric-icon {
+  color: var(--mission-red);
+}
+
+.change-card.unchanged {
+  border-color: rgba(145, 71, 255, 0.58);
+}
+
+.change-card.unchanged .label,
+.change-card.unchanged .metric-icon {
+  color: var(--mission-purple);
+}
+
+.mission-services {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.mission-services a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 61px;
+  padding: 11px 13px;
+  border: 1px solid var(--mission-border);
+  border-radius: 12px;
+  color: #d8e7f5;
+  background: rgba(5, 22, 39, 0.86);
+  font-size: 0.77rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.mission-services a:hover {
+  transform: translateY(-2px);
+  border-color: rgba(32, 190, 241, 0.5);
+  background: rgba(8, 38, 66, 0.95);
+}
+
+.mission-services a span {
+  color: #37cfff;
+  font-size: 1.25rem;
+}
+
+.mission-footer {
+  display: grid;
+  grid-template-columns: 1.5fr 0.8fr 0.8fr auto;
+  align-items: center;
+  gap: 26px;
+  max-width: 1588px;
+  margin: 0 auto 28px;
+  padding: 20px 27px;
+  border: 1px solid var(--mission-border);
+  border-radius: 14px;
+  background: rgba(4, 18, 32, 0.88);
+}
+
+.footer-brand img {
+  width: 250px;
+  max-width: 100%;
+  height: auto;
+}
+
+.footer-developer {
+  padding: 2px 28px;
+  border-right: 1px solid var(--mission-border);
+  border-left: 1px solid var(--mission-border);
+  text-align: center;
+}
+
+.footer-developer small {
+  display: block;
+  color: #a2b4c7;
+  font-size: 0.72rem;
+}
+
+.footer-developer strong {
+  display: block;
+  margin-top: 7px;
+  color: #13bff3;
+  font-size: 1.55rem;
+  letter-spacing: 0.02em;
+}
+
+.footer-community {
+  color: #aec0d1;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.footer-version {
+  color: #708aa2;
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
+.refresh-panel {
+  margin: 12px 2px 18px;
+}
+
+@media (max-width: 1250px) {
+  .mission-header-status .header-status-card:nth-child(3) {
+    display: none;
+  }
+
+  .mission-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .mission-footer {
+    margin-right: 24px;
+    margin-left: 24px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .mission-header-status .header-status-card:not(.live-card) {
+    display: none;
+  }
+
+  .mission-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mission-services {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mission-footer {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .footer-developer {
+    border-right: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    margin-left: 0;
+  }
+
+  .mission-header {
+    padding-left: 78px;
+  }
+
+  .mission-brand img {
+    max-width: 210px;
+  }
+}
+
+@media (max-width: 650px) {
+  .mission-header {
+    min-height: 90px;
+    padding:
+      15px
+      13px
+      15px
+      70px;
+  }
+
+  .mission-heading h1 {
+    font-size: 1.45rem;
+  }
+
+  .mission-heading p,
+  .application-eyebrow {
+    display: none;
+  }
+
+  .mission-header-status .operator-card {
+    display: none;
+  }
+
+  .mission-content {
+    padding: 18px 13px;
+  }
+
+  .mission-hero {
+    grid-template-columns: 1fr;
+    min-height: 185px;
+    padding: 22px;
+  }
+
+  .hero-online {
+    margin-top: 18px;
+    margin-right: 0;
+  }
+
+  .hero-orbit-art {
+    right: -30px;
+    opacity: 0.35;
+  }
+
+  .mission-grid,
+  .mission-services {
+    grid-template-columns: 1fr;
+  }
+
+  .mission-footer {
+    grid-template-columns: 1fr;
+    margin: 0 13px 20px;
+    text-align: center;
+  }
+
+  .footer-brand img {
+    margin: auto;
+  }
+
+  .footer-developer {
+    padding: 17px 0;
+    border-top: 1px solid var(--mission-border);
+    border-bottom: 1px solid var(--mission-border);
+    border-left: 0;
+  }
+
+  .footer-version {
+    white-space: normal;
+  }
+}
+
+/* OrbitHub live system telemetry */
+
+.live-metric-card {
+  min-width: 88px;
+}
+
+.live-metric-card > strong {
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.temperature-card > strong {
+  color: #ffb347;
+}
+
+.temperature-warning {
+  border-color: rgba(255, 64, 81, 0.62);
+  background: rgba(91, 18, 30, 0.5);
+}
+
+.temperature-warning > strong {
+  color: #ff5b68;
+}
+
+@media (max-width: 1400px) {
+  .mission-header-status
+  .live-metric-card:nth-of-type(5) {
+    display: none;
+  }
+}
+
+@media (max-width: 1250px) {
+  .mission-header-status
+  .live-metric-card:nth-of-type(4) {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .mission-header-status
+  .live-metric-card {
+    display: none;
+  }
+}
+
+/* =========================================================
+   Dataset download and manual source update
+   ========================================================= */
+
+.mission-services button {
+  appearance: none;
+  font: inherit;
+}
+
+.update-dataset-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 61px;
+  padding: 11px 13px;
+  border: 1px solid rgba(34, 219, 118, 0.42);
+  border-radius: 12px;
+  color: #dffff0;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(16, 89, 66, 0.5),
+      rgba(5, 35, 38, 0.82)
+    );
+  font-size: 0.77rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    opacity 150ms ease;
+}
+
+.update-dataset-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(34, 219, 118, 0.78);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(19, 117, 80, 0.62),
+      rgba(6, 49, 49, 0.92)
+    );
+}
+
+.update-dataset-button:disabled {
+  cursor: wait;
+  opacity: 0.78;
+}
+
+.update-button-icon {
+  color: var(--mission-green);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.update-dataset-button.is-updating
+.update-button-icon {
+  animation: orbithub-update-spin 900ms linear infinite;
+}
+
+.dataset-update-status {
+  min-height: 0;
+  margin-top: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0 solid transparent;
+  border-radius: 11px;
+  color: #9bb2c7;
+  background: transparent;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  transition:
+    margin 180ms ease,
+    padding 180ms ease,
+    border-width 180ms ease;
+}
+
+.dataset-update-status:not(:empty) {
+  min-height: 46px;
+  margin-top: 12px;
+  padding: 12px 15px;
+  border-width: 1px;
+}
+
+.dataset-update-status.is-running {
+  border-color: rgba(33, 175, 232, 0.3);
+  color: #bdefff;
+  background: rgba(10, 66, 91, 0.3);
+}
+
+.dataset-update-status.is-success {
+  border-color: rgba(34, 219, 118, 0.35);
+  color: #caffdf;
+  background: rgba(18, 104, 67, 0.28);
+}
+
+.dataset-update-status.is-error {
+  border-color: rgba(255, 64, 81, 0.4);
+  color: #ffd0d5;
+  background: rgba(105, 24, 37, 0.34);
+}
+
+@keyframes orbithub-update-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   Amateur radio operator identity and time zones
+   ========================================================= */
+
+.sidebar-brand-operator {
+  margin-top: -13px;
+  padding-right: 0;
+  color: #8fa9c0;
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.sidebar-brand-operator strong {
+  color: var(--mission-cyan);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
+.operator-station-card {
+  align-items: flex-start;
+}
+
+.operator-station-card .system-pulse {
+  margin-top: 5px;
+}
+
+.operator-station-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--mission-green) !important;
+  font-size: 0.59rem !important;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+}
+
+.operator-station-call {
+  color: #ffffff !important;
+  font-size: 1rem !important;
+  letter-spacing: 0.04em;
+}
+
+.operator-station-location,
+.operator-station-locator {
+  display: block;
+  margin-top: 4px;
+  color: #b5cadc;
+  font-size: 0.71rem;
+}
+
+.operator-station-locator {
+  color: var(--mission-cyan);
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.operator-station-version {
+  margin-top: 9px !important;
+  color: #6d879e !important;
+}
+
+.operator-card {
+  min-width: 164px;
+}
+
+.operator-card small {
+  color: #94abc0;
+}
+
+.operator-locator {
+  margin-top: 3px;
+  color: var(--mission-cyan);
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.local-time-zone {
+  margin-top: 3px !important;
+  color: #7894ad !important;
+  font-size: 0.55rem !important;
+  white-space: nowrap;
+}
+
+.update-timestamp {
+  white-space: pre-line;
+}
+
+.update-time-zone {
+  margin-top: 7px;
+  color: var(--mission-cyan);
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+}
+
+.update-relative-time {
+  margin-top: 5px;
+  color: #91a9be;
+  font-size: 0.69rem;
+}
+
+@media (max-width: 1180px) {
+  .operator-card {
+    min-width: 135px;
+  }
+
+  .operator-card small,
+  .operator-locator {
+    display: none;
+  }
+}
+
+
+.refresh-panel {
+  color: #8299ae;
+  font-size: 0.7rem;
+}
+
+.refresh-panel strong {
+  color: var(--mission-cyan);
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+}
+
+
+/* ==========================================================
+   OrbitHub TLE source manager
+   ========================================================== */
+
+.sources-hero {
+  min-height: 132px;
+  margin-bottom: 18px;
+  padding: 20px 28px;
+}
+
+.sources-hero h2 {
+  margin-top: 3px;
+  margin-bottom: 5px;
+}
+
+.sources-hero p {
+  max-width: 590px;
+  line-height: 1.4;
+}
+
+.sources-hero .hero-online {
+  margin-right: 120px;
+}
+
+.source-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.source-summary-card {
+  border: 1px solid rgba(75, 219, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(7, 24, 39, 0.78);
+  padding: 15px 17px;
+}
+
+.source-summary-card span {
+  display: block;
+  color: #7890a5;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.source-summary-card strong {
+  display: block;
+  margin-top: 7px;
+  color: #e8f7ff;
+  font-size: 1rem;
+}
+
+.source-manager-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.tle-source-card {
+  position: relative;
+  min-height: 290px;
+  border: 1px solid rgba(107, 139, 165, 0.18);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(10, 31, 49, 0.96),
+      rgba(5, 20, 34, 0.96)
+    );
+  padding: 19px;
+  overflow: hidden;
+}
+
+.tle-source-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: transparent;
+}
+
+.tle-source-card.preferred::before {
+  background: #44d9ff;
+}
+
+.tle-source-card.active-source {
+  border-color: rgba(57, 225, 151, 0.4);
+}
+
+.tle-source-card.active-source::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  bottom: -55px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(57, 225, 151, 0.05);
+}
+
+.tle-source-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.tle-source-card h3 {
+  margin: 6px 0 0;
+  color: #eefaff;
+  font-size: 1.25rem;
+}
+
+.tle-source-card > p {
+  min-height: 46px;
+  margin: 16px 0;
+  color: #8da4b7;
+  line-height: 1.5;
+}
+
+.source-card-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.source-badge {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.preferred-badge {
+  background: rgba(68, 217, 255, 0.12);
+  color: #56ddff;
+}
+
+.active-badge {
+  background: rgba(57, 225, 151, 0.12);
+  color: #45e5a0;
+}
+
+.source-details {
+  margin: 0;
+}
+
+.source-details > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid rgba(107, 139, 165, 0.12);
+  padding: 9px 0;
+}
+
+.source-details dt {
+  color: #71899d;
+  font-size: 0.75rem;
+}
+
+.source-details dd {
+  margin: 0;
+  color: #c9dbe7;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  font-size: 0.75rem;
+}
+
+.source-test-result {
+  min-height: 22px;
+  margin-top: 10px;
+  color: #7890a5;
+  font-size: 0.73rem;
+}
+
+.source-test-result.running {
+  color: #56ddff;
+}
+
+.source-test-result.success {
+  color: #45e5a0;
+}
+
+.source-test-result.error {
+  color: #ff7e8b;
+}
+
+.source-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.source-action-button {
+  min-height: 38px;
+  border-radius: 9px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.source-action-button.secondary {
+  border: 1px solid rgba(92, 157, 190, 0.28);
+  background: rgba(15, 45, 67, 0.55);
+  color: #b7d6e6;
+}
+
+.source-action-button.primary {
+  border: 1px solid rgba(68, 217, 255, 0.33);
+  background: rgba(36, 153, 195, 0.15);
+  color: #5ddfff;
+}
+
+.source-action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.15);
+}
+
+.source-action-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.source-update-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 25px;
+  margin-top: 18px;
+  border: 1px solid rgba(75, 219, 255, 0.14);
+  border-radius: 15px;
+  background: rgba(7, 24, 39, 0.76);
+  padding: 18px 20px;
+}
+
+.source-update-panel h3 {
+  margin: 5px 0;
+  color: #eaf9ff;
+}
+
+.source-update-panel p {
+  max-width: 720px;
+  margin: 0;
+  color: #8299ad;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 1250px) {
+  .source-manager-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 850px) {
+  .source-summary,
+  .source-manager-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .source-update-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .source-card-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Eigene TLE-Quellen */
+
+.add-source-panel {
+  margin-bottom: 18px;
+  border: 1px solid rgba(75, 219, 255, 0.15);
+  border-radius: 15px;
+  background: rgba(7, 24, 39, 0.76);
+  padding: 18px 20px;
+}
+
+.add-source-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.add-source-panel h3 {
+  margin: 5px 0;
+  color: #eaf9ff;
+}
+
+.add-source-panel p {
+  max-width: 720px;
+  margin: 0;
+  color: #8299ad;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.add-source-form {
+  margin-top: 20px;
+  border-top: 1px solid rgba(107, 139, 165, 0.14);
+  padding-top: 18px;
+}
+
+.source-form-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(220px, 0.45fr);
+  gap: 15px;
+}
+
+.source-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.source-form-grid label > span {
+  color: #89a4b7;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.source-form-wide {
+  grid-column: 1 / -1;
+}
+
+.source-form-grid input,
+.source-form-grid select {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  border: 1px solid rgba(92, 157, 190, 0.28);
+  border-radius: 9px;
+  outline: none;
+  background: rgba(5, 20, 34, 0.82);
+  padding: 9px 11px;
+  color: #dff5ff;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.source-form-grid input:focus,
+.source-form-grid select:focus {
+  border-color: rgba(68, 217, 255, 0.65);
+  box-shadow: 0 0 0 3px rgba(68, 217, 255, 0.08);
+}
+
+.source-form-grid input::placeholder {
+  color: #587185;
+}
+
+.source-form-status {
+  min-height: 22px;
+  margin-top: 12px;
+  font-size: 0.76rem;
+}
+
+.source-form-status.running {
+  color: #56ddff;
+}
+
+.source-form-status.success {
+  color: #45e5a0;
+}
+
+.source-form-status.error {
+  color: #ff7e8b;
+}
+
+.source-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 8px;
+}
+
+@media (max-width: 850px) {
+  .add-source-panel-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .source-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .source-form-wide {
+    grid-column: auto;
+  }
+
+  .source-form-actions {
+    flex-direction: column-reverse;
+  }
+}
+/* OrbitHub: Überflugtabelle */
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.mission-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.mission-table th,
+.mission-table td {
+  padding: 0.75rem 0.85rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(113, 199, 255, 0.12);
+}
+
+.mission-table th {
+  color: var(--mission-accent, #69d7ff);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mission-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+.mission-table td.pass-date {
+  color: #8299ad;
+  font-size: 0.78rem;
+}
+
+.mission-table tbody tr:hover {
+  background: rgba(68, 168, 255, 0.06);
+}
+
+@media (max-width: 1100px) {
+  .mission-table {
+    min-width: 900px;
+  }
+}
+
+/* OrbitHub polar pass display */
+.pass-center-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(280px, 0.8fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.polarplot-card,
+.pass-summary-card,
+.map-card {
+  border: 1px solid rgba(70, 174, 231, 0.16);
+  border-radius: 14px;
+  background: rgba(4, 20, 33, 0.55);
+}
+
+.polarplot-card {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 430px;
+  padding: 24px;
+}
+
+.polarplot {
+  display: block;
+  width: min(100%, 430px);
+  height: auto;
+  overflow: visible;
+}
+
+.polarplot-horizon {
+  fill: rgba(5, 27, 43, 0.7);
+  stroke: rgba(92, 196, 255, 0.75);
+  stroke-width: 1.6;
+}
+
+.polarplot-ring {
+  fill: none;
+  stroke: rgba(123, 184, 218, 0.18);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.polarplot-axis {
+  stroke: rgba(123, 184, 218, 0.18);
+  stroke-width: 1;
+}
+
+.horizon-height-helper {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: -2px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(107, 139, 165, 0.25);
+  border-radius: 10px;
+  background: rgba(68, 217, 255, 0.04);
+}
+
+.horizon-height-helper-title {
+  flex-basis: 100%;
+  color: #8299ad;
+  font-size: 0.76rem;
+}
+
+.horizon-height-helper label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+
+.horizon-height-helper label span {
+  color: #8299ad;
+  font-size: 0.76rem;
+}
+
+.horizon-height-helper input {
+  border-radius: 8px;
+  border: 1px solid rgba(107, 139, 165, 0.25);
+  background: rgba(4, 13, 22, 0.6);
+  padding: 8px 10px;
+  color: #dff5ff;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.horizon-helper-result {
+  color: #56ddff;
+  font-size: 0.8rem;
+  min-width: 120px;
+}
+
+.polarplot-shadow {
+  fill: rgba(2, 8, 14, 0.55);
+  stroke: rgba(255, 90, 90, 0.25);
+  stroke-width: 0.6;
+  pointer-events: none;
+}
+
+.polarplot-direction {
+  fill: #d9f3ff;
+  font-size: 8px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+.polarplot-elevation {
+  fill: rgba(169, 204, 223, 0.55);
+  font-size: 5px;
+}
+
+.polarplot-track {
+  fill: none;
+  stroke: #42d5ff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px rgba(66, 213, 255, 0.7));
+}
+
+.polarplot-rise {
+  fill: #55e68a;
+  stroke: #e7fff0;
+  stroke-width: 1.2;
+}
+
+.polarplot-set {
+  fill: #ff9f5a;
+  stroke: #fff2e8;
+  stroke-width: 1.2;
+}
+
+.polarplot-marker-label {
+  fill: #f4fbff;
+  font-size: 5px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+.pass-summary-card {
+  padding: 24px;
+}
+
+.pass-summary-card h3 {
+  margin: 8px 0 22px;
+  font-size: 1.7rem;
+}
+
+.pass-summary-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.pass-summary-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(112, 181, 219, 0.12);
+}
+
+.pass-summary-list > div:last-child {
+  border-bottom: 0;
+}
+
+.pass-summary-list dt {
+  color: var(--text-muted, #91a9bb);
+}
+
+.pass-summary-list dd {
+  margin: 0;
+  color: #f1f9ff;
+  font-weight: 700;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .pass-center-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .polarplot-card {
+    min-height: 340px;
+  }
+}
+
+.map-card {
+  padding: 16px;
+}
+
+.ground-map {
+  width: 100%;
+  height: 320px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(4, 20, 33, 0.85);
+}
+
+.ground-map .leaflet-control-attribution {
+  background: rgba(4, 20, 33, 0.72);
+  color: #9fb4c7;
+}
+
+.ground-map .leaflet-control-attribution a {
+  color: #4ec9f0;
+}
+
+.ground-map .leaflet-bar a {
+  background: rgba(4, 20, 33, 0.88);
+  color: #e7f1fa;
+  border-color: rgba(70, 174, 231, 0.16);
+}
+
+.ground-map .leaflet-bar a:hover {
+  background: rgba(70, 174, 231, 0.25);
+}
+
+/* OrbitHub: Satellitenkatalog */
+
+.satellite-search-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.satellite-search-input {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  border: 1px solid rgba(92, 157, 190, 0.28);
+  border-radius: 9px;
+  outline: none;
+  background: rgba(5, 20, 34, 0.82);
+  padding: 9px 11px;
+  color: #dff5ff;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.satellite-search-input:focus {
+  border-color: rgba(68, 217, 255, 0.65);
+  box-shadow: 0 0 0 3px rgba(68, 217, 255, 0.08);
+}
+
+.satellite-search-input::placeholder {
+  color: #587185;
+}
+
+a.source-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.satellite-empty-block {
+  border: 1px dashed rgba(107, 139, 165, 0.3);
+  border-radius: 14px;
+  padding: 30px;
+  text-align: center;
+  color: #8da4b7;
+}
+
+.satellite-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .satellite-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* OrbitHub: Ueberfluege Zwei-Spalten-Layout */
+
+.passes-top-grid {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.95fr) minmax(320px, 1.05fr);
+  gap: 16px;
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+
+.passes-left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.passes-right-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.passes-right-column .polarplot-card {
+  margin-top: 14px;
+  flex: 1;
+}
+
+.passes-right-column .map-card {
+  margin-top: 14px;
+}
+
+.passes-right-column .satellite-empty-block {
+  margin-top: 14px;
+}
+
+.passes-form-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 1100px) {
+  .passes-top-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pass-row {
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.pass-row.active {
+  background: rgba(68, 217, 230, 0.12);
+  box-shadow: inset 3px 0 0 var(--cyan);
+}
+
+.pass-row.active td {
+  color: #eafeff;
+}
+
+.pass-row.active td strong {
+  color: var(--cyan);
+}
+
+/* Historie / Änderungslog */
+.history-panel {
+  margin-bottom: 0;
+}
+
+.history-count {
+  font-size: 0.78rem;
+  color: var(--mission-muted, #8fa8c2);
+}
+
+.history-timeline {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.history-day-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mission-cyan, #1dd9f2);
+  margin-bottom: 8px;
+}
+
+.history-entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(75, 219, 255, 0.1);
+  background: rgba(7, 24, 39, 0.5);
+  font-size: 0.85rem;
+}
+
+.history-time {
+  flex-shrink: 0;
+  min-width: 48px;
+  color: var(--mission-blue, #168cec);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.history-message {
+  flex: 1;
+  color: #d8e6f5;
+}
+
+.history-hash {
+  flex-shrink: 0;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.72rem;
+  color: var(--mission-muted, #8fa8c2);
+}
+
+.history-empty {
+  color: var(--mission-muted, #8fa8c2);
+  font-size: 0.85rem;
+  margin-top: 12px;
+}
+
+/* Karte / Weltkarte */
+.world-map {
+  height: 560px;
+}
+
+@media (max-width: 720px) {
+  .world-map {
+    height: 380px;
+  }
+}
+
+
+/* Karte / map-card header und Vollbild */
+.map-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.map-card-header .label {
+  flex-shrink: 0;
+  order: 1;
+}
+
+.map-card-header .history-count {
+  order: 3;
+  flex-basis: 100%;
+  white-space: nowrap;
+}
+
+.map-card-header #map-fullscreen-btn {
+  order: 2;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.satellite-label {
+  background: rgba(4, 20, 33, 0.85);
+  border: 1px solid var(--mission-border);
+  color: #eaf4ff;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.satellite-label::before {
+  border-top-color: rgba(4, 20, 33, 0.85);
+}
+
+.map-card:fullscreen,
+.map-card:-webkit-full-screen,
+.map-card.map-card-fullscreen-fallback {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  padding: 16px;
+  background: var(--mission-bg);
+}
+
+.map-card:fullscreen #world-map,
+.map-card:-webkit-full-screen #world-map,
+.map-card.map-card-fullscreen-fallback #world-map {
+  flex: 1;
+}
+
+.map-card.map-card-fullscreen-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
+
+
+/* Karte / sanfte Bewegung der Satellitenmarker */
+.satellite-marker {
+  transition: cx 1.4s linear, cy 1.4s linear;
+}
+
+.satellite-footprint {
+  transition: cx 1.4s linear, cy 1.4s linear;
+}
+
+/* Karte / Satelliten-Icon-Marker */
+.satellite-icon-marker {
+  background: transparent;
+  border: none;
+}
+
+.satellite-icon-marker svg {
+  filter: drop-shadow(0 1px 2px rgba(4, 20, 33, 0.55));
+}
+
+.leaflet-marker-icon.satellite-icon-marker {
+  transition: transform 1.2s linear;
+}
+
+/* Karte / Bahnverfolgung */
+.map-card-header .map-track-label {
+  order: 4;
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #7894ad;
+}
+
+.map-track-select {
+  flex: 1;
+  min-height: 34px;
+  max-width: 240px;
+  box-sizing: border-box;
+  border: 1px solid rgba(92, 157, 190, 0.28);
+  border-radius: 8px;
+  background: rgba(5, 20, 34, 0.82);
+  color: #dff5ff;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.map-track-select:focus {
+  outline: none;
+  border-color: rgba(68, 217, 255, 0.65);
+  box-shadow: 0 0 0 3px rgba(68, 217, 255, 0.08);
+}
+
+/* --- Downloads-Seite (TLE-Export) --- */
+
+.download-format-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.download-format-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.download-format-option input[type="radio"] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.download-format-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.download-format-option strong {
+  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.download-format-option small {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.download-select-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.download-table-panel {
+  margin-top: 18px;
+}
+
+.download-checkbox-col {
+  width: 40px;
+}
+
+.download-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+
+.download-action-card {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.download-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.download-link-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.download-link-row {
+  display: flex;
+  gap: 8px;
+}
+
+.download-link-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(5, 20, 34, 0.82);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+}
+
+.download-link-row input[type="text"]:focus {
+  outline: none;
+  border-color: rgba(68, 217, 230, 0.65);
+  box-shadow: 0 0 0 3px rgba(68, 217, 230, 0.08);
+}
+
+.download-link-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.download-links {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+
+/* Statistik-Seite (System- und TLE-Verlauf) */
+
+.chart-panel {
+  background: rgba(19, 32, 48, 0.6);
+  border: 1px solid rgba(143, 169, 192, 0.16);
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.chart-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.chart-panel-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #e8f1fb;
+}
+
+.chart-range-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.chart-range-button {
+  border: 1px solid rgba(143, 169, 192, 0.28);
+  background: transparent;
+  color: #8fa9c0;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.chart-range-button:hover {
+  border-color: rgba(122, 208, 255, 0.6);
+  color: #e8f1fb;
+}
+
+.chart-range-button.is-active {
+  background: #7ad0ff;
+  border-color: #7ad0ff;
+  color: #0b1622;
+  font-weight: 600;
+}
+
+.chart-canvas-wrap {
+  position: relative;
+  height: 320px;
+}
+
+.chart-canvas-wrap-small {
+  height: 220px;
+}
+
+.chart-empty-state {
+  text-align: center;
+  color: #8fa9c0;
+  font-size: 0.85rem;
+  padding: 24px 0 4px;
+}
+
+
+/* Sichtbarkeits-Seite (visuelle Satellitenbeobachtung) */
+
+.visibility-bright-panel {
+  margin-bottom: 20px;
+}
+
+.visibility-bright-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.visibility-bright-card {
+  background: rgba(19, 32, 48, 0.6);
+  border: 1px solid rgba(143, 169, 192, 0.16);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.visibility-bright-card h4 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  color: #e8f1fb;
+}
+
+.visibility-bright-time {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: #7ad0ff;
+}
+
+.visibility-bright-detail {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #8fa9c0;
+}
+
+.visibility-form-grid {
+  align-items: end;
+}
+
+.visibility-table-heading {
+  margin: 0 0 14px;
+  font-size: 1rem;
+  color: #e8f1fb;
+}
+
+.visibility-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  background: rgba(143, 169, 192, 0.16);
+  color: #8fa9c0;
+}
+
+.visibility-badge.is-visible {
+  background: rgba(122, 208, 255, 0.18);
+  color: #7ad0ff;
+  font-weight: 600;
+}

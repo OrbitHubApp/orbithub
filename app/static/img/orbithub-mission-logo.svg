@@ -1,0 +1,185 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 540 150"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">OrbitHub</title>
+  <desc id="desc">
+    Satellite Orbit Data for Amateur Radio
+  </desc>
+
+  <defs>
+    <radialGradient id="planet" cx="38%" cy="32%">
+      <stop offset="0%" stop-color="#d9fbff"/>
+      <stop offset="20%" stop-color="#6feaff"/>
+      <stop offset="58%" stop-color="#168fe9"/>
+      <stop offset="100%" stop-color="#073a94"/>
+    </radialGradient>
+
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#94f4ff"/>
+      <stop offset="45%" stop-color="#19cdef"/>
+      <stop offset="100%" stop-color="#1770ee"/>
+    </linearGradient>
+
+    <linearGradient id="hub" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#23cbff"/>
+      <stop offset="100%" stop-color="#1680ed"/>
+    </linearGradient>
+
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g transform="translate(10 5)">
+    <ellipse
+      cx="66"
+      cy="79"
+      rx="59"
+      ry="22"
+      fill="none"
+      stroke="url(#ring)"
+      stroke-width="6"
+      transform="rotate(-13 66 79)"
+      filter="url(#glow)"
+    />
+
+    <circle
+      cx="66"
+      cy="79"
+      r="36"
+      fill="url(#planet)"
+      stroke="#68eaff"
+      stroke-width="2"
+    />
+
+    <circle
+      cx="57"
+      cy="68"
+      r="12"
+      fill="#ddfcff"
+      opacity="0.72"
+    />
+
+    <path
+      d="M36 100
+         C52 108 73 110 92 100"
+      fill="none"
+      stroke="#0d54c7"
+      stroke-width="7"
+      stroke-linecap="round"
+      opacity="0.9"
+    />
+
+    <g transform="translate(91 26) rotate(25)">
+      <rect
+        x="-10"
+        y="-8"
+        width="20"
+        height="16"
+        rx="3"
+        fill="#f5fbff"
+        stroke="#a8efff"
+      />
+
+      <rect
+        x="-39"
+        y="-9"
+        width="23"
+        height="18"
+        rx="2"
+        fill="#123a72"
+        stroke="#8defff"
+        stroke-width="2"
+      />
+
+      <rect
+        x="16"
+        y="-9"
+        width="23"
+        height="18"
+        rx="2"
+        fill="#123a72"
+        stroke="#8defff"
+        stroke-width="2"
+      />
+
+      <path
+        d="M-31 -9 V9 M-23 -9 V9
+           M24 -9 V9 M32 -9 V9"
+        stroke="#75dfff"
+        opacity="0.75"
+      />
+
+      <path
+        d="M0 8 V18"
+        stroke="#f5fbff"
+        stroke-width="3"
+      />
+
+      <circle
+        cx="0"
+        cy="21"
+        r="3"
+        fill="#53eaff"
+        filter="url(#glow)"
+      />
+    </g>
+
+    <g fill="#7af1ff">
+      <circle cx="13" cy="37" r="2"/>
+      <circle cx="119" cy="45" r="2"/>
+      <circle cx="118" cy="102" r="1.5"/>
+    </g>
+
+    <path
+      d="M17 46 h10 M22 41 v10"
+      stroke="#35dfff"
+      stroke-width="2"
+    />
+  </g>
+
+  <g transform="translate(145 39)">
+    <text
+      x="0"
+      y="47"
+      fill="#f5f9ff"
+      font-family="Inter,Segoe UI,Arial,sans-serif"
+      font-size="58"
+      font-weight="760"
+      letter-spacing="-3"
+    >
+      Orbit<tspan fill="url(#hub)">Hub</tspan>
+    </text>
+
+    <text
+      x="3"
+      y="76"
+      fill="#a6b9cf"
+      font-family="Inter,Segoe UI,Arial,sans-serif"
+      font-size="15"
+      font-weight="550"
+      letter-spacing="0.6"
+    >
+      Satellite Orbit Data
+    </text>
+
+    <text
+      x="3"
+      y="98"
+      fill="#a6b9cf"
+      font-family="Inter,Segoe UI,Arial,sans-serif"
+      font-size="15"
+      font-weight="550"
+      letter-spacing="0.6"
+    >
+      for Amateur Radio
+    </text>
+  </g>
+</svg>

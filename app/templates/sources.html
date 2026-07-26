@@ -1,0 +1,909 @@
+{% extends "base.html" %}
+
+{% block title %}
+  OrbitHub · Daten & Quellen
+{% endblock %}
+
+{% block nav_sources %}active{% endblock %}
+
+{% block page_heading %}
+  Daten & Quellen
+{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero sources-hero">
+  <div>
+    <div class="eyebrow">TLE-QUELLENMANAGER</div>
+
+    <h2>Bahndaten kontrollieren</h2>
+
+    <p>
+      Bevorzugte TLE-Quelle auswählen,
+      Erreichbarkeit testen und Daten manuell
+      aktualisieren.
+    </p>
+  </div>
+
+  <div class="hero-online">
+    <span class="hero-online-dot"></span>
+
+    <div>
+      <strong>{{ active_source }}</strong>
+      <small>aktuell verwendete Quelle</small>
+    </div>
+  </div>
+</section>
+
+<section class="source-summary">
+
+  <article class="source-summary-card">
+    <span>Bevorzugte Quelle</span>
+
+    <strong id="preferred-source-summary">
+      {% for source in sources %}
+        {% if source.id == preferred_source_id %}
+          {{ source.name }}
+        {% endif %}
+      {% endfor %}
+    </strong>
+  </article>
+
+  <article class="source-summary-card">
+    <span>Verwendete Quelle</span>
+    <strong>{{ active_source }}</strong>
+  </article>
+
+  <article class="source-summary-card">
+    <span>Fallback verwendet</span>
+
+    <strong>
+      {% if fallback_used %}
+        Ja
+      {% else %}
+        Nein
+      {% endif %}
+    </strong>
+  </article>
+
+</section>
+
+<section class="add-source-panel">
+  <div class="add-source-panel-header">
+    <div>
+      <div class="label">EIGENE DATENQUELLE</div>
+      <h3>Neue TLE-Quelle hinzufügen</h3>
+      <p>
+        OrbitHub prüft die Adresse und speichert
+        sie nur, wenn gültige Bahndaten gefunden
+        werden.
+      </p>
+    </div>
+
+    <button
+      class="source-action-button primary"
+      id="toggle-add-source"
+      type="button"
+      aria-expanded="false"
+      aria-controls="add-source-form"
+    >
+      + Quelle hinzufügen
+    </button>
+  </div>
+
+  <form
+    class="add-source-form"
+    id="add-source-form"
+    data-pause-auto-refresh
+    hidden
+  >
+    <div class="source-form-grid">
+      <label>
+        <span>Name</span>
+        <input
+          id="new-source-name"
+          name="name"
+          type="text"
+          maxlength="80"
+          placeholder="z. B. AMSAT"
+          required
+        >
+      </label>
+
+      <label>
+        <span>Datenformat</span>
+        <select
+          id="new-source-type"
+          name="type"
+        >
+          <option value="tle">
+            Klassisches TLE
+          </option>
+
+          <option value="satnogs_json">
+            SatNOGS JSON
+          </option>
+        </select>
+      </label>
+
+      <label class="source-form-wide">
+        <span>Quellenadresse</span>
+        <input
+          id="new-source-url"
+          name="url"
+          type="url"
+          placeholder="https://example.org/satellites.tle"
+          required
+        >
+      </label>
+
+      <label class="source-form-wide">
+        <span>Beschreibung</span>
+        <input
+          id="new-source-description"
+          name="description"
+          type="text"
+          maxlength="180"
+          placeholder="Optionale Beschreibung"
+        >
+      </label>
+    </div>
+
+    <div
+      class="source-form-status"
+      id="add-source-status"
+      role="status"
+      aria-live="polite"
+    ></div>
+
+    <div class="source-form-actions">
+      <button
+        class="source-action-button secondary"
+        id="cancel-add-source"
+        type="button"
+      >
+        Abbrechen
+      </button>
+
+      <button
+        class="source-action-button primary"
+        id="save-add-source"
+        type="submit"
+      >
+        Quelle prüfen und speichern
+      </button>
+    </div>
+  </form>
+</section>
+
+<section
+  class="add-source-panel"
+  id="edit-source-panel"
+  hidden
+>
+  <div class="add-source-panel-header">
+    <div>
+      <div class="label">EIGENE DATENQUELLE</div>
+      <h3>Bestehende TLE-Quelle bearbeiten</h3>
+      <p>
+        Die geänderte Adresse wird vor dem
+        Speichern erneut geprüft.
+      </p>
+    </div>
+  </div>
+
+  <form
+    class="add-source-form"
+    id="edit-source-form"
+    data-pause-auto-refresh
+  >
+    <input
+      id="edit-source-id"
+      name="source_id"
+      type="hidden"
+    >
+
+    <div class="source-form-grid">
+      <label>
+        <span>Name</span>
+        <input
+          id="edit-source-name"
+          name="name"
+          type="text"
+          maxlength="80"
+          required
+        >
+      </label>
+
+      <label>
+        <span>Datenformat</span>
+        <select
+          id="edit-source-type"
+          name="type"
+        >
+          <option value="tle">
+            Klassisches TLE
+          </option>
+
+          <option value="satnogs_json">
+            SatNOGS JSON
+          </option>
+        </select>
+      </label>
+
+      <label class="source-form-wide">
+        <span>Quellenadresse</span>
+        <input
+          id="edit-source-url"
+          name="url"
+          type="url"
+          required
+        >
+      </label>
+
+      <label class="source-form-wide">
+        <span>Beschreibung</span>
+        <input
+          id="edit-source-description"
+          name="description"
+          type="text"
+          maxlength="180"
+        >
+      </label>
+    </div>
+
+    <div
+      class="source-form-status"
+      id="edit-source-status"
+      role="status"
+      aria-live="polite"
+    ></div>
+
+    <div class="source-form-actions">
+      <button
+        class="source-action-button secondary"
+        id="cancel-edit-source"
+        type="button"
+      >
+        Abbrechen
+      </button>
+
+      <button
+        class="source-action-button primary"
+        id="save-edit-source"
+        type="submit"
+      >
+        Änderungen prüfen und speichern
+      </button>
+    </div>
+  </form>
+</section>
+
+<section class="source-manager-grid">
+
+  {% for source in sources %}
+
+  <article
+    class="tle-source-card
+    {% if source.id == preferred_source_id %}
+      preferred
+    {% endif %}
+    {% if source.id == active_source_id %}
+      active-source
+    {% endif %}"
+    data-source-id="{{ source.id }}"
+  >
+    <div class="tle-source-card-header">
+      <div>
+        <div class="label">
+          TLE-DATENQUELLE
+        </div>
+
+        <h3>{{ source.name }}</h3>
+      </div>
+
+      <div class="source-card-badges">
+        {% if source.id == preferred_source_id %}
+          <span class="source-badge preferred-badge">
+            BEVORZUGT
+          </span>
+        {% endif %}
+
+        {% if source.id == active_source_id %}
+          <span class="source-badge active-badge">
+            AKTIV
+          </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <p>{{ source.description }}</p>
+
+    <dl class="source-details">
+      <div>
+        <dt>Typ</dt>
+        <dd>
+          {% if source.type == "satnogs_json" %}
+            SatNOGS JSON
+          {% else %}
+            Klassisches TLE
+          {% endif %}
+        </dd>
+      </div>
+
+      <div>
+        <dt>Kennung</dt>
+        <dd>{{ source.id }}</dd>
+      </div>
+    </dl>
+
+    <div
+      class="source-test-result"
+      id="source-result-{{ source.id }}"
+      aria-live="polite"
+    ></div>
+
+    <div class="source-card-actions">
+      <button
+        class="source-action-button secondary"
+        type="button"
+        data-action="test"
+        data-source-id="{{ source.id }}"
+      >
+        Quelle testen
+      </button>
+
+      <button
+        class="source-action-button primary"
+        type="button"
+        data-action="select"
+        data-source-id="{{ source.id }}"
+        {% if source.id == preferred_source_id %}
+          disabled
+        {% endif %}
+      >
+        Als bevorzugt wählen
+      </button>
+
+      {% if source.custom %}
+        <button
+          class="source-action-button secondary"
+          type="button"
+          data-action="edit"
+          data-source-id="{{ source.id }}"
+          data-source-name="{{ source.name }}"
+          data-source-type="{{ source.type }}"
+          data-source-url="{{ source.url }}"
+          data-source-description="{{ source.description }}"
+        >
+          Quelle bearbeiten
+        </button>
+
+        <button
+          class="source-action-button danger"
+          type="button"
+          data-action="delete"
+          data-source-id="{{ source.id }}"
+          data-source-name="{{ source.name }}"
+        >
+          Quelle löschen
+        </button>
+      {% endif %}
+    </div>
+  </article>
+
+  {% endfor %}
+
+</section>
+
+<section class="source-update-panel">
+  <div>
+    <div class="label">
+      DATENSÄTZE
+    </div>
+
+    <h3>Aktive TLE-Datei aktualisieren</h3>
+
+    <p>
+      OrbitHub versucht zuerst die bevorzugte
+      Quelle. Ist sie nicht erreichbar, wird
+      automatisch eine Ersatzquelle verwendet.
+    </p>
+  </div>
+
+  <button
+    class="update-dataset-button"
+    id="source-update-button"
+    type="button"
+  >
+    <span class="update-button-icon">↻</span>
+    Jetzt aktualisieren
+  </button>
+</section>
+
+<div
+  class="dataset-update-status"
+  id="source-global-status"
+  role="status"
+  aria-live="polite"
+></div>
+
+<script>
+(() => {
+  const globalStatus = document.getElementById(
+    "source-global-status"
+  );
+
+  function showGlobalStatus(message, state = "") {
+    globalStatus.textContent = message;
+    globalStatus.className =
+      `dataset-update-status ${state}`.trim();
+  }
+
+  async function postJson(url, payload = {}) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    let data = {};
+
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        data.detail || `HTTP ${response.status}`
+      );
+    }
+
+    return data;
+  }
+
+  document.querySelectorAll(
+    '[data-action="test"]'
+  ).forEach((button) => {
+    button.addEventListener("click", async () => {
+      const sourceId = button.dataset.sourceId;
+
+      const result = document.getElementById(
+        `source-result-${sourceId}`
+      );
+
+      button.disabled = true;
+      result.className =
+        "source-test-result running";
+
+      result.textContent =
+        "Verbindung wird geprüft …";
+
+      try {
+        const data = await postJson(
+          "/api/sources/test",
+          {source_id: sourceId}
+        );
+
+        result.className =
+          "source-test-result success";
+
+        result.textContent =
+          `${data.records.toLocaleString("de-DE")} ` +
+          `Datensätze · ` +
+          `${(data.duration_ms / 1000).toFixed(1)} Sek.`;
+      } catch (error) {
+        result.className =
+          "source-test-result error";
+
+        result.textContent =
+          `Fehler: ${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll(
+    '[data-action="select"]'
+  ).forEach((button) => {
+    button.addEventListener("click", async () => {
+      const sourceId = button.dataset.sourceId;
+
+      button.disabled = true;
+
+      showGlobalStatus(
+        "Bevorzugte Quelle wird gespeichert …",
+        "is-running"
+      );
+
+      try {
+        const data = await postJson(
+          "/api/sources/select",
+          {source_id: sourceId}
+        );
+
+        showGlobalStatus(
+          `${data.preferred_source} wurde als ` +
+          `bevorzugte Quelle gespeichert.`,
+          "is-success"
+        );
+
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 700);
+      } catch (error) {
+        showGlobalStatus(
+          `Fehler: ${error.message}`,
+          "is-error"
+        );
+
+        button.disabled = false;
+      }
+    });
+  });
+
+  const editSourcePanel = document.getElementById(
+    "edit-source-panel"
+  );
+
+  const editSourceForm = document.getElementById(
+    "edit-source-form"
+  );
+
+  const editSourceStatus = document.getElementById(
+    "edit-source-status"
+  );
+
+  const editSourceSubmit = document.getElementById(
+    "save-edit-source"
+  );
+
+  const editSourceCancel = document.getElementById(
+    "cancel-edit-source"
+  );
+
+  function closeEditSourceForm() {
+    editSourceForm.reset();
+    editSourcePanel.hidden = true;
+
+    editSourceStatus.textContent = "";
+    editSourceStatus.className =
+      "source-form-status";
+  }
+
+  document.querySelectorAll(
+    '[data-action="edit"]'
+  ).forEach((button) => {
+    button.addEventListener("click", () => {
+      document.getElementById(
+        "edit-source-id"
+      ).value = button.dataset.sourceId || "";
+
+      document.getElementById(
+        "edit-source-name"
+      ).value = button.dataset.sourceName || "";
+
+      document.getElementById(
+        "edit-source-type"
+      ).value = button.dataset.sourceType || "tle";
+
+      document.getElementById(
+        "edit-source-url"
+      ).value = button.dataset.sourceUrl || "";
+
+      document.getElementById(
+        "edit-source-description"
+      ).value =
+        button.dataset.sourceDescription || "";
+
+      editSourceStatus.textContent = "";
+      editSourceStatus.className =
+        "source-form-status";
+
+      editSourcePanel.hidden = false;
+
+      editSourcePanel.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+      document.getElementById(
+        "edit-source-name"
+      ).focus();
+    });
+  });
+
+  editSourceCancel.addEventListener(
+    "click",
+    closeEditSourceForm
+  );
+
+  editSourceForm.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
+
+      editSourceSubmit.disabled = true;
+
+      editSourceStatus.className =
+        "source-form-status running";
+
+      editSourceStatus.textContent =
+        "Geänderte Quelle wird geprüft …";
+
+      const payload = {
+        source_id: document.getElementById(
+          "edit-source-id"
+        ).value.trim(),
+
+        name: document.getElementById(
+          "edit-source-name"
+        ).value.trim(),
+
+        type: document.getElementById(
+          "edit-source-type"
+        ).value,
+
+        url: document.getElementById(
+          "edit-source-url"
+        ).value.trim(),
+
+        description: document.getElementById(
+          "edit-source-description"
+        ).value.trim()
+      };
+
+      try {
+        const data = await postJson(
+          "/api/sources/update",
+          payload
+        );
+
+        editSourceStatus.className =
+          "source-form-status success";
+
+        editSourceStatus.textContent =
+          `${data.records.toLocaleString("de-DE")} ` +
+          `Datensätze geprüft. Änderungen gespeichert.`;
+
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 900);
+      } catch (error) {
+        editSourceStatus.className =
+          "source-form-status error";
+
+        editSourceStatus.textContent =
+          `Fehler: ${error.message}`;
+
+        editSourceSubmit.disabled = false;
+      }
+    }
+  );
+
+  document.querySelectorAll(
+    '[data-action="delete"]'
+  ).forEach((button) => {
+    button.addEventListener("click", async () => {
+      const sourceId = button.dataset.sourceId;
+      const sourceName =
+        button.dataset.sourceName || sourceId;
+
+      const confirmed = window.confirm(
+        `Soll die eigene Quelle "${sourceName}" ` +
+        `wirklich entfernt werden?`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      button.disabled = true;
+
+      showGlobalStatus(
+        `${sourceName} wird entfernt ...`,
+        "is-running"
+      );
+
+      try {
+        const data = await postJson(
+          "/api/sources/delete",
+          {source_id: sourceId}
+        );
+
+        showGlobalStatus(
+          `${data.source_name} wurde entfernt.`,
+          "is-success"
+        );
+
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 700);
+      } catch (error) {
+        showGlobalStatus(
+          `Fehler: ${error.message}`,
+          "is-error"
+        );
+
+        button.disabled = false;
+      }
+    });
+  });
+
+  const addSourceToggle = document.getElementById(
+    "toggle-add-source"
+  );
+
+  const addSourceForm = document.getElementById(
+    "add-source-form"
+  );
+
+  const addSourceCancel = document.getElementById(
+    "cancel-add-source"
+  );
+
+  const addSourceStatus = document.getElementById(
+    "add-source-status"
+  );
+
+  const addSourceSubmit = document.getElementById(
+    "save-add-source"
+  );
+
+  function setAddSourceFormVisible(visible) {
+    addSourceForm.hidden = !visible;
+
+    addSourceToggle.setAttribute(
+      "aria-expanded",
+      String(visible)
+    );
+
+    addSourceToggle.textContent = visible
+      ? "Formular schließen"
+      : "+ Quelle hinzufügen";
+
+    if (visible) {
+      document.getElementById(
+        "new-source-name"
+      ).focus();
+    }
+  }
+
+  addSourceToggle.addEventListener(
+    "click",
+    () => {
+      setAddSourceFormVisible(
+        addSourceForm.hidden
+      );
+    }
+  );
+
+  addSourceCancel.addEventListener(
+    "click",
+    () => {
+      addSourceForm.reset();
+      addSourceStatus.textContent = "";
+      addSourceStatus.className =
+        "source-form-status";
+
+      setAddSourceFormVisible(false);
+    }
+  );
+
+  addSourceForm.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
+
+      addSourceSubmit.disabled = true;
+
+      addSourceStatus.className =
+        "source-form-status running";
+
+      addSourceStatus.textContent =
+        "Quelle wird geprüft …";
+
+      const payload = {
+        name: document.getElementById(
+          "new-source-name"
+        ).value.trim(),
+
+        type: document.getElementById(
+          "new-source-type"
+        ).value,
+
+        url: document.getElementById(
+          "new-source-url"
+        ).value.trim(),
+
+        description: document.getElementById(
+          "new-source-description"
+        ).value.trim()
+      };
+
+      try {
+        const data = await postJson(
+          "/api/sources/add",
+          payload
+        );
+
+        addSourceStatus.className =
+          "source-form-status success";
+
+        addSourceStatus.textContent =
+          `${data.source.name} gespeichert · ` +
+          `${data.records.toLocaleString("de-DE")} ` +
+          `Datensätze gefunden.`;
+
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (error) {
+        addSourceStatus.className =
+          "source-form-status error";
+
+        addSourceStatus.textContent =
+          `Fehler: ${error.message}`;
+
+        addSourceSubmit.disabled = false;
+      }
+    }
+  );
+
+  const updateButton = document.getElementById(
+    "source-update-button"
+  );
+
+  updateButton.addEventListener(
+    "click",
+    async () => {
+      updateButton.disabled = true;
+      updateButton.classList.add("is-updating");
+
+      showGlobalStatus(
+        "TLE-Datensätze werden aktualisiert …",
+        "is-running"
+      );
+
+      try {
+        const data = await postJson(
+          "/api/sources/refresh"
+        );
+
+        if (!data.ok) {
+          throw new Error(
+            data.error || "Aktualisierung fehlgeschlagen."
+          );
+        }
+
+        showGlobalStatus(
+          `${data.records.toLocaleString("de-DE")} ` +
+          `Datensätze von ${data.source} geladen.`,
+          "is-success"
+        );
+
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 900);
+      } catch (error) {
+        showGlobalStatus(
+          `Fehler: ${error.message}`,
+          "is-error"
+        );
+      } finally {
+        updateButton.disabled = false;
+        updateButton.classList.remove(
+          "is-updating"
+        );
+      }
+    }
+  );
+})();
+</script>
+
+{% endblock %}

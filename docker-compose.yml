@@ -1,0 +1,11 @@
+services:
+  orbithub:
+    build: .
+    container_name: orbithub
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - ORBITHUB_REFRESH_HOURS=6

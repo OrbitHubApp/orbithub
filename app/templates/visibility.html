@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Visuell – {{ app_name }}{% endblock %}
+
+{% block nav_visibility %}active{% endblock %}
+
+{% block page_heading %}
+  Visuell
+{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero">
+  <div>
+    <div class="eyebrow">VISUELLE BEOBACHTUNG</div>
+
+    <h2>Welche Satelliten sind mit blossem Auge sichtbar?</h2>
+
+    <p>
+      Ein Durchgang gilt als sichtbar, wenn der Satellit von der Sonne
+      beschienen wird und der Himmel gleichzeitig dunkel genug ist. Wo
+      bekannt, wird zusätzlich eine geschätzte Helligkeit angegeben.
+    </p>
+  </div>
+
+  <div class="hero-online">
+    <span class="hero-online-dot"></span>
+
+    <div>
+      <strong>{{ observer_name }}</strong>
+      <small>Locator {{ observer_locator }}</small>
+    </div>
+  </div>
+</section>
+
+<section class="source-summary-card visibility-bright-panel">
+  <span>Heute und in den nächsten Tagen sichtbar</span>
+
+  {% if bright_entries %}
+  <div class="visibility-bright-grid">
+    {% for entry in bright_entries %}
+    <article class="visibility-bright-card">
+      <h4>{{ entry.record.name|display_name }}</h4>
+
+      {% if entry.next_visible %}
+      <p class="visibility-bright-time">
+        {{ entry.next_visible.pass.rise_time | fmt_time("%d.%m., %H:%M") }}
+        Uhr
+      </p>
+      <p class="visibility-bright-detail">
+        Max. {{ "%.0f"|format(entry.next_visible.pass.max_elevation_deg) }}°
+        ·
+        {% if entry.next_visible.visibility.magnitude is not none %}
+          Helligkeit ca. {{ "%.1f"|format(entry.next_visible.visibility.magnitude) }} mag
+        {% else %}
+          Helligkeit unbekannt
+        {% endif %}
+      </p>
+      {% else %}
+      <p class="visibility-bright-detail">
+        Kein sichtbarer Durchgang in der kommenden Woche.
+      </p>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="visibility-bright-detail">
+    Keine bekannten hellen Satelliten (z. B. ISS, Tiangong, Hubble) in den
+    aktuellen TLE-Daten gefunden.
+  </p>
+  {% endif %}
+</section>
+
+<section class="download-table-panel">
+  <h3 class="visibility-table-heading">
+    Alle sichtbaren Durchgänge in der kommenden Woche
+  </h3>
+
+  {% if upcoming_visible_passes %}
+  <div class="table-scroll">
+    <table class="mission-table">
+      <thead>
+        <tr>
+          <th>Satellit</th>
+          <th>Datum</th>
+          <th>Aufgang</th>
+          <th>Kulmination</th>
+          <th>Untergang</th>
+          <th>Max. Höhe</th>
+          <th>Helligkeit</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for entry in upcoming_visible_passes %}
+        <tr>
+          <td>{{ entry.record.name|display_name }}</td>
+          <td>{{ entry.pass.rise_time | fmt_time("%d.%m.") }}</td>
+          <td>{{ entry.pass.rise_time | fmt_time("%H:%M:%S") }}</td>
+          <td>{{ entry.pass.culmination_time | fmt_time("%H:%M:%S") }}</td>
+          <td>{{ entry.pass.set_time | fmt_time("%H:%M:%S") }}</td>
+          <td><strong>{{ "%.1f"|format(entry.pass.max_elevation_deg) }}°</strong></td>
+          <td>
+            {% if entry.visibility.magnitude is not none %}
+              {{ "%.1f"|format(entry.visibility.magnitude) }} mag
+            {% else %}
+              unbekannt
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="satellite-empty-block">
+    Kein sichtbarer Durchgang eines bekannten hellen Satelliten in der kommenden Woche.
+  </p>
+  {% endif %}
+</section>
+
+<section class="source-summary-card">
+  <span>Satellit auswählen</span>
+
+  <form class="add-source-form" method="get" action="/visibility">
+    <div class="source-form-grid visibility-form-grid">
+      <label>
+        <span>Satellit</span>
+
+        <select name="satellite">
+          {% for sat in satellites %}
+          <option
+            value="{{ sat.norad_id }}"
+            {% if selected_satellite and sat.norad_id == selected_satellite.norad_id %}selected{% endif %}
+          >
+            {{ sat.name|display_name }} · NORAD {{ sat.norad_id }}
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>
+        <span>Zeitraum</span>
+
+        <select name="hours">
+          <option value="24" {% if hours == 24 %}selected{% endif %}>24 Stunden</option>
+          <option value="48" {% if hours == 48 %}selected{% endif %}>48 Stunden</option>
+          <option value="72" {% if hours == 72 %}selected{% endif %}>72 Stunden</option>
+          <option value="168" {% if hours == 168 %}selected{% endif %}>7 Tage</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Mindesthöhe</span>
+
+        <select name="minimum_elevation">
+          <option value="5" {% if minimum_elevation == 5.0 %}selected{% endif %}>5°</option>
+          <option value="10" {% if minimum_elevation == 10.0 %}selected{% endif %}>10°</option>
+          <option value="20" {% if minimum_elevation == 20.0 %}selected{% endif %}>20°</option>
+          <option value="30" {% if minimum_elevation == 30.0 %}selected{% endif %}>30°</option>
+        </select>
+      </label>
+
+      <button type="submit" class="source-action-button">Anzeigen</button>
+    </div>
+  </form>
+</section>
+
+<section class="download-table-panel">
+  {% if selected_satellite %}
+  <h3 class="visibility-table-heading">
+    {{ selected_satellite.name|display_name }} · NORAD {{ selected_satellite.norad_id }}
+  </h3>
+  {% endif %}
+
+  {% if satellite_passes %}
+  <div class="table-scroll">
+    <table class="mission-table">
+      <thead>
+        <tr>
+          <th>Datum</th>
+          <th>Aufgang</th>
+          <th>Kulmination</th>
+          <th>Untergang</th>
+          <th>Max. Höhe</th>
+          <th>Sichtbar</th>
+          <th>Helligkeit</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for entry in satellite_passes %}
+        <tr>
+          <td>{{ entry.pass.rise_time | fmt_time("%d.%m.") }}</td>
+          <td>{{ entry.pass.rise_time | fmt_time("%H:%M:%S") }}</td>
+          <td>{{ entry.pass.culmination_time | fmt_time("%H:%M:%S") }}</td>
+          <td>{{ entry.pass.set_time | fmt_time("%H:%M:%S") }}</td>
+          <td><strong>{{ "%.1f"|format(entry.pass.max_elevation_deg) }}°</strong></td>
+          <td>
+            {% if entry.visibility.visible %}
+            <span class="visibility-badge is-visible">sichtbar</span>
+            {% elif not entry.visibility.sunlit %}
+            <span class="visibility-badge">im Erdschatten</span>
+            {% else %}
+            <span class="visibility-badge">Himmel zu hell</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if entry.visibility.magnitude is not none %}
+              {{ "%.1f"|format(entry.visibility.magnitude) }} mag
+            {% elif entry.visibility.visible %}
+              unbekannt
+            {% else %}
+              –
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="satellite-empty-block">
+    Keine Durchgänge ab Beginn der nautischen Dämmerung im gewählten
+    Zeitraum gefunden.
+  </p>
+  {% endif %}
+</section>
+
+{% endblock %}

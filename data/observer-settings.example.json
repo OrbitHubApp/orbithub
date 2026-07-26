@@ -1,0 +1,11 @@
+{
+  "callsign": "N0CALL",
+  "locator": "JO62QG",
+  "qth_name": "Berlin (Beispiel)",
+  "latitude_deg": 52.52,
+  "longitude_deg": 13.405,
+  "elevation_m": 50.0,
+  "default_minimum_elevation_deg": 10.0,
+  "horizon_segments": [],
+  "time_display": "local"
+}

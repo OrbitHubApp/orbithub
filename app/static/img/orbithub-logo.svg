@@ -1,0 +1,90 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 100 100"
+  role="img"
+  aria-labelledby="title"
+>
+  <title id="title">OrbitHub</title>
+
+  <defs>
+    <linearGradient id="planet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#76d4ff"/>
+      <stop offset="100%" stop-color="#2477c9"/>
+    </linearGradient>
+
+    <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#44d9e6"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+  </defs>
+
+  <circle
+    cx="50"
+    cy="50"
+    r="20"
+    fill="url(#planet)"
+  />
+
+  <path
+    d="M38 37 C47 42 55 43 64 39"
+    fill="none"
+    stroke="#d0efff"
+    stroke-width="3"
+    stroke-linecap="round"
+    opacity="0.85"
+  />
+
+  <ellipse
+    cx="50"
+    cy="50"
+    rx="42"
+    ry="18"
+    fill="none"
+    stroke="url(#orbit)"
+    stroke-width="4"
+    transform="rotate(-20 50 50)"
+  />
+
+  <g transform="translate(79 29) rotate(18)">
+    <rect
+      x="-5"
+      y="-5"
+      width="10"
+      height="10"
+      rx="2"
+      fill="#ffffff"
+    />
+
+    <rect
+      x="-16"
+      y="-4"
+      width="8"
+      height="8"
+      rx="1"
+      fill="#49a7ff"
+    />
+
+    <rect
+      x="8"
+      y="-4"
+      width="8"
+      height="8"
+      rx="1"
+      fill="#49a7ff"
+    />
+
+    <path
+      d="M0 5 L0 11"
+      stroke="#ffffff"
+      stroke-width="2"
+      stroke-linecap="round"
+    />
+
+    <circle
+      cx="0"
+      cy="13"
+      r="2"
+      fill="#44d9e6"
+    />
+  </g>
+</svg>

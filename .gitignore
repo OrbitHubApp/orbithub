@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.log
+.env
+.venv/
+venv/
+data/*.tmp
+data/*.part
+backups/
+.DS_Store
+*.bak*
+*backup*
+*.zip
+*.tar.gz
+*.bak*
+*backup*
+*.zip
+*.tar.gz
+
+# --- Public-Release-Ergaenzungen ---
+data/*.json
+data/*.tle
+!data/observer-settings.example.json

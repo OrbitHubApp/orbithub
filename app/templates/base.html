@@ -1,0 +1,295 @@
+<!doctype html>
+{% set observer = observer_settings() %}
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <meta
+    name="theme-color"
+    content="#061321"
+  >
+
+  <meta
+    name="description"
+    content="Satellite Orbit Data for Amateur Radio"
+  >
+
+  <title>
+    {% block title %}OrbitHub{% endblock %}
+  </title>
+
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="{{ url_for('static', path='favicon/favicon.svg') }}"
+  >
+
+  <link
+    rel="manifest"
+    href="{{ url_for('static', path='favicon/site.webmanifest') }}"
+  >
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', path='css/style.css') }}?v={{ version }}"
+  >
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', path='css/polaris.css') }}?v={{ version }}"
+  >
+
+  {% block head %}{% endblock %}
+</head>
+
+<body data-refresh-seconds="{{ refresh_seconds | default(60) }}" data-time-display="{{ observer.time_display }}">
+
+  <button
+    class="mobile-menu-button"
+    id="mobile-menu-button"
+    type="button"
+    aria-label="Navigation öffnen"
+    aria-controls="sidebar"
+    aria-expanded="false"
+  >
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  <div
+    class="sidebar-overlay"
+    id="sidebar-overlay"
+  ></div>
+
+  <aside
+    class="sidebar mission-sidebar"
+    id="sidebar"
+  >
+    <a
+      class="mission-brand"
+      href="/"
+      aria-label="OrbitHub Startseite"
+    >
+      <img
+        src="{{ url_for('static', path='img/orbithub-mission-logo.png') }}"
+        alt="OrbitHub – Satellite Orbit Data for Amateur Radio"
+      >
+
+      <div class="sidebar-brand-operator">
+        by <strong>{{ observer.callsign }}</strong>
+      </div>
+    </a>
+
+    <nav
+      class="sidebar-navigation mission-navigation"
+      aria-label="Hauptnavigation"
+    >
+      <a
+        class="nav-item {% block nav_dashboard %}{% endblock %}"
+        href="/"
+      >
+        <span class="nav-icon">⌂</span>
+        <span>Übersicht</span>
+      </a>
+
+      <a class="nav-item {% block nav_satellites %}{% endblock %}" href="/satellites">
+        <span class="nav-icon">◈</span>
+        <span>Satelliten</span>
+        <span class="nav-count">
+          {{ records | default("–") }}
+        </span>
+      </a>
+
+     	<a
+  class="nav-item {% block nav_passes %}{% endblock %}"
+  href="/passes"
+>
+  <span class="nav-icon">⌁</span>
+  <span>Überflüge</span>
+</a>
+
+      <a class="nav-item {% block nav_map %}{% endblock %}" href="/map">
+        <span class="nav-icon">◎</span>
+        <span>Karte</span>
+        </a>
+
+      <a class="nav-item {% block nav_history %}{% endblock %}" href="/history">
+        <span class="nav-icon">◷</span>
+        <span>Historie</span>
+        </a>
+
+      <div class="nav-divider"></div>
+
+      <a class="nav-item {% block nav_downloads %}{% endblock %}" href="/downloads">
+        <span class="nav-icon">⇩</span>
+        <span>Downloads</span>
+      </a>
+
+
+      <a class="nav-item {% block nav_statistics %}{% endblock %}" href="/statistics">
+        <span class="nav-icon">↗</span>
+        <span>Statistik</span>
+      </a>
+
+      <a class="nav-item {% block nav_visibility %}{% endblock %}" href="/visibility">
+        <span class="nav-icon">☉</span>
+        <span>Visuell</span>
+      </a>
+      <a
+        class="nav-item {% block nav_sources %}{% endblock %}"
+        href="/sources"
+      >
+        <span class="nav-icon">◉</span>
+        <span>Daten &amp; Quellen</span>
+      </a>
+
+      <a class="nav-item {% block nav_settings %}{% endblock %}" href="/settings">
+        <span class="nav-icon">⚙</span>
+        <span>Einstellungen</span>
+      </a>
+
+      <a class="nav-item {% block nav_about %}{% endblock %}" href="/about">
+        <span class="nav-icon">i</span>
+        <span>Über OrbitHub</span>
+      </a>
+    </nav>
+
+    <div class="mission-system-status operator-station-card">
+      <span class="system-pulse"></span>
+
+      <div>
+        <small class="operator-station-label">
+          OPERATOR
+        </small>
+
+        <strong class="operator-station-call">
+          {{ observer.callsign }}
+        </strong>
+
+        <span class="operator-station-location">
+          {{ observer.qth_name }}
+        </span>
+
+        <span class="operator-station-locator">
+          Locator {{ observer.locator }}
+        </span>
+
+        <small class="operator-station-version">
+          OrbitHub {{ version }} „{{ codename }}“
+        </small>
+      </div>
+    </div>
+  </aside>
+
+  <div class="app-shell">
+
+    <header class="mission-header">
+
+      <div class="mission-heading">
+        <div class="application-eyebrow">
+          ORBITHUB CONTROL CENTER
+        </div>
+
+        <h1>
+          {% block page_heading %}Übersicht{% endblock %}
+        </h1>
+
+        <p>
+          Willkommen zurück, <strong>{{ observer.callsign }}</strong>!
+        </p>
+      </div>
+
+      <div class="mission-header-status">
+
+        <div class="header-status-card live-card">
+          <span class="live-dot"></span>
+
+          <div>
+            <strong>LIVE</strong>
+            <span id="local-clock">--:--:--</span>
+
+            <small
+              class="local-time-zone"
+              id="local-time-zone"
+            >
+              Ortszeit
+            </small>
+          </div>
+        </div>
+
+        <div class="header-status-card live-metric-card">
+          <small>CPU</small>
+          <strong id="system-cpu">–</strong>
+        </div>
+
+        <div class="header-status-card live-metric-card">
+          <small>RAM</small>
+          <strong id="system-memory">–</strong>
+        </div>
+
+        <div class="header-status-card live-metric-card temperature-card">
+          <small>TEMP</small>
+          <strong id="system-temperature">–</strong>
+        </div>
+
+        <div class="operator-card">
+          <div>
+            <strong>{{ observer.callsign }}</strong>
+          <small>{{ observer.qth_name }}</small>
+          <span class="operator-locator">
+            {{ observer.locator }}
+          </span>
+          </div>
+
+          <span class="operator-icon">◯</span>
+        </div>
+
+      </div>
+    </header>
+
+    <main class="application-content mission-content">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="mission-footer">
+
+      <div class="footer-brand">
+        <img
+          src="{{ url_for('static', path='img/orbithub-mission-logo.png') }}"
+          alt="OrbitHub"
+        >
+      </div>
+
+      <div class="footer-developer">
+        <small>Designed &amp; Developed by</small>
+        <strong>DL7AG</strong>
+      </div>
+
+      <div class="footer-community">
+        <span>
+          Made for the<br>
+          Amateur Radio Community
+        </span>
+      </div>
+
+      <div class="footer-version">
+        Version {{ version }} „{{ codename }}“
+      </div>
+
+    </footer>
+
+  </div>
+
+  <script
+    src="{{ url_for('static', path='js/dashboard.js') }}?v={{ version }}"
+  ></script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
