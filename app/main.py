@@ -1419,7 +1419,7 @@ async def test_source(
         ) from exc
 
 
-@app.post("/api/sources/update")
+@app.post("/api/sources/refresh")
 async def update_selected_source() -> dict:
     await update_tle()
     return status
