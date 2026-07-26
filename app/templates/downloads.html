@@ -311,10 +311,31 @@
         const target = document.getElementById(
           button.dataset.copyTarget
         );
-        try {
-          await navigator.clipboard.writeText(target.value);
+        let copied = false;
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(target.value);
+            copied = true;
+          } catch (error) {
+            copied = false;
+          }
+        }
+        if (!copied) {
+          // navigator.clipboard braucht einen sicheren Kontext (HTTPS
+          // oder localhost). OrbitHub laeuft im LAN nur ueber HTTP, also
+          // greifen wir hier auf das aeltere execCommand("copy") zurueck,
+          // das nach einer Textauswahl auch ueber HTTP funktioniert.
+          target.select();
+          target.setSelectionRange(0, target.value.length);
+          try {
+            copied = document.execCommand("copy");
+          } catch (error) {
+            copied = false;
+          }
+        }
+        if (copied) {
           showStatus("Link wurde in die Zwischenablage kopiert.", "is-success");
-        } catch (error) {
+        } else {
           target.select();
           showStatus("Bitte den Link manuell kopieren.", "is-error");
         }
