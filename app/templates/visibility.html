@@ -123,12 +123,24 @@
 <section class="source-summary-card">
   <span>Satellit auswählen</span>
 
-  <form class="add-source-form" method="get" action="/visibility">
+  <form class="add-source-form" method="get" action="/visibility" data-pause-auto-refresh>
     <div class="source-form-grid visibility-form-grid">
       <label>
         <span>Satellit</span>
 
-        <select name="satellite">
+        <div class="satellite-combobox-wrap">
+          <input
+            type="text"
+            id="satellite-combo-input"
+            class="satellite-search-input"
+            autocomplete="off"
+            placeholder="Name oder NORAD-ID eingeben …"
+            value="{% if selected_satellite %}{{ selected_satellite.name|display_name }} · NORAD {{ selected_satellite.norad_id }}{% endif %}"
+          >
+          <ul id="satellite-combo-list" class="satellite-combo-list" role="listbox" hidden></ul>
+        </div>
+
+        <select name="satellite" id="satellite-combo-select" style="display:none;">
           {% for sat in satellites %}
           <option
             value="{{ sat.norad_id }}"
@@ -228,4 +240,134 @@
   {% endif %}
 </section>
 
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var select = document.getElementById("satellite-combo-select");
+  var input = document.getElementById("satellite-combo-input");
+  var list = document.getElementById("satellite-combo-list");
+  if (!select || !input || !list) {
+    return;
+  }
+
+  var options = Array.prototype.map.call(select.options, function (opt) {
+    return { value: opt.value, label: opt.textContent.replace(/\s+/g, " ").trim() };
+  });
+
+  var currentMatches = [];
+  var activeIndex = -1;
+
+  function closeList() {
+    list.hidden = true;
+    list.innerHTML = "";
+    currentMatches = [];
+    activeIndex = -1;
+  }
+
+  function syncInputToSelection() {
+    var current = select.options[select.selectedIndex];
+    input.value = current ? current.textContent.replace(/\s+/g, " ").trim() : "";
+  }
+
+  function selectOption(opt) {
+    select.value = opt.value;
+    input.value = opt.label;
+    closeList();
+  }
+
+  function updateActive(items) {
+    items.forEach(function (li, idx) {
+      li.classList.toggle("is-active", idx === activeIndex);
+    });
+    if (items[activeIndex]) {
+      items[activeIndex].scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function renderList(matches) {
+    currentMatches = matches;
+    activeIndex = -1;
+    list.innerHTML = "";
+    if (!matches.length) {
+      closeList();
+      return;
+    }
+    matches.slice(0, 60).forEach(function (opt, idx) {
+      var li = document.createElement("li");
+      li.textContent = opt.label;
+      li.setAttribute("role", "option");
+      li.dataset.index = String(idx);
+      li.addEventListener("mousedown", function (event) {
+        event.preventDefault();
+        selectOption(opt);
+      });
+      list.appendChild(li);
+    });
+    list.hidden = false;
+  }
+
+  function filterAndRender(query) {
+    var q = query.trim().toLowerCase();
+    if (!q) {
+      renderList(options.slice(0, 60));
+      return;
+    }
+    var matches = options.filter(function (opt) {
+      return opt.label.toLowerCase().indexOf(q) !== -1;
+    });
+    renderList(matches);
+  }
+
+  input.addEventListener("focus", function () {
+    filterAndRender(input.value);
+  });
+
+  input.addEventListener("input", function () {
+    filterAndRender(input.value);
+  });
+
+  input.addEventListener("keydown", function (event) {
+    if (list.hidden) {
+      if (event.key === "ArrowDown" || event.key === "Enter") {
+        filterAndRender(input.value);
+      }
+      return;
+    }
+    var items = list.querySelectorAll("li");
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      activeIndex = Math.min(activeIndex + 1, items.length - 1);
+      updateActive(items);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      activeIndex = Math.max(activeIndex - 1, 0);
+      updateActive(items);
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      if (activeIndex >= 0 && currentMatches[activeIndex]) {
+        selectOption(currentMatches[activeIndex]);
+      } else if (currentMatches.length === 1) {
+        selectOption(currentMatches[0]);
+      }
+    } else if (event.key === "Escape") {
+      closeList();
+      syncInputToSelection();
+    }
+  });
+
+  input.addEventListener("blur", function () {
+    window.setTimeout(function () {
+      closeList();
+      syncInputToSelection();
+    }, 120);
+  });
+
+  document.addEventListener("click", function (event) {
+    if (!event.target.closest(".satellite-combobox-wrap")) {
+      closeList();
+    }
+  });
+})();
+</script>
 {% endblock %}

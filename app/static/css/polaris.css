@@ -1709,6 +1709,46 @@ body::before {
   background: rgba(70, 174, 231, 0.25);
 }
 
+/* OrbitHub: Satelliten-Kombifeld (Visuell-Seite) */
+
+.satellite-combobox-wrap {
+  position: relative;
+}
+
+.satellite-combo-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: rgba(5, 20, 34, 0.97);
+  border: 1px solid rgba(92, 157, 190, 0.28);
+  border-radius: 9px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.satellite-combo-list[hidden] {
+  display: none;
+}
+
+.satellite-combo-list li {
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #dff5ff;
+  cursor: pointer;
+}
+
+.satellite-combo-list li:hover,
+.satellite-combo-list li.is-active {
+  background: rgba(68, 217, 255, 0.16);
+}
+
 /* OrbitHub: Satellitenkatalog */
 
 .satellite-search-card {
