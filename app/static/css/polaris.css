@@ -2218,3 +2218,67 @@ a.source-action-button {
   font-size: 0.85rem;
   padding: 24px 0 4px;
 }
+
+
+/* Sichtbarkeits-Seite (visuelle Satellitenbeobachtung) */
+
+.visibility-bright-panel {
+  margin-bottom: 20px;
+}
+
+.visibility-bright-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.visibility-bright-card {
+  background: rgba(19, 32, 48, 0.6);
+  border: 1px solid rgba(143, 169, 192, 0.16);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.visibility-bright-card h4 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  color: #e8f1fb;
+}
+
+.visibility-bright-time {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: #7ad0ff;
+}
+
+.visibility-bright-detail {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #8fa9c0;
+}
+
+.visibility-form-grid {
+  align-items: end;
+}
+
+.visibility-table-heading {
+  margin: 0 0 14px;
+  font-size: 1rem;
+  color: #e8f1fb;
+}
+
+.visibility-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  background: rgba(143, 169, 192, 0.16);
+  color: #8fa9c0;
+}
+
+.visibility-badge.is-visible {
+  background: rgba(122, 208, 255, 0.18);
+  color: #7ad0ff;
+  font-weight: 600;
+}

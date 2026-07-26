@@ -42,6 +42,10 @@ from app.services.stats_store import (
 from app.services.system_metrics import collect_system_metrics
 from app.services.tle_parser import TLEParser
 from app.services.pass_predictor import PassPredictor
+from app.services.visibility import (
+    assess_visibility,
+    is_known_bright_satellite,
+)
 from app.services.source_manager import SourceManager
 from app.services.maidenhead import locator_to_latlon
 from app.services.observer_settings import (
@@ -1768,6 +1772,147 @@ async def satgazer_all_active():
     content = exporter.export(records)
 
     return PlainTextResponse(content)
+
+@app.get(
+    "/visibility",
+    include_in_schema=False,
+)
+async def visibility_page(
+    request: Request,
+    satellite: str | None = None,
+    hours: int = 72,
+    minimum_elevation: float = 10.0,
+):
+    parser = TLEParser()
+    records = (
+        parser.parse_file(TLE_FILE)
+        if TLE_FILE.exists()
+        else []
+    )
+    records = sorted(
+        records,
+        key=lambda record: display_satellite_name(record.name).lower(),
+    )
+
+    allowed_hours = {24, 48, 72, 168}
+    if hours not in allowed_hours:
+        hours = 72
+
+    minimum_elevation = max(0.0, min(minimum_elevation, 90.0))
+
+    observer = load_observer_settings()
+    predictor = PassPredictor(
+        latitude_deg=observer.latitude_deg,
+        longitude_deg=observer.longitude_deg,
+        elevation_m=observer.elevation_m,
+    )
+
+    selected_record = None
+    satellite_passes = []
+
+    if records:
+        if satellite:
+            selected_record = next(
+                (
+                    record
+                    for record in records
+                    if record.norad_id == satellite
+                ),
+                None,
+            )
+
+        if selected_record is None:
+            selected_record = next(
+                (
+                    record
+                    for record in records
+                    if is_known_bright_satellite(record.name)
+                ),
+                records[0],
+            )
+
+        raw_passes = predictor.predict(
+            selected_record,
+            hours=hours,
+            minimum_elevation_deg=minimum_elevation,
+            observer_settings=observer,
+        )
+
+        for satellite_pass in raw_passes:
+            result = assess_visibility(
+                selected_record,
+                observer.latitude_deg,
+                observer.longitude_deg,
+                observer.elevation_m,
+                satellite_pass.culmination_time,
+            )
+            satellite_passes.append(
+                {
+                    "pass": satellite_pass,
+                    "visibility": result,
+                }
+            )
+
+    bright_entries = []
+    bright_records = [
+        record
+        for record in records
+        if is_known_bright_satellite(record.name)
+    ]
+
+    for record in bright_records:
+        candidate_passes = predictor.predict(
+            record,
+            hours=72,
+            minimum_elevation_deg=(
+                observer.default_minimum_elevation_deg
+            ),
+            observer_settings=observer,
+        )
+
+        next_visible = None
+        for candidate in candidate_passes:
+            result = assess_visibility(
+                record,
+                observer.latitude_deg,
+                observer.longitude_deg,
+                observer.elevation_m,
+                candidate.culmination_time,
+            )
+            if result.visible:
+                next_visible = {
+                    "pass": candidate,
+                    "visibility": result,
+                }
+                break
+
+        bright_entries.append(
+            {
+                "record": record,
+                "next_visible": next_visible,
+            }
+        )
+
+    return templates.TemplateResponse(
+        name="visibility.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "version": VERSION,
+            "codename": CODENAME,
+            "refresh_seconds": DASHBOARD_REFRESH_SECONDS,
+            "satellites": records,
+            "selected_satellite": selected_record,
+            "satellite_passes": satellite_passes,
+            "bright_entries": bright_entries,
+            "hours": hours,
+            "minimum_elevation": minimum_elevation,
+            "observer_name": observer.qth_name,
+            "observer_locator": observer.locator,
+        },
+    )
+
 
 @app.get(
     "/downloads",
