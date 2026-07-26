@@ -72,6 +72,55 @@
   {% endif %}
 </section>
 
+<section class="download-table-panel">
+  <h3 class="visibility-table-heading">
+    Alle sichtbaren Durchgänge in den nächsten 72 Stunden
+  </h3>
+
+  {% if upcoming_visible_passes %}
+  <div class="table-scroll">
+    <table class="mission-table">
+      <thead>
+        <tr>
+          <th>Satellit</th>
+          <th>Datum</th>
+          <th>Aufgang</th>
+          <th>Kulmination</th>
+          <th>Untergang</th>
+          <th>Max. Höhe</th>
+          <th>Helligkeit</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for entry in upcoming_visible_passes %}
+        <tr>
+          <td>{{ entry.record.name|display_name }}</td>
+          <td>{{ entry.pass.rise_time | fmt_time("%d.%m.") }}</td>
+          <td>{{ entry.pass.rise_time | fmt_time("%H:%M:%S") }}</td>
+          <td>{{ entry.pass.culmination_time | fmt_time("%H:%M:%S") }}</td>
+          <td>{{ entry.pass.set_time | fmt_time("%H:%M:%S") }}</td>
+          <td><strong>{{ "%.1f"|format(entry.pass.max_elevation_deg) }}°</strong></td>
+          <td>
+            {% if entry.visibility.magnitude is not none %}
+              {{ "%.1f"|format(entry.visibility.magnitude) }} mag
+            {% else %}
+              unbekannt
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="satellite-empty-block">
+    Kein sichtbarer Durchgang eines bekannten hellen Satelliten in den
+    nächsten 72 Stunden.
+  </p>
+  {% endif %}
+</section>
+
 <section class="source-summary-card">
   <span>Satellit auswählen</span>
 

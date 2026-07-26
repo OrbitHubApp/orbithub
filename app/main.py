@@ -1854,6 +1854,7 @@ async def visibility_page(
             )
 
     bright_entries = []
+    upcoming_visible_passes = []
     bright_records = [
         record
         for record in records
@@ -1880,11 +1881,14 @@ async def visibility_page(
                 candidate.culmination_time,
             )
             if result.visible:
-                next_visible = {
+                visible_entry = {
+                    "record": record,
                     "pass": candidate,
                     "visibility": result,
                 }
-                break
+                if next_visible is None:
+                    next_visible = visible_entry
+                upcoming_visible_passes.append(visible_entry)
 
         bright_entries.append(
             {
@@ -1892,6 +1896,8 @@ async def visibility_page(
                 "next_visible": next_visible,
             }
         )
+
+    upcoming_visible_passes.sort(key=lambda entry: entry["pass"].rise_time)
 
     return templates.TemplateResponse(
         name="visibility.html",
@@ -1906,6 +1912,7 @@ async def visibility_page(
             "selected_satellite": selected_record,
             "satellite_passes": satellite_passes,
             "bright_entries": bright_entries,
+            "upcoming_visible_passes": upcoming_visible_passes,
             "hours": hours,
             "minimum_elevation": minimum_elevation,
             "observer_name": observer.qth_name,
