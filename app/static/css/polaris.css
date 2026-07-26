@@ -2148,3 +2148,73 @@ a.source-action-button {
   flex-direction: column;
   gap: 14px;
 }
+
+
+/* Statistik-Seite (System- und TLE-Verlauf) */
+
+.chart-panel {
+  background: rgba(19, 32, 48, 0.6);
+  border: 1px solid rgba(143, 169, 192, 0.16);
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.chart-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.chart-panel-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #e8f1fb;
+}
+
+.chart-range-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.chart-range-button {
+  border: 1px solid rgba(143, 169, 192, 0.28);
+  background: transparent;
+  color: #8fa9c0;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.chart-range-button:hover {
+  border-color: rgba(122, 208, 255, 0.6);
+  color: #e8f1fb;
+}
+
+.chart-range-button.is-active {
+  background: #7ad0ff;
+  border-color: #7ad0ff;
+  color: #0b1622;
+  font-weight: 600;
+}
+
+.chart-canvas-wrap {
+  position: relative;
+  height: 320px;
+}
+
+.chart-canvas-wrap-small {
+  height: 220px;
+}
+
+.chart-empty-state {
+  text-align: center;
+  color: #8fa9c0;
+  font-size: 0.85rem;
+  padding: 24px 0 4px;
+}

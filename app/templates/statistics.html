@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}Statistik – {{ app_name }}{% endblock %}
+
+{% block nav_statistics %}active{% endblock %}
+
+{% block page_heading %}
+  Statistik
+{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero">
+  <div>
+    <div class="eyebrow">BETRIEBSSTATISTIK</div>
+
+    <h2>Verlauf von System und TLE-Quellen</h2>
+
+    <p>
+      Verlaufsgraphen für Auslastung und Temperatur des Raspberry Pi sowie
+      für Erfolgsquote und Antwortzeiten der TLE-Quellen über die Zeit.
+    </p>
+  </div>
+
+  <div class="hero-online">
+    <span class="hero-online-dot"></span>
+
+    <div>
+      <strong id="stats-last-sample">–</strong>
+      <small>letzte Messung</small>
+    </div>
+  </div>
+</section>
+
+<section class="source-summary satellite-summary-grid">
+  <article class="source-summary-card">
+    <span>CPU aktuell</span>
+    <strong id="stats-current-cpu">–</strong>
+  </article>
+
+  <article class="source-summary-card">
+    <span>RAM aktuell</span>
+    <strong id="stats-current-ram">–</strong>
+  </article>
+
+  <article class="source-summary-card">
+    <span>Temperatur aktuell</span>
+    <strong id="stats-current-temp">–</strong>
+  </article>
+
+  <article class="source-summary-card">
+    <span>TLE-Erfolgsquote</span>
+    <strong id="stats-current-success">–</strong>
+  </article>
+</section>
+
+<section class="chart-panel">
+  <div class="chart-panel-header">
+    <h3>Pi-Systemwerte im Verlauf</h3>
+
+    <div class="chart-range-toggle" id="system-range-toggle">
+      <button type="button" class="chart-range-button" data-hours="24">24 Std.</button>
+      <button type="button" class="chart-range-button" data-hours="168">7 Tage</button>
+      <button type="button" class="chart-range-button" data-hours="720">30 Tage</button>
+    </div>
+  </div>
+
+  <div class="chart-canvas-wrap">
+    <canvas id="chart-system"></canvas>
+  </div>
+
+  <p class="chart-empty-state" id="system-empty-state" hidden>
+    Noch keine Messwerte vorhanden. Der Sampler legt alle 5 Minuten einen
+    neuen Datenpunkt an.
+  </p>
+</section>
+
+<section class="chart-panel">
+  <div class="chart-panel-header">
+    <h3>Antwortzeiten der TLE-Quellen</h3>
+
+    <div class="chart-range-toggle" id="tle-range-toggle">
+      <button type="button" class="chart-range-button" data-days="7">7 Tage</button>
+      <button type="button" class="chart-range-button" data-days="30">30 Tage</button>
+      <button type="button" class="chart-range-button" data-days="90">90 Tage</button>
+    </div>
+  </div>
+
+  <div class="chart-canvas-wrap">
+    <canvas id="chart-duration"></canvas>
+  </div>
+
+  <p class="chart-empty-state" id="duration-empty-state" hidden>
+    Noch keine Aktualisierungen im gewählten Zeitraum vorhanden.
+  </p>
+</section>
+
+<section class="chart-panel">
+  <div class="chart-panel-header">
+    <h3>Erfolgsquote je Quelle</h3>
+  </div>
+
+  <div class="chart-canvas-wrap chart-canvas-wrap-small">
+    <canvas id="chart-success"></canvas>
+  </div>
+
+  <p class="chart-empty-state" id="success-empty-state" hidden>
+    Noch keine Aktualisierungen im gewählten Zeitraum vorhanden.
+  </p>
+</section>
+
+<div
+  class="dataset-update-status"
+  id="stats-status"
+  role="status"
+  aria-live="polite"
+></div>
+
+<script src="https://unpkg.com/chart.js@4.4.4/dist/chart.umd.js"></script>
+<script src="https://unpkg.com/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script>
+  (() => {
+    const chartColors = {
+      cpu: "#7ad0ff",
+      ram: "#ffc879",
+      temp: "#ff8fa3",
+      duration: "#7ad0ff",
+      grid: "rgba(143, 169, 192, 0.16)",
+      text: "#8fa9c0",
+    };
+
+    Chart.defaults.color = chartColors.text;
+    Chart.defaults.font.family = "inherit";
+
+    let systemChart = null;
+    let durationChart = null;
+    let successChart = null;
+
+    let systemHours = 24;
+    let tleDays = 7;
+
+    const statusBox = document.getElementById("stats-status");
+
+    function showStatus(message, kind) {
+      if (!message) {
+        statusBox.textContent = "";
+        statusBox.className = "dataset-update-status";
+        return;
+      }
+      statusBox.textContent = message;
+      statusBox.className = `dataset-update-status ${kind}`;
+    }
+
+    function formatTimeLabel(isoString, hours) {
+      const date = new Date(isoString);
+      if (hours <= 24) {
+        return date.toLocaleTimeString("de-DE", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+      return date.toLocaleDateString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
+    async function fetchJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    }
+
+    function setActiveRangeButton(container, attr, value) {
+      Array.from(container.querySelectorAll(".chart-range-button")).forEach(
+        (button) => {
+          button.classList.toggle(
+            "is-active",
+            button.dataset[attr] === String(value)
+          );
+        }
+      );
+    }
+
+    async function loadSystemChart() {
+      setActiveRangeButton(
+        document.getElementById("system-range-toggle"),
+        "hours",
+        systemHours
+      );
+
+      try {
+        const data = await fetchJson(
+          `/api/stats/system?hours=${systemHours}`
+        );
+        const samples = data.samples || [];
+        const emptyState = document.getElementById("system-empty-state");
+        emptyState.hidden = samples.length !== 0;
+
+        const labels = samples.map((sample) =>
+          formatTimeLabel(sample.timestamp_utc, systemHours)
+        );
+
+        const ctx = document.getElementById("chart-system");
+
+        if (systemChart) {
+          systemChart.destroy();
+        }
+
+        systemChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "CPU %",
+                data: samples.map((sample) => sample.cpu_percent),
+                borderColor: chartColors.cpu,
+                backgroundColor: chartColors.cpu,
+                yAxisID: "yPercent",
+                tension: 0.25,
+                pointRadius: 0,
+                borderWidth: 2,
+              },
+              {
+                label: "RAM %",
+                data: samples.map((sample) => sample.memory_percent),
+                borderColor: chartColors.ram,
+                backgroundColor: chartColors.ram,
+                yAxisID: "yPercent",
+                tension: 0.25,
+                pointRadius: 0,
+                borderWidth: 2,
+              },
+              {
+                label: "Temperatur °C",
+                data: samples.map((sample) => sample.temperature_celsius),
+                borderColor: chartColors.temp,
+                backgroundColor: chartColors.temp,
+                yAxisID: "yTemp",
+                tension: 0.25,
+                pointRadius: 0,
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", intersect: false },
+            scales: {
+              x: {
+                grid: { color: chartColors.grid },
+                ticks: { maxTicksLimit: 8 },
+              },
+              yPercent: {
+                position: "left",
+                min: 0,
+                max: 100,
+                grid: { color: chartColors.grid },
+                title: { display: true, text: "%" },
+              },
+              yTemp: {
+                position: "right",
+                grid: { display: false },
+                title: { display: true, text: "°C" },
+              },
+            },
+            plugins: {
+              legend: { position: "bottom" },
+            },
+          },
+        });
+
+        if (samples.length) {
+          const last = samples[samples.length - 1];
+          document.getElementById("stats-current-cpu").textContent =
+            last.cpu_percent != null ? `${last.cpu_percent.toFixed(1)} %` : "–";
+          document.getElementById("stats-current-ram").textContent =
+            last.memory_percent != null
+              ? `${last.memory_percent.toFixed(1)} %`
+              : "–";
+          document.getElementById("stats-current-temp").textContent =
+            last.temperature_celsius != null
+              ? `${last.temperature_celsius.toFixed(1)} °C`
+              : "–";
+          document.getElementById("stats-last-sample").textContent =
+            new Date(last.timestamp_utc).toLocaleTimeString("de-DE", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+        }
+      } catch (error) {
+        showStatus("Systemwerte konnten nicht geladen werden.", "is-error");
+      }
+    }
+
+    async function loadDurationChart() {
+      setActiveRangeButton(
+        document.getElementById("tle-range-toggle"),
+        "days",
+        tleDays
+      );
+
+      try {
+        const data = await fetchJson(
+          `/api/stats/tle-updates?days=${tleDays}`
+        );
+        const events = (data.events || []).filter(
+          (event) => event.duration_ms != null
+        );
+
+        document.getElementById("duration-empty-state").hidden =
+          events.length !== 0;
+
+        const sourceNames = Array.from(
+          new Set(events.map((event) => event.source || "Unbekannt"))
+        );
+        const palette = [
+          "#7ad0ff",
+          "#ffc879",
+          "#ff8fa3",
+          "#9ad38c",
+          "#c39bd3",
+        ];
+
+        const datasets = sourceNames.map((sourceName, index) => {
+          const points = events
+            .filter((event) => (event.source || "Unbekannt") === sourceName)
+            .map((event) => ({
+              x: event.timestamp_utc,
+              y: event.duration_ms,
+            }));
+
+          return {
+            label: sourceName,
+            data: points,
+            borderColor: palette[index % palette.length],
+            backgroundColor: palette[index % palette.length],
+            tension: 0.2,
+            pointRadius: 2,
+            borderWidth: 2,
+          };
+        });
+
+        const ctx = document.getElementById("chart-duration");
+
+        if (durationChart) {
+          durationChart.destroy();
+        }
+
+        durationChart = new Chart(ctx, {
+          type: "line",
+          data: { datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            parsing: false,
+            scales: {
+              x: {
+                type: "time",
+                time: { unit: tleDays > 7 ? "day" : "hour" },
+                grid: { color: chartColors.grid },
+              },
+              y: {
+                title: { display: true, text: "Millisekunden" },
+                grid: { color: chartColors.grid },
+              },
+            },
+            plugins: {
+              legend: { position: "bottom" },
+            },
+          },
+        });
+
+        document.getElementById("stats-current-success").textContent =
+          data.success_rate != null ? `${data.success_rate} %` : "–";
+
+        renderSuccessChart(data.per_source || []);
+      } catch (error) {
+        showStatus(
+          "TLE-Aktualisierungsdaten konnten nicht geladen werden.",
+          "is-error"
+        );
+      }
+    }
+
+    function renderSuccessChart(perSource) {
+      const emptyState = document.getElementById("success-empty-state");
+      emptyState.hidden = perSource.length !== 0;
+
+      const ctx = document.getElementById("chart-success");
+
+      if (successChart) {
+        successChart.destroy();
+      }
+
+      successChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: perSource.map((entry) => entry.source),
+          datasets: [
+            {
+              label: "Erfolgsquote %",
+              data: perSource.map((entry) => entry.success_rate),
+              backgroundColor: chartColors.cpu,
+              borderRadius: 6,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: "y",
+          scales: {
+            x: {
+              min: 0,
+              max: 100,
+              grid: { color: chartColors.grid },
+              title: { display: true, text: "%" },
+            },
+            y: {
+              grid: { display: false },
+            },
+          },
+          plugins: {
+            legend: { display: false },
+          },
+        },
+      });
+    }
+
+    document
+      .getElementById("system-range-toggle")
+      .addEventListener("click", (event) => {
+        const button = event.target.closest(".chart-range-button");
+        if (!button) return;
+        systemHours = Number(button.dataset.hours);
+        loadSystemChart();
+      });
+
+    document
+      .getElementById("tle-range-toggle")
+      .addEventListener("click", (event) => {
+        const button = event.target.closest(".chart-range-button");
+        if (!button) return;
+        tleDays = Number(button.dataset.days);
+        loadDurationChart();
+      });
+
+    loadSystemChart();
+    loadDurationChart();
+  })();
+</script>
+
+{% endblock %}

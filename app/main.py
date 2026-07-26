@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 import json
 from math import cos, radians, sin
 import re
+import asyncio
 import time
 from urllib.parse import urlparse
 
@@ -14,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse, RedirectResponse
 from app.api.system import router as system_router
+from app.api.stats import router as stats_router
 
 from app.config import (
     APP_DESCRIPTION,
@@ -27,10 +29,17 @@ from app.config import (
     SOURCE_SETTINGS_FILE,
     SOURCE_URLS,
     TLE_FILE,
+    TLE_REFRESH_HOURS,
 )
 from app.exporters.satgazer import SatGazerExporter
 from app.exporters.standard import StandardExporter
 from app.exporters.classic import ClassicExporter
+from app.services.stats_store import (
+    append_system_metrics_sample,
+    append_tle_update_event,
+    prune_old_entries,
+)
+from app.services.system_metrics import collect_system_metrics
 from app.services.tle_parser import TLEParser
 from app.services.pass_predictor import PassPredictor
 from app.services.source_manager import SourceManager
@@ -66,6 +75,7 @@ app.mount(
 )
 
 app.include_router(system_router)
+app.include_router(stats_router)
 
 templates = Jinja2Templates(
     directory=str(BASE_DIR / "templates")
@@ -437,6 +447,17 @@ async def update_tle() -> None:
             }
         )
 
+        append_tle_update_event(
+            {
+                "source": active_source["name"],
+                "source_id": active_source["id"],
+                "ok": True,
+                "duration_ms": update_duration_ms,
+                "records": len(new_records),
+                "error": None,
+            }
+        )
+
     except Exception as exc:
         status.update(
             {
@@ -451,9 +472,44 @@ async def update_tle() -> None:
             }
         )
 
+        append_tle_update_event(
+            {
+                "source": preferred_source["name"],
+                "source_id": preferred_source_id,
+                "ok": TLE_FILE.exists(),
+                "duration_ms": None,
+                "records": None,
+                "error": repr(exc),
+            }
+        )
+
         print(
             f"OrbitHub update error: {exc!r}"
         )
+
+
+SYSTEM_METRICS_SAMPLE_SECONDS = 300
+
+
+async def system_metrics_sampler_loop() -> None:
+    while True:
+        try:
+            metrics = collect_system_metrics()
+            append_system_metrics_sample(metrics.to_dict())
+        except Exception as exc:
+            print(f"OrbitHub Metrik-Sampler-Fehler: {exc!r}")
+
+        await asyncio.sleep(SYSTEM_METRICS_SAMPLE_SECONDS)
+
+
+async def periodic_tle_refresh_loop() -> None:
+    while True:
+        await asyncio.sleep(TLE_REFRESH_HOURS * 3600)
+        await update_tle()
+        try:
+            prune_old_entries()
+        except Exception as exc:
+            print(f"OrbitHub Statistik-Bereinigung-Fehler: {exc!r}")
 
 
 BERLIN_TZ = ZoneInfo("Europe/Berlin")
@@ -536,6 +592,8 @@ def format_tle_file_time() -> str:
 @app.on_event("startup")
 async def startup_event() -> None:
     await update_tle()
+    asyncio.create_task(system_metrics_sampler_loop())
+    asyncio.create_task(periodic_tle_refresh_loop())
 
 
 @app.get("/")
@@ -1794,6 +1852,24 @@ async def download_tle_export(
         content,
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
+@app.get(
+    "/statistics",
+    include_in_schema=False,
+)
+async def statistics_page(request: Request):
+    return templates.TemplateResponse(
+        name="statistics.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "version": VERSION,
+            "codename": CODENAME,
+            "refresh_seconds": DASHBOARD_REFRESH_SECONDS,
         },
     )
 
