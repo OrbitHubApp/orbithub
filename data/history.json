@@ -1,6 +1,11 @@
 [
   {
     "date": "2026-07-26",
+    "time": "07:57",
+    "message": "Bugfix gefunden und behoben: Der Button \"Jetzt aktualisieren\" auf der Seite Daten & Quellen zeigte den Fehler \"Keine Quellenkennung angegeben\", weil er sich versehentlich denselben Endpunkt (/api/sources/update) mit dem Speichern-Button des Quelle-bearbeiten-Formulars teilte. Da FastAPI bei doppelt registrierten Routen immer die zuerst definierte verwendet, landete der Klick auf \"Jetzt aktualisieren\" in der falschen Funktion, die eine Quellenkennung erwartet. Die TLE-Aktualisierungsfunktion hat jetzt einen eigenen Endpunkt (/api/sources/refresh)."
+  },
+  {
+    "date": "2026-07-26",
     "time": "00:17",
     "message": "Logo im Sidebar-Header erneut ausgetauscht (viertes Motiv): Satellit mit Solarpaneelen vor der Erde bei Nacht (Stadtlichter sichtbar), blauer Orbit-Schwungbogen und der Schriftzug \"OrbitHub\" auf transparentem Hintergrund. Die Grafik wurde auf 200x110 Pixel skaliert und farbreduziert (96 Farben) für eine kleine Dateigröße."
   },
