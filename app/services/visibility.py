@@ -34,7 +34,9 @@ _ephemeris = None
 _timescale = None
 
 # Sonnenhöhe, ab der der Himmel als dunkel genug für die
-# Satellitenbeobachtung gilt (bürgerliche Dämmerung).
+# Satellitenbeobachtung gilt (Ende der bürgerlichen / Beginn der
+# nautischen Dämmerung). Durchgänge bei helleren Sonnenständen
+# werden im Frontend nicht mehr aufgelistet.
 SUN_ALTITUDE_THRESHOLD_DEG = -6.0
 
 # Bewusst kleine, konservative Datenbank bekannter Standardmagnituden

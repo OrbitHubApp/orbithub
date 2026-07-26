@@ -45,6 +45,7 @@ from app.services.pass_predictor import PassPredictor
 from app.services.visibility import (
     assess_visibility,
     is_known_bright_satellite,
+    SUN_ALTITUDE_THRESHOLD_DEG,
 )
 from app.services.source_manager import SourceManager
 from app.services.maidenhead import locator_to_latlon
@@ -1846,6 +1847,8 @@ async def visibility_page(
                 observer.elevation_m,
                 satellite_pass.culmination_time,
             )
+            if result.sun_altitude_deg > SUN_ALTITUDE_THRESHOLD_DEG:
+                continue
             satellite_passes.append(
                 {
                     "pass": satellite_pass,
