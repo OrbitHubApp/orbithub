@@ -1728,6 +1728,10 @@ body::before {
   background: rgba(19, 32, 48, 0.85);
 }
 
+.polarplot-card[hidden] {
+  display: none;
+}
+
 .polarplot-card-group {
   margin-bottom: 20px;
 }
