@@ -64,6 +64,9 @@
         Nein
       {% endif %}
     </strong>
+    {% if fallback_used and fallback_reason %}
+    <p class="source-fallback-reason">{{ fallback_reason }}</p>
+    {% endif %}
   </article>
 
 </section>

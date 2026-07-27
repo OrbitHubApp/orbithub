@@ -284,6 +284,7 @@ async def update_tle() -> None:
         text = None
         active_source = None
         source_errors: list[str] = []
+        source_error_by_id: dict[str, str] = {}
 
         source_order = ordered_sources(
             all_sources,
@@ -321,6 +322,7 @@ async def update_tle() -> None:
                         f"{source['name']}: "
                         f"{source_exc!r}"
                     )
+                    source_error_by_id[source["id"]] = str(source_exc)
 
         if text is None or active_source is None:
             raise RuntimeError(
@@ -413,6 +415,12 @@ async def update_tle() -> None:
             != preferred_source_id
         )
 
+        fallback_reason = (
+            source_error_by_id.get(preferred_source_id)
+            if fallback_used
+            else None
+        )
+
         status.update(
             {
                 "ok": True,
@@ -425,6 +433,7 @@ async def update_tle() -> None:
                     preferred_source_id
                 ),
                 "fallback_used": fallback_used,
+                "fallback_reason": fallback_reason,
                 "previous_source": previous_source,
                 "source_changed": (
                     previous_source is not None
@@ -945,6 +954,9 @@ async def sources_page(request: Request):
             ),
             "fallback_used": (
                 status["fallback_used"]
+            ),
+            "fallback_reason": (
+                status["fallback_reason"]
             ),
         },
     )
