@@ -21,6 +21,8 @@ class TLEParser:
 
         while index < len(lines):
             name = lines[index].strip()
+            if name.startswith("0 "):
+                name = name[2:].strip()
 
             if not name:
                 index += 1

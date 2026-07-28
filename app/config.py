@@ -73,7 +73,7 @@ SOURCE_URLS = [
         "url": (
             "https://www.space-track.org/basicspacedata/"
             "query/class/gp/decay_date/null-val/epoch/"
-            "%3Enow-30/orderby/norad_cat_id/format/tle"
+            "%3Enow-30/orderby/norad_cat_id/format/3le"
         ),
     },
 ]

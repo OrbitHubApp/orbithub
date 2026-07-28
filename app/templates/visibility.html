@@ -148,10 +148,19 @@
             placeholder="Name oder NORAD-ID eingeben …"
             value="{% if selected_satellite %}{{ selected_satellite.name|display_name }} · NORAD {{ selected_satellite.norad_id }}{% endif %}"
           >
+          <button
+            type="button"
+            id="satellite-combo-clear"
+            class="satellite-combo-clear-button"
+            aria-label="Auswahl zurücksetzen"
+            title="Auswahl zurücksetzen"
+            hidden
+          >&times;</button>
           <ul id="satellite-combo-list" class="satellite-combo-list" role="listbox" hidden></ul>
         </div>
 
         <select name="satellite" id="satellite-combo-select" style="display:none;">
+          <option value="" hidden></option>
           {% for sat in satellites %}
           <option
             value="{{ sat.norad_id }}"
@@ -191,6 +200,7 @@
       </button>
 
       <button type="button" class="source-action-button favorite-add-button" id="favorite-add-button">
+        <span class="button-spinner" aria-hidden="true"></span>
         <span class="button-label">☆ Merken</span>
       </button>
     </div>
@@ -347,13 +357,24 @@
   var select = document.getElementById("satellite-combo-select");
   var input = document.getElementById("satellite-combo-input");
   var list = document.getElementById("satellite-combo-list");
+  var clearButton = document.getElementById("satellite-combo-clear");
   if (!select || !input || !list) {
     return;
   }
 
   var options = Array.prototype.map.call(select.options, function (opt) {
     return { value: opt.value, label: opt.textContent.replace(/\s+/g, " ").trim() };
+  }).filter(function (opt) {
+    return opt.value !== "";
   });
+
+  function updateClearButtonVisibility() {
+    if (!clearButton) {
+      return;
+    }
+    clearButton.hidden = !select.value;
+  }
+  updateClearButtonVisibility();
 
   var currentMatches = [];
   var activeIndex = -1;
@@ -368,12 +389,14 @@
   function syncInputToSelection() {
     var current = select.options[select.selectedIndex];
     input.value = current ? current.textContent.replace(/\s+/g, " ").trim() : "";
+    updateClearButtonVisibility();
   }
 
   function selectOption(opt) {
     select.value = opt.value;
     input.value = opt.label;
     closeList();
+    updateClearButtonVisibility();
   }
 
   function updateActive(items) {
@@ -463,6 +486,18 @@
     }, 120);
   });
 
+  if (clearButton) {
+    clearButton.addEventListener("click", function (event) {
+      event.preventDefault();
+      select.value = "";
+      input.value = "";
+      updateClearButtonVisibility();
+      closeList();
+      input.focus();
+      filterAndRender("");
+    });
+  }
+
   document.addEventListener("click", function (event) {
     if (!event.target.closest(".satellite-combobox-wrap")) {
       closeList();
@@ -540,12 +575,24 @@
       if (!noradId) {
         return;
       }
+      favoriteAddButton.classList.add("is-loading");
+      favoriteAddButton.disabled = true;
+      var favoriteLabel = favoriteAddButton.querySelector(".button-label");
+      if (favoriteLabel) {
+        favoriteLabel.textContent = "Wird gespeichert …";
+      }
       fetch("/api/favorites/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ norad_id: noradId }),
       }).then(function () {
         window.location.reload();
+      }).catch(function () {
+        favoriteAddButton.classList.remove("is-loading");
+        favoriteAddButton.disabled = false;
+        if (favoriteLabel) {
+          favoriteLabel.textContent = "☆ Merken";
+        }
       });
     });
   }

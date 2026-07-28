@@ -1806,6 +1806,33 @@ body::before {
   position: relative;
 }
 
+.satellite-combo-clear-button {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(92, 157, 190, 0.22);
+  color: #dff5ff;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.satellite-combo-clear-button:hover {
+  background: rgba(68, 217, 255, 0.32);
+}
+
+.satellite-combo-clear-button[hidden] {
+  display: none;
+}
+
 .satellite-combo-list {
   position: absolute;
   z-index: 20;
