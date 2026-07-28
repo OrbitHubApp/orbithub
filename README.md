@@ -107,3 +107,10 @@ Nach erfolgreicher Einrichtung kann OrbitHub auf dem Raspberry Pi gestartet und 
 Projekt auf GitHub:
 https://github.com/OrbitHubApp/orbithub
 
+---
+
+Ausführliche Installation, angefangen vom nackten RaspberryPi:
+https://orbithubapp.de/installation/
+
+
+
