@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}
+  OrbitHub · Info & Kontakt
+{% endblock %}
+
+{% block nav_info %}active{% endblock %}
+
+{% block page_heading %}Info & Kontakt{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero sources-hero">
+  <div>
+    <div class="eyebrow">{{ app_name }} – {{ app_slogan }}</div>
+    <h2>Info & Kontakt</h2>
+    <p>
+      Alle Links und Kontaktmöglichkeiten rund um OrbitHub auf einen Blick.
+    </p>
+  </div>
+</section>
+
+<div class="add-source-panel">
+  <span class="label">PROJEKT</span>
+  <h3>GitHub</h3>
+  <p>
+    Quellcode, Issues und Weiterentwicklung von OrbitHub.
+  </p>
+  <p>
+    <a href="https://github.com/OrbitHubApp/orbithub" target="_blank" rel="noopener">github.com/OrbitHubApp/orbithub</a>
+  </p>
+</div>
+
+<div class="add-source-panel">
+  <span class="label">WEBSEITE</span>
+  <h3>orbithubapp.de</h3>
+  <p>
+    Alles rund um OrbitHub im Netz.
+  </p>
+  <p>
+    <a href="http://orbithubapp.de" target="_blank" rel="noopener">http://orbithubapp.de</a>
+  </p>
+</div>
+
+<div class="add-source-panel">
+  <span class="label">SOCIAL MEDIA</span>
+  <h3>Facebook</h3>
+  <p>
+    Neuigkeiten und Updates zu OrbitHub.
+  </p>
+  <p>
+    <a href="https://www.facebook.com/orbithubapp" target="_blank" rel="noopener">facebook.com/orbithubapp</a>
+  </p>
+</div>
+
+<div class="add-source-panel">
+  <span class="label">KONTAKT</span>
+  <h3>E-Mail</h3>
+  <p>
+    Fragen, Feedback oder Anregungen zu OrbitHub.
+  </p>
+  <p>
+    <a href="mailto:dl7ag@orbithubapp.de">dl7ag@orbithubapp.de</a>
+  </p>
+</div>
+
+{% endblock %}

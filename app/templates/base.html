@@ -138,75 +138,80 @@
       class="sidebar-navigation mission-navigation"
       aria-label="Hauptnavigation"
     >
-      <a
-        class="nav-item {% block nav_dashboard %}{% endblock %}"
-        href="/"
-      >
-        <span class="nav-icon">⌂</span>
-        <span>Übersicht</span>
-      </a>
+    <a
+            class="nav-item {% block nav_dashboard %}{% endblock %}"
+            href="/"
+          >
+            <span class="nav-icon">⌂</span>
+            <span>Übersicht</span>
+          </a>
 
-      <a class="nav-item {% block nav_satellites %}{% endblock %}" href="/satellites">
-        <span class="nav-icon">◈</span>
-        <span>Satelliten</span>
-        <span class="nav-count">
-          {{ records | default("–") }}
-        </span>
-      </a>
+    <a class="nav-item {% block nav_satellites %}{% endblock %}" href="/satellites">
+            <span class="nav-icon">◈</span>
+            <span>Satelliten</span>
+            <span class="nav-count">
+              {{ records | default("–") }}
+            </span>
+          </a>
 
-     	<a
-  class="nav-item {% block nav_passes %}{% endblock %}"
-  href="/passes"
->
-  <span class="nav-icon">⌁</span>
-  <span>Überflüge</span>
-</a>
+    <a class="nav-item {% block nav_map %}{% endblock %}" href="/map">
+            <span class="nav-icon">◎</span>
+            <span>Karte</span>
+            </a>
 
-      <a class="nav-item {% block nav_map %}{% endblock %}" href="/map">
-        <span class="nav-icon">◎</span>
-        <span>Karte</span>
-        </a>
+    <a
+            class="nav-item {% block nav_sources %}{% endblock %}"
+            href="/sources"
+          >
+            <span class="nav-icon">◉</span>
+            <span>Daten &amp; Quellen</span>
+          </a>
 
-      <a class="nav-item {% block nav_history %}{% endblock %}" href="/history">
-        <span class="nav-icon">◷</span>
-        <span>Historie</span>
-        </a>
+    <a
+      class="nav-item {% block nav_passes %}{% endblock %}"
+      href="/passes"
+    >
+      <span class="nav-icon">⌁</span>
+      <span>Überflüge</span>
+    </a>
 
-      <div class="nav-divider"></div>
+    <a class="nav-item {% block nav_visibility %}{% endblock %}" href="/visibility">
+            <span class="nav-icon">☉</span>
+            <span>Visuell</span>
+          </a>
 
-      <a class="nav-item {% block nav_downloads %}{% endblock %}" href="/downloads">
-        <span class="nav-icon">⇩</span>
-        <span>Downloads</span>
-      </a>
+    <a class="nav-item {% block nav_downloads %}{% endblock %}" href="/downloads">
+            <span class="nav-icon">⇩</span>
+            <span>Downloads</span>
+          </a>
 
+    <a class="nav-item {% block nav_statistics %}{% endblock %}" href="/statistics">
+            <span class="nav-icon">↗</span>
+            <span>Statistik</span>
+          </a>
 
-      <a class="nav-item {% block nav_statistics %}{% endblock %}" href="/statistics">
-        <span class="nav-icon">↗</span>
-        <span>Statistik</span>
-      </a>
+    <a class="nav-item {% block nav_settings %}{% endblock %}" href="/settings">
+            <span class="nav-icon">⚙</span>
+            <span>Einstellungen</span>
+          </a>
 
-      <a class="nav-item {% block nav_visibility %}{% endblock %}" href="/visibility">
-        <span class="nav-icon">☉</span>
-        <span>Visuell</span>
-      </a>
-      <a
-        class="nav-item {% block nav_sources %}{% endblock %}"
-        href="/sources"
-      >
-        <span class="nav-icon">◉</span>
-        <span>Daten &amp; Quellen</span>
-      </a>
+    <a class="nav-item {% block nav_history %}{% endblock %}" href="/history">
+            <span class="nav-icon">◷</span>
+            <span>Historie</span>
+            </a>
 
-      <a class="nav-item {% block nav_settings %}{% endblock %}" href="/settings">
-        <span class="nav-icon">⚙</span>
-        <span>Einstellungen</span>
-      </a>
+    <a class="nav-item {% block nav_about %}{% endblock %}" href="/about">
+            <span class="nav-icon">i</span>
+            <span>Über OrbitHub</span>
+          </a>
 
-      <a class="nav-item {% block nav_about %}{% endblock %}" href="/about">
-        <span class="nav-icon">i</span>
-        <span>Über OrbitHub</span>
-      </a>
-    </nav>
+    <div class="nav-divider"></div>
+
+    <a class="nav-item {% block nav_info %}{% endblock %}" href="/info">
+      <span class="nav-icon">✉</span>
+      <span>Info & Kontakt</span>
+    </a>
+  </nav>
 
     <div class="mission-system-status operator-station-card">
       <span class="system-pulse"></span>

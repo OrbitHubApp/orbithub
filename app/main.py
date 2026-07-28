@@ -1616,6 +1616,18 @@ async def about_page(request: Request):
     )
 
 
+@app.get("/info")
+async def info_page(request: Request):
+    return templates.TemplateResponse(
+        name="info.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+        },
+    )
+
+
 _GERMAN_MONTHS = [
     "Januar", "Februar", "März", "April", "Mai", "Juni",
     "Juli", "August", "September", "Oktober", "November", "Dezember",
