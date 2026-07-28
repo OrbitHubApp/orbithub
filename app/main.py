@@ -792,6 +792,139 @@ async def passes_page(
             "hours": hours,
         },
     )
+@app.get("/passes/export.txt", include_in_schema=False)
+async def passes_export_txt(
+    request: Request,
+    satellite: str | None = None,
+    hours: int = 24,
+    minimum_elevation: float = 10.0,
+) -> PlainTextResponse:
+    """Aktuelle Ueberflugliste als einfache Textdatei exportieren."""
+    parser = TLEParser()
+
+    records = (
+        parser.parse_file(TLE_FILE)
+        if TLE_FILE.exists()
+        else []
+    )
+
+    allowed_hours = {24, 48, 72}
+
+    if hours not in allowed_hours:
+        hours = 24
+
+    minimum_elevation = max(
+        0.0,
+        min(minimum_elevation, 90.0),
+    )
+
+    selected_record = None
+    satellite_passes = []
+
+    if records:
+        if satellite:
+            selected_record = next(
+                (
+                    record
+                    for record in records
+                    if record.norad_id == satellite
+                ),
+                None,
+            )
+
+        if selected_record is None:
+            selected_record = records[0]
+
+        observer = load_observer_settings()
+
+        predictor = PassPredictor(
+            latitude_deg=observer.latitude_deg,
+            longitude_deg=observer.longitude_deg,
+            elevation_m=observer.elevation_m,
+        )
+
+        satellite_passes = predictor.predict(
+            selected_record,
+            hours=hours,
+            minimum_elevation_deg=minimum_elevation,
+            observer_settings=observer,
+        )
+    else:
+        observer = load_observer_settings()
+
+    lines = [
+        "OrbitHub – Überflugliste",
+        "=" * 40,
+        "",
+        f"Beobachter: {observer.qth_name} ({observer.locator})",
+        (
+            f"Position: {observer.latitude_deg:.4f}, "
+            f"{observer.longitude_deg:.4f}"
+        ),
+        f"Zeitraum: {hours} Stunden, Mindesthöhe {minimum_elevation:.0f}°",
+        f"Zeitangaben in {time_zone_label()}",
+        (
+            "Erstellt am "
+            + format_time_value(
+                datetime.now(timezone.utc),
+                "%d.%m.%Y %H:%M:%S",
+            )
+        ),
+        "",
+    ]
+
+    if selected_record is not None:
+        lines.append(
+            f"Satellit: {selected_record.name} (NORAD {selected_record.norad_id})"
+        )
+    else:
+        lines.append("Satellit: keine TLE-Daten verfügbar")
+
+    lines.append("")
+
+    if not satellite_passes:
+        lines.append("Keine Überflüge im gewählten Zeitraum gefunden.")
+    else:
+        for index, pass_ in enumerate(satellite_passes, start=1):
+            lines.append(f"Überflug {index}")
+            lines.append("-" * 40)
+            lines.append(
+                "Aufgang:     "
+                + format_time_value(pass_.rise_time, "%d.%m.%Y %H:%M:%S")
+                + f"  (Azimut {pass_.rise_azimuth_deg:.1f}°)"
+            )
+            lines.append(
+                "Kulmination: "
+                + format_time_value(pass_.culmination_time, "%H:%M:%S")
+                + f"  (max. Höhe {pass_.max_elevation_deg:.1f}°)"
+            )
+            lines.append(
+                "Untergang:   "
+                + format_time_value(pass_.set_time, "%H:%M:%S")
+                + f"  (Azimut {pass_.set_azimuth_deg:.1f}°)"
+            )
+            lines.append(
+                f"Dauer:       {pass_.duration_seconds // 60} Min "
+                f"{pass_.duration_seconds % 60} Sek"
+            )
+            lines.append("")
+
+    content = "\n".join(lines) + "\n"
+
+    scope_tag = selected_record.norad_id if selected_record is not None else "alle"
+    filename = (
+        f"OrbitHub-Ueberfluege-{scope_tag}-"
+        f"{datetime.now():%Y-%m-%d}.txt"
+    )
+
+    return PlainTextResponse(
+        content,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
 @app.get("/settings")
 async def settings_page(request: Request):
     settings = load_observer_settings()

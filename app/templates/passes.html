@@ -123,6 +123,13 @@
           >
             Überflüge berechnen
           </button>
+
+          <a
+            class="source-action-button secondary"
+            href="/passes/export.txt?satellite={{ selected_satellite.norad_id if selected_satellite else '' }}&hours={{ hours }}&minimum_elevation={{ minimum_elevation }}"
+          >
+            Als TXT exportieren
+          </a>
         </div>
       </form>
     </div>
