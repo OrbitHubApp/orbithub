@@ -28,6 +28,7 @@ from app.config import (
     HISTORY_FILE,
     SOURCE_SETTINGS_FILE,
     SOURCE_URLS,
+    SPACETRACK_CREDENTIALS_FILE,
     TLE_FILE,
     TLE_REFRESH_HOURS,
 )
@@ -68,6 +69,10 @@ from app.services.tle_sources import (
     ordered_sources,
     save_custom_sources,
     save_preferred_source,
+    delete_spacetrack_credentials,
+    has_spacetrack_credentials,
+    load_spacetrack_credentials,
+    save_spacetrack_credentials,
 )
 from app.version import CODENAME, VERSION
 
@@ -285,6 +290,9 @@ async def update_tle() -> None:
         active_source = None
         source_errors: list[str] = []
         source_error_by_id: dict[str, str] = {}
+        spacetrack_credentials = load_spacetrack_credentials(
+            SPACETRACK_CREDENTIALS_FILE
+        )
 
         source_order = ordered_sources(
             all_sources,
@@ -308,6 +316,7 @@ async def update_tle() -> None:
                         await fetch_source_text(
                             client,
                             source,
+                            spacetrack_credentials=spacetrack_credentials,
                         )
                     )
 
@@ -958,6 +967,14 @@ async def sources_page(request: Request):
             "fallback_reason": (
                 status["fallback_reason"]
             ),
+            "spacetrack_has_credentials": (
+                has_spacetrack_credentials(
+                    SPACETRACK_CREDENTIALS_FILE
+                )
+            ),
+            "spacetrack_status": (
+                request.query_params.get("spacetrack")
+            ),
         },
     )
 
@@ -1475,6 +1492,10 @@ async def test_source(
             detail="Unbekannte TLE-Quelle.",
         )
 
+    spacetrack_credentials = load_spacetrack_credentials(
+        SPACETRACK_CREDENTIALS_FILE
+    )
+
     started = time.perf_counter()
 
     timeout = httpx.Timeout(
@@ -1497,6 +1518,7 @@ async def test_source(
                 await fetch_source_text(
                     client,
                     source,
+                    spacetrack_credentials=spacetrack_credentials,
                 )
             )
 
@@ -1528,6 +1550,46 @@ async def test_source(
                 f"{exc}"
             ),
         ) from exc
+
+
+@app.post("/api/sources/spacetrack/credentials")
+async def save_spacetrack_credentials_route(
+    request: Request,
+) -> RedirectResponse:
+    form = await request.form()
+    identity = str(form.get("identity", "")).strip()
+    password = str(form.get("password", "")).strip()
+
+    if not identity or not password:
+        return RedirectResponse(
+            url="/sources?spacetrack=error",
+            status_code=303,
+        )
+
+    save_spacetrack_credentials(
+        SPACETRACK_CREDENTIALS_FILE,
+        identity,
+        password,
+    )
+
+    return RedirectResponse(
+        url="/sources?spacetrack=saved",
+        status_code=303,
+    )
+
+
+@app.post("/api/sources/spacetrack/credentials/delete")
+async def delete_spacetrack_credentials_route() -> (
+    RedirectResponse
+):
+    delete_spacetrack_credentials(
+        SPACETRACK_CREDENTIALS_FILE
+    )
+
+    return RedirectResponse(
+        url="/sources?spacetrack=deleted",
+        status_code=303,
+    )
 
 
 @app.post("/api/sources/refresh")

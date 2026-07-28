@@ -9,6 +9,10 @@ import httpx
 
 DEFAULT_SOURCE_ID = "satnogs"
 
+SPACETRACK_LOGIN_URL = (
+    "https://www.space-track.org/ajaxauth/login"
+)
+
 
 def load_source_settings(
     settings_file: Path,
@@ -197,11 +201,52 @@ def ordered_sources(
     ]
 
 
+async def _fetch_spacetrack_response(
+    client: httpx.AsyncClient,
+    source: dict[str, str],
+    spacetrack_credentials: dict[str, str] | None,
+) -> httpx.Response:
+    if not spacetrack_credentials:
+        raise ValueError(
+            "Fuer Space-Track sind noch keine Zugangsdaten "
+            "hinterlegt. Bitte auf der Seite Daten & Quellen "
+            "Benutzername und Passwort eingeben."
+        )
+
+    login_response = await client.post(
+        SPACETRACK_LOGIN_URL,
+        data={
+            "identity": spacetrack_credentials["identity"],
+            "password": spacetrack_credentials["password"],
+        },
+    )
+
+    if (
+        login_response.status_code != 200
+        or login_response.text.strip()
+    ):
+        raise ValueError(
+            "Anmeldung bei Space-Track fehlgeschlagen. Bitte "
+            "Benutzername und Passwort auf der Seite Daten & "
+            "Quellen pruefen."
+        )
+
+    return await client.get(source["url"])
+
+
 async def fetch_source_text(
     client: httpx.AsyncClient,
     source: dict[str, str],
+    spacetrack_credentials: dict[str, str] | None = None,
 ) -> str:
-    response = await client.get(source["url"])
+    if source["type"] == "spacetrack":
+        response = await _fetch_spacetrack_response(
+            client,
+            source,
+            spacetrack_credentials,
+        )
+    else:
+        response = await client.get(source["url"])
     try:
         response.raise_for_status()
     except httpx.HTTPStatusError as exc:
@@ -225,7 +270,7 @@ async def fetch_source_text(
 
     source_type = source["type"]
 
-    if source_type == "tle":
+    if source_type in ("tle", "spacetrack"):
         candidate_text = response.text.strip()
 
     elif source_type == "satnogs_json":
@@ -276,3 +321,67 @@ async def fetch_source_text(
         )
 
     return candidate_text
+
+
+def load_spacetrack_credentials(
+    credentials_file: Path,
+) -> dict[str, str] | None:
+    """Load Space-Track credentials, or None if unavailable."""
+    if not credentials_file.exists():
+        return None
+
+    try:
+        payload = json.loads(
+            credentials_file.read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    identity = str(payload.get("identity", "")).strip()
+    password = str(payload.get("password", "")).strip()
+
+    if not identity or not password:
+        return None
+
+    return {"identity": identity, "password": password}
+
+
+def save_spacetrack_credentials(
+    credentials_file: Path,
+    identity: str,
+    password: str,
+) -> None:
+    """Persist Space-Track credentials to disk."""
+    credentials_file.parent.mkdir(parents=True, exist_ok=True)
+
+    temporary_file = credentials_file.with_suffix(".tmp")
+    temporary_file.write_text(
+        json.dumps(
+            {
+                "identity": identity,
+                "password": password,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    temporary_file.replace(credentials_file)
+
+
+def delete_spacetrack_credentials(
+    credentials_file: Path,
+) -> None:
+    """Remove stored Space-Track credentials, if any."""
+    credentials_file.unlink(missing_ok=True)
+
+
+def has_spacetrack_credentials(
+    credentials_file: Path,
+) -> bool:
+    """Return True if usable Space-Track credentials exist."""
+    return (
+        load_spacetrack_credentials(credentials_file) is not None
+    )

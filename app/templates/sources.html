@@ -281,6 +281,77 @@
     </div>
   </form>
 </section>
+<section class="add-source-panel">
+  <div class="add-source-panel-header">
+    <div>
+      <div class="label">SPACE-TRACK.ORG</div>
+      <h3>Zugangsdaten für Space-Track</h3>
+    </div>
+  </div>
+
+  <p class="source-fallback-reason">
+    {% if spacetrack_has_credentials %}
+      Zugangsdaten sind hinterlegt. Space-Track kann als Quelle
+      getestet und ausgewählt werden.
+    {% else %}
+      Space-Track.org erfordert eine kostenlose Registrierung.
+      Benutzername und Passwort werden nur lokal auf diesem
+      Raspberry Pi gespeichert (nicht in Git) und ausschließlich
+      für die Anmeldung bei Space-Track verwendet.
+    {% endif %}
+  </p>
+
+  {% if spacetrack_status == "saved" %}
+  <p class="source-fallback-reason">Zugangsdaten gespeichert.</p>
+  {% elif spacetrack_status == "deleted" %}
+  <p class="source-fallback-reason">Zugangsdaten entfernt.</p>
+  {% elif spacetrack_status == "error" %}
+  <p class="source-fallback-reason">
+    Bitte Benutzername und Passwort ausfüllen.
+  </p>
+  {% endif %}
+
+  <form method="post" action="/api/sources/spacetrack/credentials">
+    <div class="source-form-grid">
+      <label>
+        <span>Benutzername</span>
+        <input
+          name="identity"
+          type="text"
+          autocomplete="username"
+          placeholder="name@example.org"
+          required
+        >
+      </label>
+
+      <label>
+        <span>Passwort</span>
+        <input
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          placeholder="••••••••"
+          required
+        >
+      </label>
+    </div>
+
+    <button type="submit" class="source-action-button">
+      Speichern
+    </button>
+  </form>
+
+  {% if spacetrack_has_credentials %}
+  <form
+    method="post"
+    action="/api/sources/spacetrack/credentials/delete"
+  >
+    <button type="submit" class="source-action-button">
+      Zugangsdaten entfernen
+    </button>
+  </form>
+  {% endif %}
+</section>
 
 <section class="source-manager-grid">
 
@@ -328,6 +399,8 @@
         <dd>
           {% if source.type == "satnogs_json" %}
             SatNOGS JSON
+          {% elif source.type == "spacetrack" %}
+            Space-Track (Anmeldung)
           {% else %}
             Klassisches TLE
           {% endif %}

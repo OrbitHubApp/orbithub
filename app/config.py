@@ -12,6 +12,7 @@ DATA_DIR = Path("/app/data")
 TLE_FILE = DATA_DIR / "all-active.tle"
 SOURCE_SETTINGS_FILE = DATA_DIR / "source-settings.json"
 CUSTOM_SOURCES_FILE = DATA_DIR / "custom-sources.json"
+SPACETRACK_CREDENTIALS_FILE = DATA_DIR / "spacetrack-credentials.json"
 HISTORY_FILE = DATA_DIR / "history.json"
 
 DASHBOARD_REFRESH_SECONDS = 60
@@ -58,6 +59,21 @@ SOURCE_URLS = [
             "https://www.celestrak.org/NORAD/"
             "elements/gp.php?"
             "GROUP=ACTIVE&FORMAT=TLE"
+        ),
+        },
+    {
+        "id": "spacetrack",
+        "name": "Space-Track",
+        "description": (
+            "Offizieller Weltraumkatalog des "
+            "US-Weltraumkommandos "
+            "(eigene Anmeldung erforderlich)"
+        ),
+        "type": "spacetrack",
+        "url": (
+            "https://www.space-track.org/basicspacedata/"
+            "query/class/gp/decay_date/null-val/epoch/"
+            "%3Enow-30/orderby/norad_cat_id/format/tle"
         ),
     },
 ]
