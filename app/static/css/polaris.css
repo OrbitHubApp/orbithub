@@ -2441,3 +2441,113 @@ a.source-action-button {
   color: #7ad0ff;
   font-weight: 600;
 }
+
+/* OrbitHub 2.0: Karten-Lade-Hinweis, Mehrfach-Bahnverfolgung, Layer-Steuerung */
+.world-map-wrap {
+  position: relative;
+}
+
+.map-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(4, 20, 33, 0.82);
+  color: #e7f1fa;
+  font-size: 0.95rem;
+  border-radius: inherit;
+  transition: opacity 0.25s ease;
+}
+
+.map-loading-overlay.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.map-loading-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid rgba(78, 201, 240, 0.25);
+  border-top-color: #4ec9f0;
+  animation: orbithub-map-spin 0.9s linear infinite;
+}
+
+@keyframes orbithub-map-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.map-track-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-track-toggle-label .map-track-toggle {
+  width: 16px;
+  height: 16px;
+  accent-color: #4ec9f0;
+}
+
+.map-track-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 8px;
+}
+
+.map-track-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #9fb4c7;
+}
+
+.map-track-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.ground-map .leaflet-control-layers {
+  background: rgba(4, 20, 33, 0.9);
+  color: #e7f1fa;
+  border: 1px solid rgba(70, 174, 231, 0.16);
+  border-radius: 8px;
+}
+
+.ground-map .leaflet-control-layers-list label {
+  color: #e7f1fa;
+}
+
+.ground-map .leaflet-control-layers-selector {
+  accent-color: #4ec9f0;
+}
+
+.kofi-support-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.7rem 1.4rem;
+  background: linear-gradient(135deg, #ff5e5b, #ff8c42);
+  color: #0b1622 !important;
+  font-weight: 700;
+  text-decoration: none !important;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(255, 94, 91, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kofi-support-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(255, 94, 91, 0.5);
+}

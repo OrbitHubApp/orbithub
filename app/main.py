@@ -1749,6 +1749,24 @@ async def about_page(request: Request):
     )
 
 
+@app.get("/support")
+async def support_page(request: Request):
+    settings = load_observer_settings()
+
+    return templates.TemplateResponse(
+        name="support.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "version": VERSION,
+            "codename": CODENAME,
+            "observer_name": settings.qth_name,
+            "observer_locator": settings.locator,
+        },
+    )
+
+
 @app.get("/info")
 async def info_page(request: Request):
     return templates.TemplateResponse(

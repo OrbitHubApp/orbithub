@@ -105,20 +105,25 @@
       >
         Vollbild
       </button>
-      <label class="map-track-label" for="map-track-select">
-        Bahnverfolgung
-        <select id="map-track-select" class="map-track-select">
-          <option value="">Keine</option>
-        </select>
-      </label>
+      <label class="map-track-label map-track-toggle-label" for="map-track-toggle">
+      <input type="checkbox" id="map-track-toggle" class="map-track-toggle" />
+      Bahnverfolgung für ausgewählte Satelliten
+    </label>
+    <div class="map-track-legend" id="map-track-legend"></div>
     </div>
-    <div
-      id="world-map"
-      class="ground-map world-map"
-      data-observer-lat="{{ observer_latitude_deg }}"
-      data-observer-lon="{{ observer_longitude_deg }}"
-      data-observer-name="{{ observer_name }}"
-    ></div>
+    <div class="world-map-wrap">
+      <div
+        id="world-map"
+        class="ground-map world-map"
+        data-observer-lat="{{ observer_latitude_deg }}"
+        data-observer-lon="{{ observer_longitude_deg }}"
+        data-observer-name="{{ observer_name }}"
+      ></div>
+      <div class="map-loading-overlay" id="map-loading-overlay">
+        <span class="map-loading-spinner" aria-hidden="true"></span>
+        <span>Karte wird geladen …</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -160,17 +165,66 @@
       mapResizeObserver.observe(mapContainer);
     }
 
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-      {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: "abcd",
-        maxZoom: 19,
-        noWrap: true,
-        bounds: WORLD_BOUNDS,
-      },
-    ).addTo(worldMap);
+    const baseLayers = {
+      "Voyager (Standard)": L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          subdomains: "abcd",
+          maxZoom: 19,
+          noWrap: true,
+          bounds: WORLD_BOUNDS,
+        },
+      ),
+      "OpenStreetMap": L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
+          subdomains: "abc",
+          maxZoom: 19,
+          noWrap: true,
+          bounds: WORLD_BOUNDS,
+        },
+      ),
+      "Satellit": L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+          attribution:
+            "Tiles &copy; Esri, Maxar, Earthstar Geographics und die GIS User Community",
+          maxZoom: 19,
+          noWrap: true,
+          bounds: WORLD_BOUNDS,
+        },
+      ),
+      "Topografisch": L.tileLayer(
+        "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+        {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, SRTM | Kartendarstellung: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+          subdomains: "abc",
+          maxZoom: 17,
+          noWrap: true,
+          bounds: WORLD_BOUNDS,
+        },
+      ),
+    };
+
+    baseLayers["Voyager (Standard)"].addTo(worldMap);
+    L.control.layers(baseLayers, null, { position: "topright" }).addTo(worldMap);
+
+    const mapLoadingOverlay = document.getElementById("map-loading-overlay");
+    let mapLoadingHidden = false;
+    function markMapLoaded() {
+      if (mapLoadingHidden) return;
+      mapLoadingHidden = true;
+      if (mapLoadingOverlay) {
+        mapLoadingOverlay.classList.add("is-hidden");
+      }
+    }
+    baseLayers["Voyager (Standard)"].once("load", markMapLoaded);
+    window.setTimeout(markMapLoaded, 6000);
 
     L.circleMarker([obsLat, obsLon], {
       radius: 7,
@@ -211,8 +265,10 @@
   });
 
   const trackLayerGroup = L.layerGroup().addTo(worldMap);
-  const trackSelect = document.getElementById("map-track-select");
-  let currentTrackData = null;
+  const trackToggle = document.getElementById("map-track-toggle");
+    const trackLegend = document.getElementById("map-track-legend");
+    const TRACK_COLORS = ["#4ec9f0", "#ffd166", "#c792ea", "#7ee787", "#ff8fab", "#f2c14e", "#89ddff", "#ff6b6b"];
+    let currentTrackData = new Map();
   let trackRefreshTimer = null;
 
   function splitTrackSegments(points) {
@@ -235,119 +291,144 @@
     return segments;
   }
 
-  function renderTrack() {
-    trackLayerGroup.clearLayers();
-    if (!currentTrackData || currentTrackData.length === 0) return;
+  function trackColorFor(id) {
+      const ids = Array.from(currentTrackData.keys());
+      const index = ids.indexOf(id);
+      return TRACK_COLORS[(index >= 0 ? index : 0) % TRACK_COLORS.length];
+    }
 
-    const now = Date.now();
-    const past = currentTrackData.filter((point) => point.time <= now);
-    const future = currentTrackData.filter((point) => point.time >= now);
+    function renderTrack() {
+      trackLayerGroup.clearLayers();
+      if (trackLegend) {
+        trackLegend.innerHTML = "";
+      }
+      if (!currentTrackData || currentTrackData.size === 0) return;
 
-    if (past.length > 1) {
-      splitTrackSegments(past).forEach((segment) => {
-        L.polyline(
-          segment.map((point) => [point.lat_deg, point.lon_deg]),
-          {
-            color: "#7894ad",
-            weight: 2,
-            opacity: 0.7,
-            dashArray: "1, 6",
-            className: "satellite-track-past",
-          },
-        ).addTo(trackLayerGroup);
+      const now = Date.now();
+
+      currentTrackData.forEach((points, id) => {
+        if (!points || points.length === 0) return;
+        const color = trackColorFor(id);
+        const past = points.filter((point) => point.time <= now);
+        const future = points.filter((point) => point.time >= now);
+
+        if (past.length > 1) {
+          splitTrackSegments(past).forEach((segment) => {
+            L.polyline(
+              segment.map((point) => [point.lat_deg, point.lon_deg]),
+              {
+                color: color,
+                weight: 2,
+                opacity: 0.6,
+                dashArray: "1, 6",
+                className: "satellite-track-past",
+              },
+            ).addTo(trackLayerGroup);
+          });
+        }
+
+        if (future.length > 1) {
+          splitTrackSegments(future).forEach((segment) => {
+            L.polyline(
+              segment.map((point) => [point.lat_deg, point.lon_deg]),
+              {
+                color: color,
+                weight: 2.5,
+                opacity: 0.9,
+                className: "satellite-track-future",
+              },
+            ).addTo(trackLayerGroup);
+          });
+        }
+
+        if (trackLegend) {
+          const entry = document.createElement("span");
+          entry.className = "map-track-legend-item";
+          const checkbox = document.querySelector(
+            '.map-satellite-checkbox[value="' + id + '"]',
+          );
+          const name = (checkbox && checkbox.dataset.name) || id;
+          entry.innerHTML =
+            '<span class="map-track-legend-dot" style="background:' +
+            color +
+            '"></span>' +
+            name;
+          trackLegend.appendChild(entry);
+        }
       });
     }
 
-    if (future.length > 1) {
-      splitTrackSegments(future).forEach((segment) => {
-        L.polyline(
-          segment.map((point) => [point.lat_deg, point.lon_deg]),
-          {
-            color: "#4ec9f0",
-            weight: 2.5,
-            opacity: 0.9,
-            className: "satellite-track-future",
-          },
-        ).addTo(trackLayerGroup);
-      });
+    async function fetchTrack() {
+      if (!trackToggle || !trackToggle.checked) return;
+      const ids = selectedIds();
+      if (ids.length === 0) {
+        currentTrackData = new Map();
+        renderTrack();
+        return;
+      }
+      try {
+        const results = await Promise.all(
+          ids.map((id) =>
+            fetch(
+              "/api/satellites/track?index=" +
+                encodeURIComponent(id) +
+                "&minutes_back=15&minutes_forward=45",
+            )
+              .then((response) => (response.ok ? response.json() : null))
+              .then((data) => ({ id: id, track: data ? data.track || [] : [] }))
+              .catch(() => ({ id: id, track: [] })),
+          ),
+        );
+        const nextTrackData = new Map();
+        results.forEach((result) => {
+          nextTrackData.set(
+            result.id,
+            result.track.map((point) => ({
+              lat_deg: point.lat_deg,
+              lon_deg: point.lon_deg,
+              time: new Date(point.timestamp).getTime(),
+            })),
+          );
+        });
+        currentTrackData = nextTrackData;
+        renderTrack();
+      } catch (error) {
+        /* Netzwerkfehler ignorieren, naechster Versuch folgt */
+      }
     }
-  }
 
-  async function fetchTrack() {
-    if (!trackSelect || !trackSelect.value) return;
-    try {
-      const response = await fetch(
-        "/api/satellites/track?index=" +
-          encodeURIComponent(trackSelect.value) +
-          "&minutes_back=15&minutes_forward=45",
-      );
-      if (!response.ok) return;
-      const data = await response.json();
-      currentTrackData = (data.track || []).map((point) => ({
-        lat_deg: point.lat_deg,
-        lon_deg: point.lon_deg,
-        time: new Date(point.timestamp).getTime(),
-      }));
-      renderTrack();
-    } catch (error) {
-      /* Netzwerkfehler ignorieren, naechster Versuch folgt */
+    function stopTrack() {
+      currentTrackData = new Map();
+      trackLayerGroup.clearLayers();
+      if (trackLegend) {
+        trackLegend.innerHTML = "";
+      }
+      if (trackRefreshTimer) {
+        window.clearInterval(trackRefreshTimer);
+        trackRefreshTimer = null;
+      }
     }
-  }
 
-  function stopTrack() {
-    currentTrackData = null;
-    trackLayerGroup.clearLayers();
-    if (trackRefreshTimer) {
-      window.clearInterval(trackRefreshTimer);
-      trackRefreshTimer = null;
-    }
-  }
-
-  function startTrack() {
+    function startTrack() {
     fetchTrack();
     if (trackRefreshTimer) window.clearInterval(trackRefreshTimer);
     trackRefreshTimer = window.setInterval(fetchTrack, 30000);
   }
 
   function updateTrackOptions() {
-    if (!trackSelect) return;
-    const previousValue = trackSelect.value;
-    const checkboxes = Array.from(
-      document.querySelectorAll(".map-satellite-checkbox:checked"),
-    );
-
-    trackSelect.innerHTML = "";
-    const noneOption = document.createElement("option");
-    noneOption.value = "";
-    noneOption.textContent = "Keine";
-    trackSelect.appendChild(noneOption);
-
-    checkboxes.forEach((checkbox) => {
-      const option = document.createElement("option");
-      option.value = checkbox.value;
-      option.textContent = checkbox.dataset.name || checkbox.value;
-      trackSelect.appendChild(option);
-    });
-
-    const stillAvailable = checkboxes.some(
-      (checkbox) => checkbox.value === previousValue,
-    );
-    if (stillAvailable) {
-      trackSelect.value = previousValue;
-    } else if (previousValue) {
-      stopTrack();
-    }
-  }
-
-  if (trackSelect) {
-    trackSelect.addEventListener("change", () => {
-      if (trackSelect.value) {
+      if (!trackToggle) return;
+      if (trackToggle.checked && selectedIds().length > 0) {
         startTrack();
       } else {
         stopTrack();
       }
-    });
-  }
+    }
+
+    if (trackToggle) {
+      trackToggle.addEventListener("change", () => {
+        updateTrackOptions();
+      });
+    }
 
     function removeSatelliteLayer(id) {
       const entry = layers.get(id);

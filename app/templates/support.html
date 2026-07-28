@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}OrbitHub – Unterstützung{% endblock %}
+
+{% block nav_support %}active{% endblock %}
+
+{% block page_heading %}Unterstützung{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero sources-hero">
+  <div>
+    <div class="eyebrow">{{ app_name }} – {{ app_slogan }}</div>
+    <h2>OrbitHub unterstützen</h2>
+    <p>
+      OrbitHub ist ein kostenloses Hobbyprojekt für die Amateurfunk-Community und läuft rund um die Uhr
+      auf einem Raspberry Pi. Wenn dir OrbitHub weiterhilft, freue ich mich über einen virtuellen Kaffee.
+    </p>
+  </div>
+</section>
+
+<div class="add-source-panel">
+  <span class="label">KAFFEE-SPENDE</span>
+  <h3>Warum Ko-fi?</h3>
+  <p>
+    Über Ko-fi kannst du mit wenigen Klicks einen kleinen Betrag spenden – einmalig oder, wenn du
+    möchtest, auch regelmäßig. Es ist kein Konto und kein Abo nötig, und jede Spende hilft dabei,
+    OrbitHub am Laufen zu halten und weiterzuentwickeln.
+  </p>
+  <p>
+    <a class="kofi-support-button" href="https://ko-fi.com/orbithub" target="_blank" rel="noopener noreferrer">
+      ☕ Kaffee spendieren auf Ko-fi
+    </a>
+  </p>
+  <p>
+    Vielen Dank für deine Unterstützung – 73 de {{ observer_name }}!
+  </p>
+</div>
+
+{% endblock %}
