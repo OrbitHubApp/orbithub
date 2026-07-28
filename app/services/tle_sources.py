@@ -225,11 +225,14 @@ async def _fetch_spacetrack_response(
         login_response.status_code != 200
         or login_response.text.strip()
     ):
-        raise ValueError(
-            "Anmeldung bei Space-Track fehlgeschlagen. Bitte "
-            "Benutzername und Passwort auf der Seite Daten & "
-            "Quellen pruefen."
+        body_preview = login_response.text.strip()
+        detail = (
+            "Anmeldung bei Space-Track fehlgeschlagen "
+            f"(HTTP {login_response.status_code})"
         )
+        if body_preview:
+            detail += f": {body_preview[:300]}"
+        raise ValueError(detail)
 
     return await client.get(source["url"])
 
