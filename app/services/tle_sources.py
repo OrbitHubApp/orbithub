@@ -221,17 +221,35 @@ async def _fetch_spacetrack_response(
         },
     )
 
-    if (
-        login_response.status_code != 200
-        or login_response.text.strip()
-    ):
-        body_preview = login_response.text.strip()
+    body_text = login_response.text.strip()
+    login_failed = True
+    failure_detail = ""
+
+    if login_response.status_code == 200:
+        try:
+            parsed_body = json.loads(body_text) if body_text else ""
+        except ValueError:
+            parsed_body = body_text
+
+        if parsed_body in ("", None):
+            # Space-Track antwortet bei Erfolg mit HTTP 200 und
+            # entweder komplett leerem Body oder dem JSON-Leerstring
+            # '""' - beides bedeutet: Anmeldung erfolgreich.
+            login_failed = False
+        elif isinstance(parsed_body, dict) and "Login" in parsed_body:
+            failure_detail = str(parsed_body["Login"])
+        else:
+            failure_detail = body_text[:300]
+    else:
+        failure_detail = body_text[:300]
+
+    if login_failed:
         detail = (
             "Anmeldung bei Space-Track fehlgeschlagen "
             f"(HTTP {login_response.status_code})"
         )
-        if body_preview:
-            detail += f": {body_preview[:300]}"
+        if failure_detail:
+            detail += f": {failure_detail}"
         raise ValueError(detail)
 
     return await client.get(source["url"])
