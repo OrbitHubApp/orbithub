@@ -1777,6 +1777,25 @@ body::before {
   background: rgba(68, 217, 255, 0.12);
 }
 
+.mission-table tbody tr.is-clickable-row-upcoming {
+  cursor: pointer;
+}
+
+.mission-table tbody tr.is-clickable-row-upcoming.is-active {
+  background: rgba(68, 217, 255, 0.12);
+}
+
+/* OrbitHub: Links auf der Info & Kontakt-Seite in Mission-Gruen statt Standard-Blau */
+.info-link,
+.info-link:visited {
+  color: var(--mission-green);
+}
+
+.info-link:hover,
+.info-link:focus-visible {
+  color: var(--mission-green);
+}
+
 /* OrbitHub: Lade-Feedback Anzeigen-Button (Visuell-Seite) */
 
 .source-action-button .button-spinner {

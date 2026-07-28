@@ -60,7 +60,7 @@
       <div class="label">Datensätze</div>
 
       <div class="value metric">
-        {{ "{:,}".format(records) }}
+        {{ records|fmt_number }}
       </div>
 
       <div class="card-note">
@@ -76,11 +76,11 @@
       <div class="label">Dateigröße</div>
 
       <div class="value">
-        {{ "%.1f"|format(file_size_kib) }} KiB
+        {{ file_size_kib|fmt_number(1) }} KiB
       </div>
 
       <div class="card-note">
-        {{ "{:,}".format(file_size_bytes) }} Bytes
+        {{ file_size_bytes|fmt_number }} Bytes
       </div>
     </div>
 

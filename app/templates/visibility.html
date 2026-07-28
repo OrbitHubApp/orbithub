@@ -105,7 +105,7 @@
 
       <tbody>
         {% for entry in upcoming_visible_passes %}
-        <tr>
+        <tr class="is-clickable-row is-clickable-row-upcoming" data-pass-index="{{ loop.index0 }}">
           <td>{{ entry.record.name|display_name }}</td>
           <td>{{ entry.pass.rise_time | fmt_time("%d.%m.") }}</td>
           <td>{{ entry.pass.rise_time | fmt_time("%H:%M:%S") }}</td>
@@ -124,7 +124,87 @@
       </tbody>
     </table>
   </div>
-  {% else %}
+  
+  <div class="polarplot-card-group" id="polarplot-card-group-upcoming">
+    {% for entry in upcoming_visible_passes %}
+    <div
+      class="polarplot-card polarplot-card-upcoming"
+      id="polarplot-card-upcoming-{{ loop.index0 }}"
+      {% if not loop.first %}hidden{% endif %}
+    >
+      <p class="polarplot-card-summary">
+        {{ entry.record.name|display_name }}
+        ·
+        {{ entry.pass.rise_time | fmt_time("%d.%m.%Y %H:%M:%S") }}
+        bis
+        {{ entry.pass.set_time | fmt_time("%H:%M:%S") }}
+        · Maximum {{ "%.1f"|format(entry.pass.max_elevation_deg) }}°
+      </p>
+      <svg
+        class="polarplot"
+        viewBox="0 0 200 200"
+        role="img"
+        aria-label="Polarplot des Durchgangs von {{ entry.record.name|display_name }} am {{ entry.pass.rise_time | fmt_time('%d.%m.%Y') }}"
+      >
+        <circle class="polarplot-horizon" cx="100" cy="100" r="90" />
+        <circle class="polarplot-ring" cx="100" cy="100" r="60" />
+        <circle class="polarplot-ring" cx="100" cy="100" r="30" />
+
+        <line class="polarplot-axis" x1="100" y1="10" x2="100" y2="190" />
+        <line class="polarplot-axis" x1="10" y1="100" x2="190" y2="100" />
+
+        {% for segment in horizon_shadow_segments %}
+        <path class="polarplot-shadow" d="{{ segment.d }}" />
+        {% endfor %}
+
+        <text class="polarplot-direction" x="100" y="7">N</text>
+        <text class="polarplot-direction" x="193" y="104">O</text>
+        <text class="polarplot-direction" x="100" y="199">S</text>
+        <text class="polarplot-direction" x="7" y="104">W</text>
+
+        <text class="polarplot-elevation" x="104" y="42">60°</text>
+        <text class="polarplot-elevation" x="104" y="72">30°</text>
+        <text class="polarplot-elevation" x="104" y="103">90°</text>
+
+        <polyline
+          class="polarplot-track"
+          points="{% for point in entry.pass.track_points %}{{ point.polar_x }},{{ point.polar_y }} {% endfor %}"
+        />
+
+        <circle
+          class="polarplot-rise"
+          cx="{{ entry.pass.track_points[0].polar_x }}"
+          cy="{{ entry.pass.track_points[0].polar_y }}"
+          r="4"
+        />
+
+        <circle
+          class="polarplot-set"
+          cx="{{ entry.pass.track_points[-1].polar_x }}"
+          cy="{{ entry.pass.track_points[-1].polar_y }}"
+          r="4"
+        />
+
+        <text
+          class="polarplot-marker-label"
+          x="{{ entry.pass.track_points[0].polar_x }}"
+          y="{{ entry.pass.track_points[0].polar_y - 7 }}"
+        >
+          AOS
+        </text>
+
+        <text
+          class="polarplot-marker-label"
+          x="{{ entry.pass.track_points[-1].polar_x }}"
+          y="{{ entry.pass.track_points[-1].polar_y - 7 }}"
+        >
+          LOS
+        </text>
+      </svg>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
   <p class="satellite-empty-block">
     Kein sichtbarer Durchgang eines bekannten hellen Satelliten in der kommenden Woche.
   </p>
@@ -537,6 +617,31 @@
       }
     });
   });
+
+var upcomingPassRows = document.querySelectorAll(
+  ".is-clickable-row-upcoming"
+);
+upcomingPassRows.forEach(function (row) {
+  row.addEventListener("click", function () {
+    var index = row.getAttribute("data-pass-index");
+
+    upcomingPassRows.forEach(function (r) {
+      r.classList.remove("is-active");
+    });
+    row.classList.add("is-active");
+
+    document
+      .querySelectorAll(".polarplot-card-upcoming")
+      .forEach(function (card) {
+        card.hidden = true;
+      });
+    var target = document.getElementById("polarplot-card-upcoming-" + index);
+    if (target) {
+      target.hidden = false;
+      target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  });
+});
   var brightCards = document.querySelectorAll(".visibility-bright-card[data-href]");
   brightCards.forEach(function (card) {
     card.addEventListener("click", function (event) {

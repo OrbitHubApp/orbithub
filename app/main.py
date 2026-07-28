@@ -569,6 +569,19 @@ templates.env.filters["fmt_time"] = format_time_value
 templates.env.globals["time_zone_label"] = time_zone_label
 
 
+def format_de_number(value, decimals: int = 0) -> str:
+    """Formatiert eine Zahl im deutschen Format (Punkt=Tausender, Komma=Dezimal)."""
+    formatted = f"{value:,.{decimals}f}"
+    return (
+        formatted.replace(",", "\u00a7")
+        .replace(".", ",")
+        .replace("\u00a7", ".")
+    )
+
+
+templates.env.filters["fmt_number"] = format_de_number
+
+
 def format_update_time() -> str:
     updated_utc = status["updated_utc"]
 
@@ -2285,6 +2298,9 @@ async def download_tle_export(
     if format == "alt":
         exporter = ClassicExporter()
         format_tag = "2LE"
+    elif format == "satgazer":
+        exporter = SatGazerExporter()
+        format_tag = "SATGAZER"
     else:
         exporter = StandardExporter()
         format_tag = "3LE"
