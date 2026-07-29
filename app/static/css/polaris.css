@@ -2145,6 +2145,21 @@ a.source-action-button {
   flex: 1;
 }
 
+/* Vollbild: .world-map-wrap ist das eigentliche Flex-Item (nicht #world-map),
+   daher muss der Wrapper wachsen und #world-map dessen volle Hoehe uebernehmen. */
+.map-card:fullscreen .world-map-wrap,
+.map-card:-webkit-full-screen .world-map-wrap,
+.map-card.map-card-fullscreen-fallback .world-map-wrap {
+  flex: 1;
+  height: auto;
+}
+
+.map-card:fullscreen #world-map,
+.map-card:-webkit-full-screen #world-map,
+.map-card.map-card-fullscreen-fallback #world-map {
+  height: 100%;
+}
+
 .map-card.map-card-fullscreen-fallback {
   position: fixed;
   inset: 0;

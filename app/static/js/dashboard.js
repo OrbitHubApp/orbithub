@@ -944,3 +944,50 @@
       });
   }
 })();
+
+/* --- OrbitHub Ueberfluege: Satelliten-Suche fuer Auswahl-Dropdowns --- */
+(() => {
+  const searchInputs = document.querySelectorAll(
+    ".satellite-search-input[data-filter-select]",
+  );
+
+  if (searchInputs.length === 0) {
+    return;
+  }
+
+  function filterSelect(input) {
+    const targetId = input.dataset.filterSelect;
+    const select = document.getElementById(targetId);
+
+    if (!select) {
+      return;
+    }
+
+    const query = input.value.trim().toLowerCase();
+    const options = select.querySelectorAll("option");
+
+    options.forEach((option) => {
+      if (!option.value) {
+        option.hidden = false;
+        return;
+      }
+
+      const haystack = option.textContent.toLowerCase();
+      const matches = query === "" || haystack.includes(query);
+      option.hidden = !matches;
+    });
+  }
+
+  searchInputs.forEach((input) => {
+    let debounceTimer = null;
+
+    input.addEventListener("input", () => {
+      if (debounceTimer) {
+        window.clearTimeout(debounceTimer);
+      }
+      debounceTimer = window.setTimeout(() => {
+        filterSelect(input);
+      }, 120);
+    });
+  });
+})();

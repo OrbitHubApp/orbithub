@@ -65,7 +65,14 @@
           <label>
             <span>Satellit</span>
 
-            <select name="satellite">
+            <input
+              type="search"
+              class="satellite-search-input"
+              data-filter-select="passes-satellite-select"
+              placeholder="Suche nach Name oder NORAD-ID..."
+              autocomplete="off"
+            />
+            <select name="satellite" id="passes-satellite-select">
               {% for satellite in satellites %}
                 <option
                   value="{{ satellite.norad_id }}"
@@ -397,6 +404,13 @@
           <label>
             <span>Satellit hinzufuegen</span>
 
+            <input
+              type="search"
+              class="satellite-search-input"
+              data-filter-select="watchlist-add-select"
+              placeholder="Suche nach Name oder NORAD-ID..."
+              autocomplete="off"
+            />
             <select id="watchlist-add-select">
               <option value="">-- auswaehlen --</option>
               {% for satellite in satellites %}

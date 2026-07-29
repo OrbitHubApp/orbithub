@@ -721,6 +721,13 @@ async def passes_page(
         else []
     )
 
+    records = sorted(
+        records,
+        key=lambda record: display_satellite_name(
+            record.name
+        ).lower(),
+    )
+
     allowed_hours = {24, 48, 72}
 
     if hours not in allowed_hours:
