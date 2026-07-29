@@ -97,7 +97,7 @@
 
 <section class="chart-panel">
   <div class="chart-panel-header">
-    <h3>Erfolgsquote je Quelle</h3>
+    <h3>Satelliten je Quelle</h3>
   </div>
 
   <div class="chart-canvas-wrap chart-canvas-wrap-small">
@@ -332,7 +332,7 @@
           const points = events
             .filter((event) => (event.source || "Unbekannt") === sourceName)
             .map((event) => ({
-              x: event.timestamp_utc,
+              x: new Date(event.timestamp_utc).getTime(),
               y: event.duration_ms,
             }));
 
@@ -405,8 +405,8 @@
           labels: perSource.map((entry) => entry.source),
           datasets: [
             {
-              label: "Erfolgsquote %",
-              data: perSource.map((entry) => entry.success_rate),
+              label: "Satelliten",
+              data: perSource.map((entry) => entry.satellites),
               backgroundColor: chartColors.cpu,
               borderRadius: 6,
             },
@@ -418,11 +418,10 @@
           indexAxis: "y",
           scales: {
             x: {
-              min: 0,
-              max: 100,
-              grid: { color: chartColors.grid },
-              title: { display: true, text: "%" },
-            },
+          min: 0,
+          grid: { color: chartColors.grid },
+          title: { display: true, text: "Satelliten" },
+        },
             y: {
               grid: { display: false },
             },
