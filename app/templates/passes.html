@@ -62,30 +62,51 @@
         action="/passes"
       >
         <div class="source-form-grid passes-form-grid">
-          <label>
-            <span>Satellit</span>
+        <label>
+          <span>Satellit</span>
 
+          <div class="satellite-combobox-wrap">
             <input
-              type="search"
+              type="text"
+              id="passes-satellite-combo-input"
               class="satellite-search-input"
-              data-filter-select="passes-satellite-select"
               placeholder="Suche nach Name oder NORAD-ID..."
               autocomplete="off"
+              value="{% if selected_satellite %}{{ selected_satellite.name|display_name }} NORAD {{ selected_satellite.norad_id }}{% endif %}"
             />
-            <select name="satellite" id="passes-satellite-select">
-              {% for satellite in satellites %}
-                <option
-                  value="{{ satellite.norad_id }}"
-                  {% if selected_satellite and satellite.norad_id == selected_satellite.norad_id %}
-                    selected
-                  {% endif %}
-                >
-                  {{ satellite.name|display_name }}
-                  · NORAD {{ satellite.norad_id }}
-                </option>
-              {% endfor %}
-            </select>
-          </label>
+            <button
+              type="button"
+              id="passes-satellite-combo-clear"
+              class="satellite-combo-clear-button"
+              aria-label="Auswahl zuruecksetzen"
+              title="Auswahl zuruecksetzen"
+              hidden
+            >&times;</button>
+            <ul
+              id="passes-satellite-combo-list"
+              class="satellite-combo-list"
+              role="listbox"
+              hidden
+            ></ul>
+          </div>
+          <select
+            name="satellite"
+            id="passes-satellite-select"
+            style="display: none;"
+          >
+            {% for satellite in satellites %}
+              <option
+                value="{{ satellite.norad_id }}"
+                {% if selected_satellite and satellite.norad_id == selected_satellite.norad_id %}
+                  selected
+                {% endif %}
+              >
+                {{ satellite.name|display_name }}
+                NORAD {{ satellite.norad_id }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
 
           <label>
             <span>Zeitraum</span>
@@ -401,28 +422,44 @@
 
       <form id="watchlist-add-form" class="add-source-form passes-form-grid">
         <div class="source-form-grid passes-form-grid">
-          <label>
-            <span>Satellit hinzufuegen</span>
+      <label>
+        <span>Satellit hinzufuegen</span>
 
-            <input
-              type="search"
-              class="satellite-search-input"
-              data-filter-select="watchlist-add-select"
-              placeholder="Suche nach Name oder NORAD-ID..."
-              autocomplete="off"
-            />
-            <select id="watchlist-add-select">
-              <option value="">-- auswaehlen --</option>
-              {% for satellite in satellites %}
-                {% if satellite.norad_id not in watchlist_norad_ids %}
-                  <option value="{{ satellite.norad_id }}">
-                    {{ satellite.name|display_name }}
-                    &middot; NORAD {{ satellite.norad_id }}
-                  </option>
-                {% endif %}
-              {% endfor %}
-            </select>
-          </label>
+        <div class="satellite-combobox-wrap">
+          <input
+            type="text"
+            id="watchlist-add-combo-input"
+            class="satellite-search-input"
+            placeholder="Suche nach Name oder NORAD-ID..."
+            autocomplete="off"
+          />
+          <button
+            type="button"
+            id="watchlist-add-combo-clear"
+            class="satellite-combo-clear-button"
+            aria-label="Auswahl zuruecksetzen"
+            title="Auswahl zuruecksetzen"
+            hidden
+          >&times;</button>
+          <ul
+            id="watchlist-add-combo-list"
+            class="satellite-combo-list"
+            role="listbox"
+            hidden
+          ></ul>
+        </div>
+        <select id="watchlist-add-select" style="display: none;">
+          <option value="">-- auswaehlen --</option>
+          {% for satellite in satellites %}
+            {% if satellite.norad_id not in watchlist_norad_ids %}
+              <option value="{{ satellite.norad_id }}">
+                {{ satellite.name|display_name }}
+                &middot; NORAD {{ satellite.norad_id }}
+              </option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </label>
 
           <div class="source-form-actions">
             <button class="source-action-button primary" type="submit">

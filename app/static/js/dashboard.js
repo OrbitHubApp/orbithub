@@ -945,94 +945,189 @@
   }
 })();
 
-/* --- OrbitHub Ueberfluege: Satelliten-Suche fuer Auswahl-Dropdowns ---
-   Hinweis: Bei ca. 32000 Optionen respektiert Chrome das native
-   <option hidden> im aufgeklappten Dropdown nicht zuverlaessig (die
-   Filterung passiert zwar im DOM, aber das Popup zeigt trotzdem alle
-   Optionen). Daher werden die <option>-Elemente bei jeder Suche real
-   neu aufgebaut (nur Treffer, begrenzt auf MAX_RESULTS) statt nur
-   versteckt. */
+/* --- OrbitHub Ueberfluege: Satelliten-Kombifeld (durchsuchbar) ---
+   Gleiches Muster wie auf der Sichtbarkeit-Seite (siehe visibility.html):
+   Bei ca. 32000 Satelliten respektiert Chrome das hidden-Attribut auf
+   <option> im aufgeklappten <select>-Popup nicht zuverlaessig. Daher bleibt
+   das <select> unsichtbar (nur Formularwert) und ein Text-Eingabefeld mit
+   eigener, immer sichtbarer Trefferliste (<ul>) uebernimmt die Auswahl. */
 (() => {
-  const searchInputs = document.querySelectorAll(
-    ".satellite-search-input[data-filter-select]",
-  );
+  function initSatelliteCombo(config) {
+    const select = document.getElementById(config.selectId);
+    const input = document.getElementById(config.inputId);
+    const list = document.getElementById(config.listId);
+    const clearButton = config.clearId
+      ? document.getElementById(config.clearId)
+      : null;
 
-  if (searchInputs.length === 0) {
-    return;
-  }
-
-  const MAX_RESULTS = 300;
-  const optionCache = new WeakMap();
-
-  function getCachedOptions(select) {
-    if (optionCache.has(select)) {
-      return optionCache.get(select);
-    }
-
-    const all = Array.from(select.querySelectorAll("option"));
-    const placeholder = all.find((option) => !option.value) || null;
-    const entries = all
-      .filter((option) => option.value)
-      .map((option) => ({
-        value: option.value,
-        text: option.textContent,
-        haystack: option.textContent.toLowerCase(),
-      }));
-
-    const cache = { placeholder, entries };
-    optionCache.set(select, cache);
-    return cache;
-  }
-
-  function filterSelect(input) {
-    const targetId = input.dataset.filterSelect;
-    const select = document.getElementById(targetId);
-
-    if (!select) {
+    if (!select || !input || !list) {
       return;
     }
 
-    const { placeholder, entries } = getCachedOptions(select);
-    const query = input.value.trim().toLowerCase();
-    const previousValue = select.value;
+    const options = Array.prototype.map
+      .call(select.options, (opt) => ({
+        value: opt.value,
+        label: opt.textContent.replace(/\s+/g, " ").trim(),
+      }))
+      .filter((opt) => opt.value !== "");
 
-    const matches =
-      query === ""
-        ? entries
-        : entries.filter((entry) => entry.haystack.includes(query));
+    function updateClearButtonVisibility() {
+      if (!clearButton) {
+        return;
+      }
+      clearButton.hidden = !select.value;
+    }
+    updateClearButtonVisibility();
 
-    const limited = matches.slice(0, MAX_RESULTS);
-    const fragment = document.createDocumentFragment();
+    let currentMatches = [];
+    let activeIndex = -1;
 
-    if (placeholder) {
-      fragment.appendChild(placeholder.cloneNode(true));
+    function closeList() {
+      list.hidden = true;
+      list.innerHTML = "";
+      currentMatches = [];
+      activeIndex = -1;
     }
 
-    limited.forEach((entry) => {
-      const option = document.createElement("option");
-      option.value = entry.value;
-      option.textContent = entry.text;
-      fragment.appendChild(option);
+    function syncInputToSelection() {
+      const current = select.options[select.selectedIndex];
+      input.value = current
+        ? current.textContent.replace(/\s+/g, " ").trim()
+        : "";
+      updateClearButtonVisibility();
+    }
+
+    function selectOption(opt) {
+      select.value = opt.value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      input.value = opt.label;
+      closeList();
+      updateClearButtonVisibility();
+    }
+
+    function updateActive(items) {
+      items.forEach((li, idx) => {
+        li.classList.toggle("is-active", idx === activeIndex);
+      });
+      if (items[activeIndex]) {
+        items[activeIndex].scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function renderList(matches) {
+      currentMatches = matches;
+      activeIndex = -1;
+      list.innerHTML = "";
+      if (!matches.length) {
+        closeList();
+        return;
+      }
+      matches.slice(0, 60).forEach((opt, idx) => {
+        const li = document.createElement("li");
+        li.textContent = opt.label;
+        li.setAttribute("role", "option");
+        li.dataset.index = String(idx);
+        li.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          selectOption(opt);
+        });
+        list.appendChild(li);
+      });
+      list.hidden = false;
+    }
+
+    function filterAndRender(query) {
+      const q = query.trim().toLowerCase();
+      if (!q) {
+        renderList(options.slice(0, 60));
+        return;
+      }
+      const matches = options.filter(
+        (opt) => opt.label.toLowerCase().indexOf(q) !== -1,
+      );
+      renderList(matches);
+    }
+
+    input.addEventListener("focus", () => {
+      filterAndRender(input.value);
     });
-
-    select.innerHTML = "";
-    select.appendChild(fragment);
-
-    select.value = limited.some((entry) => entry.value === previousValue)
-      ? previousValue
-      : "";
-  }
-
-  searchInputs.forEach((input) => {
-    let debounceTimer = null;
 
     input.addEventListener("input", () => {
-      if (debounceTimer) {
-        window.clearTimeout(debounceTimer);
+      filterAndRender(input.value);
+    });
+
+    input.addEventListener("keydown", (event) => {
+      if (list.hidden) {
+        if (event.key === "ArrowDown" || event.key === "Enter") {
+          filterAndRender(input.value);
+        }
+        return;
       }
-      debounceTimer = window.setTimeout(() => {
-        filterSelect(input);
+      const items = list.querySelectorAll("li");
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, items.length - 1);
+        updateActive(items);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        updateActive(items);
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        if (activeIndex >= 0 && currentMatches[activeIndex]) {
+          selectOption(currentMatches[activeIndex]);
+        } else if (currentMatches.length === 1) {
+          selectOption(currentMatches[0]);
+        }
+      } else if (event.key === "Escape") {
+        closeList();
+        syncInputToSelection();
+      }
+    });
+
+    input.addEventListener("blur", () => {
+      window.setTimeout(() => {
+        closeList();
+        syncInputToSelection();
       }, 120);
     });
+
+    if (clearButton) {
+      clearButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        select.value = "";
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        input.value = "";
+        updateClearButtonVisibility();
+        input.focus();
+        filterAndRender("");
+      });
+    }
+  }
+
+  document.addEventListener("click", (event) => {
+    document.querySelectorAll(".satellite-combobox-wrap").forEach((wrap) => {
+      if (!wrap.contains(event.target)) {
+        const list = wrap.querySelector(".satellite-combo-list");
+        if (list && !list.hidden) {
+          list.hidden = true;
+          list.innerHTML = "";
+        }
+      }
+    });
+  });
+
+  initSatelliteCombo({
+    selectId: "passes-satellite-select",
+    inputId: "passes-satellite-combo-input",
+    listId: "passes-satellite-combo-list",
+    clearId: "passes-satellite-combo-clear",
+  });
+
+  initSatelliteCombo({
+    selectId: "watchlist-add-select",
+    inputId: "watchlist-add-combo-input",
+    listId: "watchlist-add-combo-list",
+    clearId: "watchlist-add-combo-clear",
   });
 })();
