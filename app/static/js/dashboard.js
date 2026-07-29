@@ -945,7 +945,13 @@
   }
 })();
 
-/* --- OrbitHub Ueberfluege: Satelliten-Suche fuer Auswahl-Dropdowns --- */
+/* --- OrbitHub Ueberfluege: Satelliten-Suche fuer Auswahl-Dropdowns ---
+   Hinweis: Bei ca. 32000 Optionen respektiert Chrome das native
+   <option hidden> im aufgeklappten Dropdown nicht zuverlaessig (die
+   Filterung passiert zwar im DOM, aber das Popup zeigt trotzdem alle
+   Optionen). Daher werden die <option>-Elemente bei jeder Suche real
+   neu aufgebaut (nur Treffer, begrenzt auf MAX_RESULTS) statt nur
+   versteckt. */
 (() => {
   const searchInputs = document.querySelectorAll(
     ".satellite-search-input[data-filter-select]",
@@ -953,6 +959,29 @@
 
   if (searchInputs.length === 0) {
     return;
+  }
+
+  const MAX_RESULTS = 300;
+  const optionCache = new WeakMap();
+
+  function getCachedOptions(select) {
+    if (optionCache.has(select)) {
+      return optionCache.get(select);
+    }
+
+    const all = Array.from(select.querySelectorAll("option"));
+    const placeholder = all.find((option) => !option.value) || null;
+    const entries = all
+      .filter((option) => option.value)
+      .map((option) => ({
+        value: option.value,
+        text: option.textContent,
+        haystack: option.textContent.toLowerCase(),
+      }));
+
+    const cache = { placeholder, entries };
+    optionCache.set(select, cache);
+    return cache;
   }
 
   function filterSelect(input) {
@@ -963,19 +992,35 @@
       return;
     }
 
+    const { placeholder, entries } = getCachedOptions(select);
     const query = input.value.trim().toLowerCase();
-    const options = select.querySelectorAll("option");
+    const previousValue = select.value;
 
-    options.forEach((option) => {
-      if (!option.value) {
-        option.hidden = false;
-        return;
-      }
+    const matches =
+      query === ""
+        ? entries
+        : entries.filter((entry) => entry.haystack.includes(query));
 
-      const haystack = option.textContent.toLowerCase();
-      const matches = query === "" || haystack.includes(query);
-      option.hidden = !matches;
+    const limited = matches.slice(0, MAX_RESULTS);
+    const fragment = document.createDocumentFragment();
+
+    if (placeholder) {
+      fragment.appendChild(placeholder.cloneNode(true));
+    }
+
+    limited.forEach((entry) => {
+      const option = document.createElement("option");
+      option.value = entry.value;
+      option.textContent = entry.text;
+      fragment.appendChild(option);
     });
+
+    select.innerHTML = "";
+    select.appendChild(fragment);
+
+    select.value = limited.some((entry) => entry.value === previousValue)
+      ? previousValue
+      : "";
   }
 
   searchInputs.forEach((input) => {
