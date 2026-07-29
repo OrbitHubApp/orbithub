@@ -2646,3 +2646,88 @@ a.source-action-button {
 .watchlist-table-toolbar {
   margin-bottom: 16px;
 }
+
+/* OrbitHub: Update-Check im Sidebar-Footer */
+
+.update-check-button {
+  margin-top: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  color: var(--mission-muted);
+  background: rgba(8, 29, 51, 0.6);
+  border: 1px solid var(--mission-border);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.update-check-button:hover,
+.update-check-button:focus-visible {
+  border-color: var(--mission-cyan);
+  color: #dff5ff;
+}
+
+.update-check-button .button-spinner {
+  display: none;
+  width: 11px;
+  height: 11px;
+  margin-right: 6px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  vertical-align: -1px;
+}
+
+.update-check-button.is-loading {
+  cursor: wait;
+  opacity: 0.78;
+}
+
+.update-check-button.is-loading .button-spinner {
+  display: inline-block;
+  animation: orbithub-update-spin 700ms linear infinite;
+}
+
+.update-check-result {
+  margin-top: 8px;
+  padding: 8px 10px;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  border-radius: 7px;
+  border: 1px solid var(--mission-border);
+  background: rgba(7, 25, 44, 0.88);
+  color: var(--mission-muted);
+}
+
+.update-check-result[hidden] {
+  display: none;
+}
+
+.update-check-result.is-uptodate {
+  color: var(--mission-green);
+  border-color: rgba(34, 219, 118, 0.35);
+}
+
+.update-check-result.is-available {
+  color: #dff5ff;
+  border-color: rgba(29, 217, 242, 0.45);
+}
+
+.update-check-result.is-error {
+  color: var(--mission-red);
+  border-color: rgba(255, 64, 81, 0.35);
+}
+
+.update-check-result code {
+  display: block;
+  margin-top: 6px;
+  padding: 6px 8px;
+  font-size: 0.72rem;
+  color: #dff5ff;
+  background: rgba(5, 20, 34, 0.9);
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}

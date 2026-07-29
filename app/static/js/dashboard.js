@@ -1131,3 +1131,86 @@
     clearId: "watchlist-add-combo-clear",
   });
 })();
+
+/* --- OrbitHub: Update-Check gegen GitHub (Sidebar-Button) --- */
+(function () {
+  "use strict";
+
+  var button = document.getElementById("update-check-button");
+  var result = document.getElementById("update-check-result");
+
+  if (!button || !result) {
+    return;
+  }
+
+  function setResult(mainText, codeText, stateClass) {
+    result.textContent = "";
+    result.className = "update-check-result";
+    if (stateClass) {
+      result.classList.add(stateClass);
+    }
+    result.hidden = false;
+
+    var main = document.createElement("div");
+    main.textContent = mainText;
+    result.appendChild(main);
+
+    if (codeText) {
+      var code = document.createElement("code");
+      code.textContent = codeText;
+      result.appendChild(code);
+    }
+  }
+
+  button.addEventListener("click", function () {
+    if (button.classList.contains("is-loading")) {
+      return;
+    }
+    button.classList.add("is-loading");
+    result.hidden = true;
+
+    fetch("/api/update/check")
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok) {
+          setResult(
+            (data && data.error) || "Pruefung nicht moeglich.",
+            null,
+            "is-error"
+          );
+          return;
+        }
+
+        if (data.update_available) {
+          var label =
+            "Update verfuegbar: v" +
+            data.current_version +
+            " → v" +
+            data.latest_version +
+            (data.latest_codename ? " (" + data.latest_codename + ")" : "");
+          setResult(label, data.update_command, "is-available");
+        } else {
+          setResult(
+            "Du hast die aktuellste Version (v" +
+              data.current_version +
+              (data.current_codename ? " – " + data.current_codename : "") +
+              ").",
+            null,
+            "is-uptodate"
+          );
+        }
+      })
+      .catch(function () {
+        setResult(
+          "Pruefung nicht moeglich - keine Verbindung zu GitHub.",
+          null,
+          "is-error"
+        );
+      })
+      .finally(function () {
+        button.classList.remove("is-loading");
+      });
+  });
+})();

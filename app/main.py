@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse, RedirectResponse
 from app.api.system import router as system_router
 from app.api.stats import router as stats_router
+from app.api.update import router as update_router
 
 from app.config import (
     APP_DESCRIPTION,
@@ -93,6 +94,7 @@ app.mount(
 
 app.include_router(system_router)
 app.include_router(stats_router)
+app.include_router(update_router)
 
 templates = Jinja2Templates(
     directory=str(BASE_DIR / "templates")

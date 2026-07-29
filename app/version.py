@@ -1,2 +1,2 @@
-VERSION = "2.0.6"
+VERSION = "2.2.0"
 CODENAME = "Mars"
