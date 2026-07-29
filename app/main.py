@@ -32,9 +32,11 @@ from app.config import (
     TLE_FILE,
     TLE_REFRESH_HOURS,
 )
-from app.exporters.satgazer import SatGazerExporter
 from app.exporters.standard import StandardExporter
 from app.exporters.classic import ClassicExporter
+from app.exporters.csv_export import CsvExporter
+from app.exporters.xml_export import XmlExporter
+from app.exporters.json_export import JsonExporter
 from app.services.stats_store import (
     append_system_metrics_sample,
     append_tle_update_event,
@@ -2052,7 +2054,7 @@ async def satgazer_all_active():
         )
 
     parser = TLEParser()
-    exporter = SatGazerExporter()
+    exporter = ClassicExporter()
 
     records = parser.parse_file(TLE_FILE)
     content = exporter.export(records)
@@ -2295,25 +2297,27 @@ async def download_tle_export(
                 detail="Keine passenden Satelliten in der Auswahl gefunden.",
             )
 
-    if format == "alt":
-        exporter = ClassicExporter()
-        format_tag = "2LE"
-    elif format == "satgazer":
-        exporter = SatGazerExporter()
-        format_tag = "SATGAZER"
-    else:
-        exporter = StandardExporter()
-        format_tag = "3LE"
+    exporters = {
+        "alt": (ClassicExporter(), "2LE", "txt", "text/plain"),
+        "satgazer": (ClassicExporter(), "2LE", "txt", "text/plain"),
+        "csv": (CsvExporter(), "CSV", "csv", "text/csv"),
+        "xml": (XmlExporter(), "XML", "xml", "application/xml"),
+        "json": (JsonExporter(), "JSON", "json", "application/json"),
+    }
+    exporter, format_tag, extension, media_type = exporters.get(
+        format, (StandardExporter(), "3LE", "txt", "text/plain")
+    )
 
     content = exporter.export(records)
     scope_tag = "Auswahl" if selected_ids else "alle"
     filename = (
         f"OrbitHub-TLE-{scope_tag}-{format_tag}-"
-        f"{datetime.now():%Y-%m-%d}.txt"
+        f"{datetime.now():%Y-%m-%d}.{extension}"
     )
 
     return PlainTextResponse(
         content,
+        media_type=media_type,
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
         },

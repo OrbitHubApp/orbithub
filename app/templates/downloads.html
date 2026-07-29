@@ -65,10 +65,24 @@
         </span>
       </label>
       <label class="download-format-option">
-        <input type="radio" name="tle-format" value="satgazer">
+        <input type="radio" name="tle-format" value="csv">
         <span>
-          <strong>SatGazer-Format</strong>
-          <small>3-Zeilen · SatGazer</small>
+          <strong>CSV-Format</strong>
+          <small>Tabelle</small>
+        </span>
+      </label>
+      <label class="download-format-option">
+        <input type="radio" name="tle-format" value="xml">
+        <span>
+          <strong>XML-Format</strong>
+          <small>Strukturiert</small>
+        </span>
+      </label>
+      <label class="download-format-option">
+        <input type="radio" name="tle-format" value="json">
+        <span>
+          <strong>JSON-Format</strong>
+          <small>Strukturiert</small>
         </span>
       </label>
     </div>
@@ -151,15 +165,47 @@
   </div>
 
     <div class="download-link-block">
-    <label class="download-link-label" for="download-link-satgazer">
-      Fester Link – SatGazer-Format
+    <label class="download-link-label" for="download-link-csv">
+      Fester Link – CSV-Format
     </label>
     <div class="download-link-row">
-      <input type="text" id="download-link-satgazer" readonly>
+      <input type="text" id="download-link-csv" readonly>
       <button
         type="button"
         class="source-action-button secondary"
-        data-copy-target="download-link-satgazer"
+        data-copy-target="download-link-csv"
+      >
+        Kopieren
+      </button>
+    </div>
+  </div>
+
+    <div class="download-link-block">
+    <label class="download-link-label" for="download-link-xml">
+      Fester Link – XML-Format
+    </label>
+    <div class="download-link-row">
+      <input type="text" id="download-link-xml" readonly>
+      <button
+        type="button"
+        class="source-action-button secondary"
+        data-copy-target="download-link-xml"
+      >
+        Kopieren
+      </button>
+    </div>
+  </div>
+
+    <div class="download-link-block">
+    <label class="download-link-label" for="download-link-json">
+      Fester Link – JSON-Format
+    </label>
+    <div class="download-link-row">
+      <input type="text" id="download-link-json" readonly>
+      <button
+        type="button"
+        class="source-action-button secondary"
+        data-copy-target="download-link-json"
       >
         Kopieren
       </button>
@@ -236,9 +282,9 @@
     );
     const linkFieldNeu = document.getElementById("download-link-neu");
     const linkFieldAlt = document.getElementById("download-link-alt");
-    const linkFieldSatgazer = document.getElementById(
-      "download-link-satgazer"
-    );
+    const linkFieldCsv = document.getElementById("download-link-csv");
+    const linkFieldXml = document.getElementById("download-link-xml");
+    const linkFieldJson = document.getElementById("download-link-json");
     const statusBox = document.getElementById("download-status");
     const emptyState = document.getElementById("download-empty-state");
 
@@ -274,7 +320,9 @@
     function updateLinks() {
       linkFieldNeu.value = buildUrl("neu", true);
       linkFieldAlt.value = buildUrl("alt", true);
-      linkFieldSatgazer.value = buildUrl("satgazer", true);
+      linkFieldCsv.value = buildUrl("csv", true);
+      linkFieldXml.value = buildUrl("xml", true);
+      linkFieldJson.value = buildUrl("json", true);
     }
 
     function showStatus(message, kind) {
