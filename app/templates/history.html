@@ -13,7 +13,7 @@
     <div class="eyebrow">{{ app_name }} - {{ app_slogan }}</div>
     <h2>Änderungshistorie</h2>
     <p>
-      Automatisches Protokoll aller Änderungen an OrbitHub, jeweils mit Datum und Uhrzeit.
+      Automatisches Protokoll aller Änderungen an OrbitHub, jeweils mit Datum.
     </p>
   </div>
 </section>
@@ -32,7 +32,6 @@
           <ul class="history-entries">
             {% for entry in day.entries %}
               <li class="history-entry">
-                <span class="history-time">{{ entry.time }}</span>
                 <span class="history-message">{{ entry.message }}</span>
                 {% if entry.hash %}<span class="history-hash">{{ entry.hash }}</span>{% endif %}
               </li>
