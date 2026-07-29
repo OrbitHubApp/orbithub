@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}OrbitHub – Update installieren{% endblock %}
+
+{% block page_heading %}Update installieren{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero sources-hero">
+  <div>
+    <div class="eyebrow">{{ app_name }} – {{ app_slogan }}</div>
+    <h2>Neue Version installieren</h2>
+    <p>
+      OrbitHub prueft nur, ob eine neuere Version auf GitHub verfuegbar ist –
+      installiert wird dabei nichts automatisch. Fuehre die folgenden Schritte
+      selbst auf dem Raspberry Pi aus (direkt am Geraet oder per SSH), um auf
+      den neuesten Stand zu aktualisieren.
+    </p>
+  </div>
+</section>
+
+<div class="add-source-panel history-panel">
+  <div class="add-source-panel-header">
+    <span class="label">STATUS</span>
+  </div>
+  <p id="update-status-text" class="update-status-text">
+    Pruefe aktuelle Version...
+  </p>
+</div>
+
+<div class="add-source-panel history-panel">
+  <div class="add-source-panel-header">
+    <span class="label">ANLEITUNG</span>
+  </div>
+
+  <ol class="update-steps">
+    <li>
+      <strong>Mit dem Raspberry Pi verbinden.</strong>
+      Direkt am Geraet ein Terminal oeffnen, oder von einem anderen Rechner
+      per SSH verbinden:
+      <code>ssh BENUTZERNAME@IP-ADRESSE-DES-PI</code>
+    </li>
+    <li>
+      <strong>In das OrbitHub-Verzeichnis wechseln.</strong>
+      <code>cd ~/orbithub</code>
+    </li>
+    <li>
+      <strong>Neuesten Stand von GitHub laden.</strong>
+      <code>git pull</code>
+    </li>
+    <li>
+      <strong>OrbitHub neu bauen und starten.</strong>
+      <code>docker compose up -d --build</code>
+    </li>
+    <li>
+      <strong>Optional: alte Docker-Images aufraeumen.</strong>
+      <code>docker image prune</code>
+      Bei der Rueckfrage mit <code>y</code> bestaetigen.
+    </li>
+    <li>
+      <strong>Ergebnis pruefen.</strong>
+      Diese Seite danach im Browser neu laden – das Versionslabel unten
+      links in der Seitenleiste zeigt dann die neue Version.
+    </li>
+  </ol>
+
+  <p class="update-note">
+    Es findet dabei kein automatischer Zugriff auf den Raspberry Pi statt –
+    alle Schritte fuehrst du selbst im Terminal aus.
+  </p>
+</div>
+
+{% endblock %}

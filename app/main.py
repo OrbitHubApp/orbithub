@@ -2161,6 +2161,18 @@ async def satellite_track(
     }
 
 
+@app.get("/update")
+async def update_page(request: Request):
+    return templates.TemplateResponse(
+        name="update.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+        },
+    )
+
+
 @app.get("/history")
 async def history_page(request: Request):
     entries = load_history_entries()

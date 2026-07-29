@@ -2731,3 +2731,101 @@ a.source-action-button {
   overflow-wrap: anywhere;
   user-select: all;
 }
+
+/* OrbitHub: Sidebar-Scrollbalken bei geringer Bildschirmhoehe */
+
+#sidebar {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(92, 157, 190, 0.55) rgba(5, 20, 34, 0.35);
+}
+
+#sidebar::-webkit-scrollbar {
+  width: 7px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+  background: rgba(92, 157, 190, 0.55);
+  border-radius: 4px;
+}
+
+#sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(92, 157, 190, 0.8);
+}
+
+/* OrbitHub: Update-Check-Link im Sidebar-Ergebnis */
+
+.update-check-link {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--mission-cyan);
+  text-decoration: none;
+  font-size: 0.76rem;
+}
+
+.update-check-link:hover,
+.update-check-link:focus-visible {
+  text-decoration: underline;
+}
+
+/* OrbitHub: Update-Anleitung-Seite */
+
+.update-status-text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--mission-muted);
+}
+
+.update-status-text.is-uptodate {
+  color: var(--mission-green);
+}
+
+.update-status-text.is-available {
+  color: var(--mission-cyan);
+}
+
+.update-status-text.is-error {
+  color: var(--mission-red);
+}
+
+.update-steps {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #dff5ff;
+}
+
+.update-steps li {
+  padding-left: 4px;
+}
+
+.update-steps strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #ffffff;
+}
+
+.update-steps code {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 5px 9px;
+  font-size: 0.82rem;
+  color: #dff5ff;
+  background: rgba(5, 20, 34, 0.9);
+  border: 1px solid var(--mission-border);
+  border-radius: 5px;
+}
+
+.update-note {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--mission-border);
+  color: var(--mission-muted);
+  font-size: 0.85rem;
+}

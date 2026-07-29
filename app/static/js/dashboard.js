@@ -1143,7 +1143,7 @@
     return;
   }
 
-  function setResult(mainText, codeText, stateClass) {
+  function setResult(mainText, codeText, stateClass, linkHref, linkText) {
     result.textContent = "";
     result.className = "update-check-result";
     if (stateClass) {
@@ -1159,6 +1159,14 @@
       var code = document.createElement("code");
       code.textContent = codeText;
       result.appendChild(code);
+    }
+
+    if (linkHref) {
+      var link = document.createElement("a");
+      link.href = linkHref;
+      link.className = "update-check-link";
+      link.textContent = linkText || linkHref;
+      result.appendChild(link);
     }
   }
 
@@ -1190,7 +1198,13 @@
             " → v" +
             data.latest_version +
             (data.latest_codename ? " (" + data.latest_codename + ")" : "");
-          setResult(label, data.update_command, "is-available");
+          setResult(
+            label,
+            data.update_command,
+            "is-available",
+            "/update",
+            "Anleitung ansehen â"
+          );
         } else {
           setResult(
             "Du hast die aktuellste Version (v" +
@@ -1213,4 +1227,51 @@
         button.classList.remove("is-loading");
       });
   });
+})();
+
+/* --- OrbitHub: Update-Seite - Statusanzeige beim Laden --- */
+(function () {
+  "use strict";
+
+  var statusEl = document.getElementById("update-status-text");
+  if (!statusEl) {
+    return;
+  }
+
+  fetch("/api/update/check")
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (data) {
+      statusEl.className = "";
+      if (!data || !data.ok) {
+        statusEl.textContent =
+          (data && data.error) || "Pruefung nicht moeglich.";
+        statusEl.classList.add("is-error");
+        return;
+      }
+
+      if (data.update_available) {
+        statusEl.textContent =
+          "Neue Version verfuegbar: v" +
+          data.current_version +
+          " → v" +
+          data.latest_version +
+          (data.latest_codename ? " (" + data.latest_codename + ")" : "") +
+          ". Folge den Schritten unten, um zu aktualisieren.";
+        statusEl.classList.add("is-available");
+      } else {
+        statusEl.textContent =
+          "Du hast bereits die aktuellste Version (v" +
+          data.current_version +
+          (data.current_codename ? " – " + data.current_codename : "") +
+          ").";
+        statusEl.classList.add("is-uptodate");
+      }
+    })
+    .catch(function () {
+      statusEl.textContent =
+        "Pruefung nicht moeglich - keine Verbindung zu GitHub.";
+      statusEl.classList.add("is-error");
+    });
 })();
