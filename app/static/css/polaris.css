@@ -2570,3 +2570,64 @@ a.source-action-button {
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(255, 94, 91, 0.5);
 }
+
+/* ===========================================================
+   OrbitHub Merkliste (Watchlist) fuer Ueberfluege
+   =========================================================== */
+
+.watchlist-section {
+  margin-top: 32px;
+}
+
+.passes-table-section {
+  margin-top: 32px;
+}
+
+.watchlist-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.watchlist-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--mission-border);
+  background: var(--mission-panel);
+  color: var(--mission-cyan);
+  font-size: 0.85rem;
+}
+
+.watchlist-chip-remove {
+  border: none;
+  background: transparent;
+  color: var(--mission-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.watchlist-chip-remove:hover {
+  color: var(--mission-red);
+}
+
+.watchlist-empty-hint {
+  margin-top: 16px;
+  color: var(--mission-muted);
+  font-size: 0.9rem;
+}
+
+.watchlist-satellite-info {
+  margin-top: 16px;
+}
+
+.watchlist-table-toolbar {
+  margin-bottom: 16px;
+}

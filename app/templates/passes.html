@@ -382,4 +382,220 @@
 </script>
 {% endif %}
 
+<section class="passes-top-grid watchlist-section">
+  <div class="passes-left-column">
+    <div class="add-source-panel watchlist-panel">
+      <span class="label">MERKLISTE</span>
+      <h3>Meine Satelliten</h3>
+      <p>
+        Satelliten aus dem Katalog hinzufuegen, um ihre Ueberfluege
+        gesammelt zu sehen. Die Liste kann jederzeit geaendert werden.
+      </p>
+
+      <form id="watchlist-add-form" class="add-source-form passes-form-grid">
+        <div class="source-form-grid passes-form-grid">
+          <label>
+            <span>Satellit hinzufuegen</span>
+
+            <select id="watchlist-add-select">
+              <option value="">-- auswaehlen --</option>
+              {% for satellite in satellites %}
+                {% if satellite.norad_id not in watchlist_norad_ids %}
+                  <option value="{{ satellite.norad_id }}">
+                    {{ satellite.name|display_name }}
+                    &middot; NORAD {{ satellite.norad_id }}
+                  </option>
+                {% endif %}
+              {% endfor %}
+            </select>
+          </label>
+
+          <div class="source-form-actions">
+            <button class="source-action-button primary" type="submit">
+              Hinzufuegen
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {% if watchlist_satellites %}
+        <ul class="watchlist-chips" id="watchlist-chips">
+          {% for satellite in watchlist_satellites %}
+            <li class="watchlist-chip">
+              <span>{{ satellite.name|display_name }}</span>
+              <button
+                type="button"
+                class="watchlist-chip-remove"
+                data-norad-id="{{ satellite.norad_id }}"
+                aria-label="{{ satellite.name|display_name }} entfernen"
+              >&times;</button>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="watchlist-empty-hint">
+          Noch keine Satelliten in der Merkliste.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="passes-right-column add-source-panel">
+    <div class="label">MEINE SATELLITEN</div>
+    <h3>Polarplot des ausgewaehlten Ueberflugs</h3>
+
+    <div class="polarplot-card">
+      <svg
+        class="polarplot"
+        viewBox="0 0 200 200"
+        aria-label="Polarplot des ausgewaehlten Ueberflugs (Merkliste)"
+      >
+        <circle class="polarplot-horizon" cx="100" cy="100" r="90" />
+        <circle class="polarplot-ring" cx="100" cy="100" r="60" />
+        <circle class="polarplot-ring" cx="100" cy="100" r="30" />
+        <line class="polarplot-axis" x1="100" y1="10" x2="100" y2="190" />
+        <line class="polarplot-axis" x1="10" y1="100" x2="190" y2="100" />
+
+        <text class="polarplot-direction" x="100" y="7">N</text>
+        <text class="polarplot-direction" x="193" y="104">O</text>
+        <text class="polarplot-direction" x="100" y="199">S</text>
+        <text class="polarplot-direction" x="7" y="104">W</text>
+
+        <text class="polarplot-elevation" x="104" y="42">60&deg;</text>
+        <text class="polarplot-elevation" x="104" y="72">30&deg;</text>
+        <text class="polarplot-elevation" x="104" y="103">90&deg;</text>
+
+        <polyline
+          id="watchlist-polarplot-track"
+          class="polarplot-track"
+          points="{% if watchlist_passes %}{% for point in watchlist_passes[0].track_points %}{{ point.polar_x }},{{ point.polar_y }} {% endfor %}{% endif %}"
+        />
+        <circle
+          id="watchlist-polarplot-rise"
+          class="polarplot-rise"
+          cx="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[0].polar_x }}{% else %}100{% endif %}"
+          cy="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[0].polar_y }}{% else %}100{% endif %}"
+        />
+        <circle
+          id="watchlist-polarplot-set"
+          class="polarplot-set"
+          cx="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[-1].polar_x }}{% else %}100{% endif %}"
+          cy="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[-1].polar_y }}{% else %}100{% endif %}"
+        />
+        <text
+          id="watchlist-polarplot-aos-label"
+          class="polarplot-marker-label"
+          x="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[0].polar_x }}{% else %}100{% endif %}"
+          y="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[0].polar_y - 7 }}{% else %}93{% endif %}"
+        >AOS</text>
+        <text
+          id="watchlist-polarplot-los-label"
+          class="polarplot-marker-label"
+          x="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[-1].polar_x }}{% else %}100{% endif %}"
+          y="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[-1].polar_y - 7 }}{% else %}93{% endif %}"
+        >LOS</text>
+      </svg>
+    </div>
+
+    <div id="watchlist-satellite-info" class="watchlist-satellite-info">
+      {% if watchlist_passes %}
+        <h3 id="watchlist-satellite-name">
+          {{ watchlist_passes[0].satellite_name|display_name }}
+        </h3>
+        <p>
+          NORAD
+          <span id="watchlist-satellite-norad">{{ watchlist_passes[0].satellite_norad_id }}</span>
+        </p>
+      {% else %}
+        <h3 id="watchlist-satellite-name">Keine Ueberfluege</h3>
+        <p>NORAD <span id="watchlist-satellite-norad"></span></p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="passes-table-section">
+  <div class="add-source-panel watchlist-table-card">
+    <span class="label">MEINE SATELLITEN</span>
+    <h3>Gesammelte Ueberfluege ({{ hours }} Stunden)</h3>
+
+    <div class="source-form-actions watchlist-table-toolbar">
+      <a
+        class="source-action-button secondary"
+        href="/passes/export-watchlist.txt?hours={{ hours }}&amp;minimum_elevation={{ minimum_elevation }}"
+      >TXT-Download (Merkliste)</a>
+    </div>
+
+    {% if watchlist_passes %}
+      <div class="table-scroll">
+        <table class="mission-table">
+          <thead>
+            <tr>
+              <th>Satellit</th>
+              <th>Datum</th>
+              <th>Aufgang</th>
+              <th>Maximum</th>
+              <th>Untergang</th>
+              <th>Max. Hoehe</th>
+              <th>Azimut Aufgang</th>
+              <th>Azimut Untergang</th>
+              <th>Dauer</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pass in watchlist_passes %}
+              <tr
+                class="pass-row watchlist-pass-row{% if loop.first %} active{% endif %}"
+                data-watchlist-pass-index="{{ loop.index0 }}"
+              >
+                <td>{{ pass.satellite_name|display_name }}</td>
+                <td>{{ pass.rise_time | fmt_time("%d.%m.%Y") }}</td>
+                <td>{{ pass.rise_time | fmt_time("%H:%M:%S") }}</td>
+                <td>{{ pass.culmination_time | fmt_time("%H:%M:%S") }}</td>
+                <td>{{ pass.set_time | fmt_time("%H:%M:%S") }}</td>
+                <td><strong>{{ "%.1f"|format(pass.max_elevation_deg) }}&deg;</strong></td>
+                <td>{{ "%.1f"|format(pass.rise_azimuth_deg) }}&deg;</td>
+                <td>{{ "%.1f"|format(pass.set_azimuth_deg) }}&deg;</td>
+                <td>
+                  {{ pass.duration_seconds // 60 }} Min.
+                  {{ pass.duration_seconds % 60 }} Sek.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="satellite-empty-block">
+        <strong>Merkliste leer oder keine Ueberfluege gefunden</strong>
+        <p>
+          Fuegen Sie oben Satelliten zur Merkliste hinzu, um deren
+          Ueberfluege hier gesammelt zu sehen.
+        </p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% if watchlist_passes %}
+<script id="watchlist-passes-data" type="application/json">
+[
+{% for pass in watchlist_passes %}
+  {
+    "rise_iso": "{{ pass.rise_time.isoformat() }}",
+    "culmination_iso": "{{ pass.culmination_time.isoformat() }}",
+    "set_iso": "{{ pass.set_time.isoformat() }}",
+    "max_elevation_deg": {{ pass.max_elevation_deg }},
+    "rise_azimuth_deg": {{ pass.rise_azimuth_deg }},
+    "set_azimuth_deg": {{ pass.set_azimuth_deg }},
+    "duration_seconds": {{ pass.duration_seconds }},
+    "satellite_name": "{{ pass.satellite_name|display_name }}",
+    "satellite_norad_id": "{{ pass.satellite_norad_id }}",
+    "track_points": [{% for point in pass.track_points %}{"x": {{ point.polar_x }}, "y": {{ point.polar_y }}}{% if not loop.last %}, {% endif %}{% endfor %}]
+  }{% if not loop.last %},{% endif %}
+{% endfor %}
+]
+</script>
+{% endif %}
+
 {% endblock %}

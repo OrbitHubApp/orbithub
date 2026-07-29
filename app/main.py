@@ -733,6 +733,9 @@ async def passes_page(
 
     selected_record = None
     satellite_passes = []
+    favorite_norad_ids = load_favorite_norad_ids()
+    watchlist_records = []
+    watchlist_passes = []
 
     if records:
         if satellite:
@@ -761,6 +764,51 @@ async def passes_page(
             hours=hours,
             minimum_elevation_deg=minimum_elevation,
             observer_settings=observer,
+        )
+
+        records_by_norad_id = {
+            record.norad_id: record for record in records
+        }
+        watchlist_records = [
+            records_by_norad_id[norad_id]
+            for norad_id in favorite_norad_ids
+            if norad_id in records_by_norad_id
+        ]
+        for watchlist_record in watchlist_records:
+            for watchlist_pass in predictor.predict(
+                watchlist_record,
+                hours=hours,
+                minimum_elevation_deg=minimum_elevation,
+                observer_settings=observer,
+            ):
+                watchlist_passes.append(
+                    {
+                        "rise_time": watchlist_pass.rise_time,
+                        "culmination_time": (
+                            watchlist_pass.culmination_time
+                        ),
+                        "set_time": watchlist_pass.set_time,
+                        "max_elevation_deg": (
+                            watchlist_pass.max_elevation_deg
+                        ),
+                        "rise_azimuth_deg": (
+                            watchlist_pass.rise_azimuth_deg
+                        ),
+                        "set_azimuth_deg": (
+                            watchlist_pass.set_azimuth_deg
+                        ),
+                        "duration_seconds": (
+                            watchlist_pass.duration_seconds
+                        ),
+                        "track_points": watchlist_pass.track_points,
+                        "satellite_name": watchlist_record.name,
+                        "satellite_norad_id": (
+                            watchlist_record.norad_id
+                        ),
+                    }
+                )
+        watchlist_passes.sort(
+            key=lambda entry: entry["rise_time"]
         )
 
     horizon_shadow_segments = [
@@ -796,6 +844,9 @@ async def passes_page(
                 selected_record
             ),
             "passes": satellite_passes,
+            "watchlist_passes": watchlist_passes,
+            "watchlist_satellites": watchlist_records,
+            "watchlist_norad_ids": favorite_norad_ids,
             "horizon_shadow_segments": horizon_shadow_segments,
             "observer_name": observer.qth_name,
             "observer_locator": observer.locator,
@@ -936,6 +987,140 @@ async def passes_export_txt(
         content,
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
+@app.get("/passes/export-watchlist.txt", include_in_schema=False)
+async def passes_export_watchlist_txt(
+    request: Request,
+    hours: int = 24,
+    minimum_elevation: float = 10.0,
+) -> PlainTextResponse:
+    """Exportiert die gesammelten Ueberfluege der Merkliste als TXT."""
+    parser = TLEParser()
+    records = (
+        parser.parse_file(TLE_FILE) if TLE_FILE.exists() else []
+    )
+
+    allowed_hours = {24, 48, 72}
+    if hours not in allowed_hours:
+        hours = 24
+
+    minimum_elevation = max(
+        0.0,
+        min(minimum_elevation, 90.0),
+    )
+
+    observer = load_observer_settings()
+    favorite_norad_ids = load_favorite_norad_ids()
+    records_by_norad_id = {
+        record.norad_id: record for record in records
+    }
+    watchlist_records = [
+        records_by_norad_id[norad_id]
+        for norad_id in favorite_norad_ids
+        if norad_id in records_by_norad_id
+    ]
+
+    predictor = PassPredictor(
+        latitude_deg=observer.latitude_deg,
+        longitude_deg=observer.longitude_deg,
+        elevation_m=observer.elevation_m,
+    )
+
+    watchlist_passes = []
+    for watchlist_record in watchlist_records:
+        for watchlist_pass in predictor.predict(
+            watchlist_record,
+            hours=hours,
+            minimum_elevation_deg=minimum_elevation,
+            observer_settings=observer,
+        ):
+            watchlist_passes.append((watchlist_record, watchlist_pass))
+
+    watchlist_passes.sort(key=lambda item: item[1].rise_time)
+
+    lines = [
+        "OrbitHub - Ueberflugliste (Meine Satelliten)",
+        "=" * 40,
+        "",
+        f"Beobachter: {observer.qth_name} ({observer.locator})",
+        (
+            f"Position: {observer.latitude_deg:.4f}, "
+            f"{observer.longitude_deg:.4f}"
+        ),
+        (
+            f"Zeitraum: {hours} Stunden, "
+            f"Mindesthoehe {minimum_elevation:.0f}°"
+        ),
+        f"Zeitangaben in {time_zone_label()}",
+        "",
+    ]
+
+    if not watchlist_records:
+        lines.append("Merkliste: keine Satelliten ausgewaehlt")
+    else:
+        satellite_labels = ", ".join(
+            f"{record.name} (NORAD {record.norad_id})"
+            for record in watchlist_records
+        )
+        lines.append(f"Merkliste: {satellite_labels}")
+
+    lines.append("")
+
+    if not watchlist_passes:
+        lines.append(
+            "Keine Ueberfluege im gewaehlten Zeitraum gefunden."
+        )
+    else:
+        for index, (record, pass_) in enumerate(
+            watchlist_passes, start=1
+        ):
+            lines.append(f"Ueberflug {index}")
+            lines.append(
+                f"Satellit:    {record.name} "
+                f"(NORAD {record.norad_id})"
+            )
+            lines.append("-" * 40)
+            lines.append(
+                "Aufgang:    "
+                + format_time_value(
+                    pass_.rise_time, "%d.%m.%Y %H:%M:%S"
+                )
+                + f"  (Azimut {pass_.rise_azimuth_deg:.1f}°)"
+            )
+            lines.append(
+                "Kulmination: "
+                + format_time_value(
+                    pass_.culmination_time, "%H:%M:%S"
+                )
+                + f"  (max. Hoehe {pass_.max_elevation_deg:.1f}°)"
+            )
+            lines.append(
+                "Untergang:  "
+                + format_time_value(pass_.set_time, "%H:%M:%S")
+                + f"  (Azimut {pass_.set_azimuth_deg:.1f}°)"
+            )
+            lines.append(
+                f"Dauer:      {pass_.duration_seconds // 60} Min "
+                f"{pass_.duration_seconds % 60} Sek"
+            )
+            lines.append("")
+
+    content = "\n".join(lines) + "\n"
+
+    filename = (
+        "OrbitHub-Ueberfluege-meine-satelliten-"
+        f"{datetime.now():%Y-%m-%d}.txt"
+    )
+
+    return PlainTextResponse(
+        content,
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{filename}"'
+            ),
         },
     )
 

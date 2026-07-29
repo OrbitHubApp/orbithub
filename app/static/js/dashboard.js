@@ -807,3 +807,140 @@
     });
   });
 })();
+
+/* --- OrbitHub Merkliste (Watchlist) fuer die Ueberfluege-Seite --- */
+(() => {
+  const dataEl = document.getElementById("watchlist-passes-data");
+
+  if (!dataEl) {
+    return;
+  }
+
+  let passList;
+
+  try {
+    passList = JSON.parse(dataEl.textContent);
+  } catch (error) {
+    return;
+  }
+
+  const rows = document.querySelectorAll(".watchlist-pass-row");
+  const track = document.getElementById("watchlist-polarplot-track");
+  const riseDot = document.getElementById("watchlist-polarplot-rise");
+  const setDot = document.getElementById("watchlist-polarplot-set");
+  const aosLabel = document.getElementById("watchlist-polarplot-aos-label");
+  const losLabel = document.getElementById("watchlist-polarplot-los-label");
+  const satelliteNameEl = document.getElementById("watchlist-satellite-name");
+  const satelliteNoradEl = document.getElementById(
+    "watchlist-satellite-norad",
+  );
+
+  function applyWatchlistPass(index) {
+    const passData = passList[index];
+
+    if (!passData) {
+      return;
+    }
+
+    if (satelliteNameEl) {
+      satelliteNameEl.textContent = passData.satellite_name;
+    }
+    if (satelliteNoradEl) {
+      satelliteNoradEl.textContent = passData.satellite_norad_id;
+    }
+
+    if (track && passData.track_points.length > 0) {
+      track.setAttribute(
+        "points",
+        passData.track_points
+          .map((point) => point.x + "," + point.y)
+          .join(" "),
+      );
+
+      const firstPoint = passData.track_points[0];
+      const lastPoint = passData.track_points[passData.track_points.length - 1];
+
+      if (riseDot) {
+        riseDot.setAttribute("cx", firstPoint.x);
+        riseDot.setAttribute("cy", firstPoint.y);
+      }
+      if (setDot) {
+        setDot.setAttribute("cx", lastPoint.x);
+        setDot.setAttribute("cy", lastPoint.y);
+      }
+      if (aosLabel) {
+        aosLabel.setAttribute("x", firstPoint.x);
+        aosLabel.setAttribute("y", firstPoint.y - 7);
+      }
+      if (losLabel) {
+        losLabel.setAttribute("x", lastPoint.x);
+        losLabel.setAttribute("y", lastPoint.y - 7);
+      }
+    }
+
+    rows.forEach((row) => {
+      row.classList.toggle(
+        "active",
+        Number(row.dataset.watchlistPassIndex) === index,
+      );
+    });
+  }
+
+  rows.forEach((row) => {
+    row.addEventListener("click", () => {
+      applyWatchlistPass(Number(row.dataset.watchlistPassIndex));
+    });
+  });
+})();
+
+/* --- OrbitHub Merkliste: Satelliten hinzufuegen/entfernen --- */
+(() => {
+  const addForm = document.getElementById("watchlist-add-form");
+  const addSelect = document.getElementById("watchlist-add-select");
+  const chipsContainer = document.getElementById("watchlist-chips");
+
+  async function postFavorite(url, noradId) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ norad_id: noradId }),
+      });
+
+      if (response.ok) {
+        window.location.reload();
+      }
+    } catch (error) {
+      /* Netzwerkfehler ignorieren */
+    }
+  }
+
+  if (addForm && addSelect) {
+    addForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const noradId = addSelect.value;
+
+      if (!noradId) {
+        return;
+      }
+
+      postFavorite("/api/favorites/add", noradId);
+    });
+  }
+
+  if (chipsContainer) {
+    chipsContainer
+      .querySelectorAll(".watchlist-chip-remove")
+      .forEach((button) => {
+        button.addEventListener("click", () => {
+          const noradId = button.dataset.noradId;
+
+          if (!noradId) {
+            return;
+          }
+
+          postFavorite("/api/favorites/remove", noradId);
+        });
+      });
+  }
+})();
