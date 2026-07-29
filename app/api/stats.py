@@ -29,11 +29,13 @@ def get_tle_update_stats(days: int = 7) -> dict:
         source = event.get("source") or "Unbekannt"
         bucket = sources.setdefault(
             source,
-            {"total": 0, "successful": 0},
+            {"total": 0, "successful": 0, "last_satellites": None},
         )
         bucket["total"] += 1
         if event.get("ok"):
             bucket["successful"] += 1
+        if event.get("records") is not None:
+            bucket["last_satellites"] = event["records"]
 
     per_source = [
         {
@@ -43,6 +45,7 @@ def get_tle_update_stats(days: int = 7) -> dict:
             "success_rate": round(
                 bucket["successful"] / bucket["total"] * 100, 1
             ),
+            "satellites": bucket["last_satellites"],
         }
         for source, bucket in sources.items()
     ]
