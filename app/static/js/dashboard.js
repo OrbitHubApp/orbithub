@@ -1,4 +1,63 @@
 (() => {
+window.OrbitFavorites = {
+    refreshPanel: function () {
+      var body = document.getElementById("favorites-panel-body");
+      if (!body) return Promise.resolve();
+      return fetch("/api/favorites/panel-html")
+        .then(function (r) { return r.text(); })
+        .then(function (html) {
+          body.innerHTML = html;
+          window.OrbitFavorites.wirePanel();
+        });
+    },
+    add: function (noradId) {
+      return fetch("/api/favorites/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ norad_id: noradId }),
+      }).then(function () {
+        return window.OrbitFavorites.refreshPanel();
+      });
+    },
+    remove: function (noradId) {
+      return fetch("/api/favorites/remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ norad_id: noradId }),
+      }).then(function () {
+        return window.OrbitFavorites.refreshPanel();
+      });
+    },
+    wirePanel: function () {
+      var body = document.getElementById("favorites-panel-body");
+      if (!body) return;
+      body.querySelectorAll(".visibility-bright-card[data-href]").forEach(function (card) {
+        card.addEventListener("click", function (event) {
+          if (event.target.closest(".favorite-remove-button")) return;
+          window.location.href = card.getAttribute("data-href");
+        });
+        card.addEventListener("keydown", function (event) {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            window.location.href = card.getAttribute("data-href");
+          }
+        });
+      });
+      body.querySelectorAll(".favorite-remove-button").forEach(function (button) {
+        button.addEventListener("click", function (event) {
+          event.stopPropagation();
+          window.OrbitFavorites.remove(button.getAttribute("data-norad-id"));
+        });
+      });
+    },
+  };
+
+  document.addEventListener("DOMContentLoaded", function () {
+    window.OrbitFavorites.wirePanel();
+  });
+})();
+
+(() => {
   const refreshSeconds = Number(
     document.body.dataset.refreshSeconds || 60
   );
@@ -1274,4 +1333,7 @@
         "Pruefung nicht moeglich - keine Verbindung zu GitHub.";
       statusEl.classList.add("is-error");
     });
+
+  
 })();
+

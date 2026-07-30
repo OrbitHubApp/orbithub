@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from app.api.system import router as system_router
 from app.api.stats import router as stats_router
 from app.api.update import router as update_router
@@ -836,6 +836,8 @@ async def passes_page(
         if path is not None
     ]
 
+    bright_entries, _ = _get_cached_bright_entries(records, observer, predictor)
+
     return templates.TemplateResponse(
         name="passes.html",
         context={
@@ -865,6 +867,8 @@ async def passes_page(
                 minimum_elevation
             ),
             "hours": hours,
+            "bright_entries": bright_entries,
+            "observer_default_minimum_elevation": observer.default_minimum_elevation_deg,
         },
     )
 @app.get("/passes/export.txt", include_in_schema=False)
@@ -1349,6 +1353,30 @@ async def remove_favorite_satellite(request: Request) -> dict:
 
     favorites = remove_favorite(norad_id)
     return {"ok": True, "favorites": favorites}
+
+
+@app.get("/api/favorites/panel-html")
+async def favorites_panel_html(request: Request) -> HTMLResponse:
+    parser = TLEParser()
+    records = (
+        parser.parse_file(TLE_FILE)
+        if TLE_FILE.exists()
+        else []
+    )
+    observer = load_observer_settings()
+    predictor = PassPredictor(
+        latitude_deg=observer.latitude_deg,
+        longitude_deg=observer.longitude_deg,
+        elevation_m=observer.elevation_m,
+    )
+    bright_entries, _ = _get_cached_bright_entries(records, observer, predictor)
+    html = templates.get_template("_favorites_panel.html").render(
+        {
+            "bright_entries": bright_entries,
+            "observer_default_minimum_elevation": observer.default_minimum_elevation_deg,
+        }
+    )
+    return HTMLResponse(content=html)
 
 
 @app.post("/api/sources/add")
@@ -2067,6 +2095,34 @@ def _build_bright_entries(records, observer, predictor):
     return bright_entries, upcoming_visible_passes
 
 
+_bright_entries_cache: dict = {"key": None, "expires": 0.0, "value": None}
+_BRIGHT_ENTRIES_CACHE_TTL_SECONDS = 120
+
+
+def _get_cached_bright_entries(records, observer, predictor):
+    """Wie _build_bright_entries, aber mit kurzem Cache.
+
+    Die Vorhersage ueber 168 Stunden ist auf schwacher Hardware (Raspberry Pi)
+    spuerbar langsam (mehrere Sekunden je Favorit). Damit Karte, Ueberfluege
+    und Visuell nicht bei jedem Laden neu rechnen, wird das Ergebnis kurz
+    zwischengespeichert. Aendert sich die Favoritenliste (z. B. durch Klick
+    auf der Karte), wird sofort neu gerechnet, da sich der Cache-Key aendert.
+    """
+    import time as _time
+
+    favorite_ids = tuple(load_favorite_norad_ids())
+    now = _time.time()
+    cached = _bright_entries_cache
+    if cached["key"] == favorite_ids and cached["expires"] > now:
+        return cached["value"]
+
+    value = _build_bright_entries(records, observer, predictor)
+    cached["key"] = favorite_ids
+    cached["expires"] = now + _BRIGHT_ENTRIES_CACHE_TTL_SECONDS
+    cached["value"] = value
+    return value
+
+
 @app.get("/map")
 async def map_page(request: Request):
     parser = TLEParser()
@@ -2090,7 +2146,7 @@ async def map_page(request: Request):
         longitude_deg=observer.longitude_deg,
         elevation_m=observer.elevation_m,
     )
-    bright_entries, _ = _build_bright_entries(records, observer, predictor)
+    bright_entries, _ = _get_cached_bright_entries(records, observer, predictor)
 
     return templates.TemplateResponse(
         name="map.html",
@@ -2411,7 +2467,7 @@ async def visibility_page(
                     }
                 )
 
-    bright_entries, upcoming_visible_passes = _build_bright_entries(
+    bright_entries, upcoming_visible_passes = _get_cached_bright_entries(
         records, observer, predictor
     )
 

@@ -1,0 +1,45 @@
+  {% if bright_entries %}
+  <div class="visibility-bright-grid">
+    {% for entry in bright_entries %}
+    <div
+      class="visibility-bright-card is-clickable"
+      data-href="/visibility?satellite={{ entry.record.norad_id }}&amp;hours=168&amp;minimum_elevation={{ observer_default_minimum_elevation }}"
+      role="link"
+      tabindex="0"
+    >
+      <button
+        type="button"
+        class="favorite-remove-button"
+        data-norad-id="{{ entry.record.norad_id }}"
+        aria-label="{{ entry.record.name|display_name }} aus Favoriten entfernen"
+      >&times;</button>
+      <h4>{{ entry.record.name|display_name }}</h4>
+
+      {% if entry.next_visible %}
+      <p class="visibility-bright-time">
+        {{ entry.next_visible.pass.rise_time | fmt_time("%d.%m., %H:%M") }}
+        Uhr
+      </p>
+      <p class="visibility-bright-detail">
+        Max. {{ "%.0f"|format(entry.next_visible.pass.max_elevation_deg) }}°
+        ·
+        {% if entry.next_visible.visibility.magnitude is not none %}
+        Helligkeit ca. {{ "%.1f"|format(entry.next_visible.visibility.magnitude) }} mag
+        {% else %}
+        Helligkeit unbekannt
+        {% endif %}
+      </p>
+      {% else %}
+      <p class="visibility-bright-detail">
+        Kein sichtbarer Durchgang in der kommenden Woche.
+      </p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="visibility-bright-detail">
+    Noch keine Favoriten. Unten einen Satelliten auswählen und auf
+    „☆ Merken“ klicken.
+  </p>
+  {% endif %}
