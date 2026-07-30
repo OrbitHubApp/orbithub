@@ -21,6 +21,15 @@
 {% block page_heading %}Überflüge{% endblock %}
 
 {% block content %}
+<section class="mission-hero">
+  <div>
+    <div class="eyebrow">ÜBERFLUGVORHERSAGE</div>
+    <h2>Wann kommt der nächste Satellit vorbei?</h2>
+    <p>
+      Berechnet Sichtbarkeitsfenster für deinen Standort: Aufgang, Kulmination und Untergang inklusive Polarplot für den nächsten Überflug.
+    </p>
+  </div>
+</section>
 {% if passes %}
   <div
     class="pass-countdown-panel"
@@ -78,8 +87,8 @@
               type="button"
               id="passes-satellite-combo-clear"
               class="satellite-combo-clear-button"
-              aria-label="Auswahl zuruecksetzen"
-              title="Auswahl zuruecksetzen"
+              aria-label="Auswahl zurücksetzen"
+              title="Auswahl zurücksetzen"
               hidden
             >&times;</button>
             <ul
@@ -416,14 +425,14 @@
       <span class="label">MERKLISTE</span>
       <h3>Meine Satelliten</h3>
       <p>
-        Satelliten aus dem Katalog hinzufuegen, um ihre Ueberfluege
-        gesammelt zu sehen. Die Liste kann jederzeit geaendert werden.
+        Satelliten aus dem Katalog hinzufügen, um ihre Überflüge
+        gesammelt zu sehen. Die Liste kann jederzeit geändert werden.
       </p>
 
       <form id="watchlist-add-form" class="add-source-form passes-form-grid">
         <div class="source-form-grid passes-form-grid">
       <label>
-        <span>Satellit hinzufuegen</span>
+        <span>Satellit hinzufügen</span>
 
         <div class="satellite-combobox-wrap">
           <input
@@ -437,8 +446,8 @@
             type="button"
             id="watchlist-add-combo-clear"
             class="satellite-combo-clear-button"
-            aria-label="Auswahl zuruecksetzen"
-            title="Auswahl zuruecksetzen"
+            aria-label="Auswahl zurücksetzen"
+            title="Auswahl zurücksetzen"
             hidden
           >&times;</button>
           <ul
@@ -449,7 +458,7 @@
           ></ul>
         </div>
         <select id="watchlist-add-select" style="display: none;">
-          <option value="">-- auswaehlen --</option>
+          <option value="">-- auswählen --</option>
           {% for satellite in satellites %}
             {% if satellite.norad_id not in watchlist_norad_ids %}
               <option value="{{ satellite.norad_id }}">
@@ -463,7 +472,7 @@
 
           <div class="source-form-actions">
             <button class="source-action-button primary" type="submit">
-              Hinzufuegen
+              Hinzufügen
             </button>
           </div>
         </div>
@@ -493,13 +502,13 @@
 
   <div class="passes-right-column add-source-panel">
     <div class="label">MEINE SATELLITEN</div>
-    <h3>Polarplot des ausgewaehlten Ueberflugs</h3>
+    <h3>Polarplot des ausgewählten Überflugs</h3>
 
     <div class="polarplot-card">
       <svg
         class="polarplot"
         viewBox="0 0 200 200"
-        aria-label="Polarplot des ausgewaehlten Ueberflugs (Merkliste)"
+        aria-label="Polarplot des ausgewählten Überflugs (Merkliste)"
       >
         <circle class="polarplot-horizon" cx="100" cy="100" r="90" />
         <circle class="polarplot-ring" cx="100" cy="100" r="60" />
@@ -558,7 +567,7 @@
           <span id="watchlist-satellite-norad">{{ watchlist_passes[0].satellite_norad_id }}</span>
         </p>
       {% else %}
-        <h3 id="watchlist-satellite-name">Keine Ueberfluege</h3>
+        <h3 id="watchlist-satellite-name">Keine Überflüge</h3>
         <p>NORAD <span id="watchlist-satellite-norad"></span></p>
       {% endif %}
     </div>
@@ -568,7 +577,7 @@
 <section class="passes-table-section">
   <div class="add-source-panel watchlist-table-card">
     <span class="label">MEINE SATELLITEN</span>
-    <h3>Gesammelte Ueberfluege ({{ hours }} Stunden)</h3>
+    <h3>Gesammelte Überflüge ({{ hours }} Stunden)</h3>
 
     <div class="source-form-actions watchlist-table-toolbar">
       <a
@@ -587,7 +596,7 @@
               <th>Aufgang</th>
               <th>Maximum</th>
               <th>Untergang</th>
-              <th>Max. Hoehe</th>
+              <th>Max. Höhe</th>
               <th>Azimut Aufgang</th>
               <th>Azimut Untergang</th>
               <th>Dauer</th>
@@ -618,10 +627,10 @@
       </div>
     {% else %}
       <div class="satellite-empty-block">
-        <strong>Merkliste leer oder keine Ueberfluege gefunden</strong>
+        <strong>Merkliste leer oder keine Überflüge gefunden</strong>
         <p>
-          Fuegen Sie oben Satelliten zur Merkliste hinzu, um deren
-          Ueberfluege hier gesammelt zu sehen.
+          Fügen Sie oben Satelliten zur Merkliste hinzu, um deren
+          Überflüge hier gesammelt zu sehen.
         </p>
       </div>
     {% endif %}

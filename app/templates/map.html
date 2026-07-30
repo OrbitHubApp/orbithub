@@ -28,8 +28,8 @@
     <div class="eyebrow">{{ app_name }} - {{ app_slogan }}</div>
     <h2>Live-Weltkarte</h2>
     <p>
-      Zoombare Weltkarte mit deinem Standort. Waehle Satelliten aus, um ihre
-      aktuelle Position sowie ihren ungefaehren Sichtbarkeitsbereich (Footprint
+      Zoombare Weltkarte mit deinem Standort. Wähle Satelliten aus, um ihre
+      aktuelle Position sowie ihren ungefähren Sichtbarkeitsbereich (Footprint
       bei 0 Grad Elevation) live auf der Karte zu sehen.
     </p>
   </div>
@@ -38,8 +38,8 @@
 <div class="pass-center-grid">
   <div class="add-source-panel">
     <div class="add-source-panel-header">
-      <span class="label">SATELLITEN AUSWAEHLEN</span>
-      <span class="history-count">{{ satellites|length }} verfuegbar</span>
+      <span class="label">SATELLITEN AUSWÄHLEN</span>
+      <span class="history-count">{{ satellites|length }} verfügbar</span>
     </div>
 
     <input
@@ -82,11 +82,11 @@
         </table>
       </div>
       <p class="satellite-empty-block" id="map-satellite-empty" hidden>
-        Keine Satelliten fuer diese Suche gefunden.
+        Keine Satelliten für diese Suche gefunden.
       </p>
     {% else %}
       <div class="satellite-empty-block">
-        <strong>Keine TLE-Daten verfuegbar</strong>
+        <strong>Keine TLE-Daten verfügbar</strong>
         <p>Es wurden noch keine Satellitendaten geladen.</p>
       </div>
     {% endif %}
@@ -395,7 +395,7 @@
         currentTrackData = nextTrackData;
         renderTrack();
       } catch (error) {
-        /* Netzwerkfehler ignorieren, naechster Versuch folgt */
+        /* Netzwerkfehler ignorieren, nächster Versuch folgt */
       }
     }
 
@@ -529,7 +529,7 @@
           JSON.stringify(selectedIds()),
         );
       } catch (error) {
-        /* localStorage evtl. nicht verfuegbar, keine weitere Aktion noetig */
+        /* localStorage evtl. nicht verfügbar, keine weitere Aktion nötig */
       }
     }
 
