@@ -2014,6 +2014,59 @@ def load_history_entries() -> list[dict]:
     return raw if isinstance(raw, list) else []
 
 
+def _build_bright_entries(records, observer, predictor):
+    # Baut die Favoriten-Liste (naechster sichtbarer Durchgang je gemerktem Satellit).
+    # Wird sowohl von /map als auch von /visibility verwendet.
+    favorite_norad_ids = load_favorite_norad_ids()
+    records_by_norad_id = {record.norad_id: record for record in records}
+    bright_records = [
+        records_by_norad_id[norad_id]
+        for norad_id in favorite_norad_ids
+        if norad_id in records_by_norad_id
+    ]
+
+    bright_entries = []
+    upcoming_visible_passes = []
+    for record in bright_records:
+        candidate_passes = predictor.predict(
+            record,
+            hours=168,
+            minimum_elevation_deg=(
+                observer.default_minimum_elevation_deg
+            ),
+            observer_settings=observer,
+        )
+
+        next_visible = None
+        for candidate in candidate_passes:
+            result = assess_visibility(
+                record,
+                observer.latitude_deg,
+                observer.longitude_deg,
+                observer.elevation_m,
+                candidate.culmination_time,
+            )
+            if result.visible:
+                visible_entry = {
+                    "record": record,
+                    "pass": candidate,
+                    "visibility": result,
+                }
+                if next_visible is None:
+                    next_visible = visible_entry
+                upcoming_visible_passes.append(visible_entry)
+
+        bright_entries.append(
+            {
+                "record": record,
+                "next_visible": next_visible,
+            }
+        )
+
+    upcoming_visible_passes.sort(key=lambda entry: entry["pass"].rise_time)
+    return bright_entries, upcoming_visible_passes
+
+
 @app.get("/map")
 async def map_page(request: Request):
     parser = TLEParser()
@@ -2032,6 +2085,12 @@ async def map_page(request: Request):
     )
 
     observer = load_observer_settings()
+    predictor = PassPredictor(
+        latitude_deg=observer.latitude_deg,
+        longitude_deg=observer.longitude_deg,
+        elevation_m=observer.elevation_m,
+    )
+    bright_entries, _ = _build_bright_entries(records, observer, predictor)
 
     return templates.TemplateResponse(
         name="map.html",
@@ -2047,6 +2106,8 @@ async def map_page(request: Request):
             "observer_latitude_deg": observer.latitude_deg,
             "observer_longitude_deg": observer.longitude_deg,
             "tle_generated": format_tle_file_time(),
+            "bright_entries": bright_entries,
+            "observer_default_minimum_elevation": observer.default_minimum_elevation_deg,
         },
     )
 
@@ -2350,53 +2411,9 @@ async def visibility_page(
                     }
                 )
 
-    bright_entries = []
-    upcoming_visible_passes = []
-    favorite_norad_ids = load_favorite_norad_ids()
-    records_by_norad_id = {record.norad_id: record for record in records}
-    bright_records = [
-        records_by_norad_id[norad_id]
-        for norad_id in favorite_norad_ids
-        if norad_id in records_by_norad_id
-    ]
-
-    for record in bright_records:
-        candidate_passes = predictor.predict(
-            record,
-            hours=168,
-            minimum_elevation_deg=(
-                observer.default_minimum_elevation_deg
-            ),
-            observer_settings=observer,
-        )
-
-        next_visible = None
-        for candidate in candidate_passes:
-            result = assess_visibility(
-                record,
-                observer.latitude_deg,
-                observer.longitude_deg,
-                observer.elevation_m,
-                candidate.culmination_time,
-            )
-            if result.visible:
-                visible_entry = {
-                    "record": record,
-                    "pass": candidate,
-                    "visibility": result,
-                }
-                if next_visible is None:
-                    next_visible = visible_entry
-                upcoming_visible_passes.append(visible_entry)
-
-        bright_entries.append(
-            {
-                "record": record,
-                "next_visible": next_visible,
-            }
-        )
-
-    upcoming_visible_passes.sort(key=lambda entry: entry["pass"].rise_time)
+    bright_entries, upcoming_visible_passes = _build_bright_entries(
+        records, observer, predictor
+    )
 
     horizon_shadow_segments = [
         {"d": path}
