@@ -28,7 +28,7 @@
 
     <div>
       <strong id="download-selected-count">0</strong>
-      <small>von {{ satellites|length }} ausgewählt</small>
+      <small>von {{ satellite_count }} ausgewählt</small>
     </div>
   </div>
 </section>
@@ -230,23 +230,7 @@
     </thead>
 
     <tbody>
-      {% for satellite in satellites %}
-      <tr
-        data-name="{{ satellite.name|display_name|lower }}"
-        data-norad="{{ satellite.norad_id|lower }}"
-      >
-        <td>
-          <input
-            type="checkbox"
-            class="download-checkbox"
-            value="{{ satellite.norad_id }}"
-          >
-        </td>
-        <td>{{ satellite.name|display_name }}</td>
-        <td>{{ satellite.norad_id }}</td>
-      </tr>
-      {% endfor %}
-      {% if not satellites %}
+      {% if satellite_count == 0 %}
       <tr>
         <td colspan="3">Keine TLE-Daten verfügbar.</td>
       </tr>
@@ -272,14 +256,9 @@
 
 <script>
   (() => {
-    const checkboxes = () =>
-      Array.from(document.querySelectorAll(".download-checkbox"));
-    const rows = () =>
-      Array.from(document.querySelectorAll("#download-table tbody tr"));
+    const tableBody = document.querySelector("#download-table tbody");
     const searchInput = document.getElementById("download-search-input");
-    const selectedCountEl = document.getElementById(
-      "download-selected-count"
-    );
+    const selectedCountEl = document.getElementById("download-selected-count");
     const linkFieldNeu = document.getElementById("download-link-neu");
     const linkFieldAlt = document.getElementById("download-link-alt");
     const linkFieldCsv = document.getElementById("download-link-csv");
@@ -287,6 +266,14 @@
     const linkFieldJson = document.getElementById("download-link-json");
     const statusBox = document.getElementById("download-status");
     const emptyState = document.getElementById("download-empty-state");
+    const totalCount = {{ satellite_count }};
+    const SEARCH_LIMIT = 250;
+
+    // Ausgewaehlte NORAD-IDs werden unabhaengig von den aktuell
+    // angezeigten Zeilen gemerkt: die Tabelle wird bei jeder Suche vom
+    // Server-Endpunkt neu befuellt, einzelne Checkbox-Elemente
+    // ueberleben eine neue Suche also nicht - die Auswahl selbst schon.
+    const selected = new Set();
 
     function currentFormat() {
       const checked = document.querySelector(
@@ -296,13 +283,11 @@
     }
 
     function selectedIds() {
-      return checkboxes()
-        .filter((box) => box.checked)
-        .map((box) => box.value);
+      return Array.from(selected);
     }
 
     function updateCount() {
-      selectedCountEl.textContent = selectedIds().length;
+      selectedCountEl.textContent = selected.size;
     }
 
     function buildUrl(format, useSelection) {
@@ -330,11 +315,115 @@
       statusBox.className = `dataset-update-status ${kind}`;
     }
 
-    checkboxes().forEach((box) => {
-      box.addEventListener("change", () => {
-        updateCount();
-        updateLinks();
+    function setEmptyState(visible, message) {
+      if (!emptyState) {
+        return;
+      }
+      emptyState.hidden = !visible;
+      if (message) {
+        emptyState.textContent = message;
+      }
+    }
+
+    function renderRows(results) {
+      tableBody.innerHTML = "";
+      results.forEach((satellite) => {
+        const tr = document.createElement("tr");
+
+        const checkboxTd = document.createElement("td");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "download-checkbox";
+        checkbox.value = satellite.norad_id;
+        checkbox.checked = selected.has(satellite.norad_id);
+        checkboxTd.appendChild(checkbox);
+
+        const nameTd = document.createElement("td");
+        nameTd.textContent = satellite.name;
+
+        const noradTd = document.createElement("td");
+        noradTd.textContent = satellite.norad_id;
+
+        tr.appendChild(checkboxTd);
+        tr.appendChild(nameTd);
+        tr.appendChild(noradTd);
+        tableBody.appendChild(tr);
       });
+    }
+
+    let searchToken = 0;
+
+    async function runSearch(query) {
+      const token = ++searchToken;
+
+      if (!query) {
+        tableBody.innerHTML = "";
+        setEmptyState(
+          true,
+          `${totalCount} Satelliten verfügbar – Name oder NORAD-ID eingeben, um zu suchen.`
+        );
+        return;
+      }
+
+      const params = new URLSearchParams();
+      params.set("q", query);
+      params.set("limit", String(SEARCH_LIMIT));
+
+      let data;
+      try {
+        const response = await fetch(`/downloads/search?${params.toString()}`);
+        data = await response.json();
+      } catch (error) {
+        if (token !== searchToken) {
+          return;
+        }
+        tableBody.innerHTML = "";
+        setEmptyState(true, "Suche fehlgeschlagen. Bitte erneut versuchen.");
+        return;
+      }
+
+      if (token !== searchToken) {
+        return;
+      }
+
+      renderRows(data.results);
+
+      if (data.results.length === 0) {
+        setEmptyState(true, "Keine Satelliten für diese Suche gefunden.");
+      } else if (data.truncated) {
+        setEmptyState(
+          true,
+          `Zeige ${data.results.length} von ${data.total} Treffern – Suche verfeinern für mehr.`
+        );
+      } else {
+        setEmptyState(false);
+      }
+    }
+
+    let debounceTimer = null;
+    function scheduleSearch(query) {
+      window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => runSearch(query), 200);
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        scheduleSearch(searchInput.value.trim().toLowerCase());
+      });
+    }
+
+    tableBody.addEventListener("change", (event) => {
+      const checkbox = event.target;
+      if (!checkbox.classList || !checkbox.classList.contains("download-checkbox")) {
+        return;
+      }
+      if (checkbox.checked) {
+        selected.add(checkbox.value);
+      } else {
+        selected.delete(checkbox.value);
+      }
+      updateCount();
+      updateLinks();
     });
 
     document.querySelectorAll('input[name="tle-format"]').forEach((radio) => {
@@ -344,48 +433,12 @@
     document
       .getElementById("download-select-all")
       .addEventListener("click", () => {
-        checkboxes().forEach((box) => {
-          if (box.closest("tr").style.display !== "none") {
-            box.checked = true;
-          }
-        });
-        updateCount();
-        updateLinks();
-      });
-
-    document
-      .getElementById("download-select-none")
-      .addEventListener("click", () => {
-        checkboxes().forEach((box) => (box.checked = false));
-        updateCount();
-        updateLinks();
-      });
-
-    document
-      .getElementById("download-selected-button")
-      .addEventListener("click", () => {
-        const ids = selectedIds();
-        if (!ids.length) {
-          showStatus(
-            "Bitte zuerst mindestens einen Satelliten ausgewählen.",
-            "is-error"
-          );
-          return;
-        }
-        window.location.href = buildUrl(currentFormat(), true);
-      });
-
-    document
-      .getElementById("download-all-button")
-      .addEventListener("click", () => {
         window.location.href = buildUrl(currentFormat(), false);
       });
 
     document.querySelectorAll("[data-copy-target]").forEach((button) => {
       button.addEventListener("click", async () => {
-        const target = document.getElementById(
-          button.dataset.copyTarget
-        );
+        const target = document.getElementById(button.dataset.copyTarget);
         let copied = false;
         if (navigator.clipboard && window.isSecureContext) {
           try {
@@ -397,9 +450,9 @@
         }
         if (!copied) {
           // navigator.clipboard braucht einen sicheren Kontext (HTTPS
-          // oder localhost). OrbitHub läuft im LAN nur über HTTP, also
-          // greifen wir hier auf das ältere execCommand("copy") zurück,
-          // das nach einer Textauswahl auch über HTTP funktioniert.
+          // oder localhost). OrbitHub laeuft im LAN nur ueber HTTP, also
+          // greifen wir hier auf das aeltere execCommand("copy") zurueck,
+          // das nach einer Textauswahl auch ueber HTTP funktioniert.
           target.select();
           target.setSelectionRange(0, target.value.length);
           try {
@@ -417,30 +470,9 @@
       });
     });
 
-    if (searchInput) {
-      searchInput.addEventListener("input", () => {
-        const query = searchInput.value.trim().toLowerCase();
-        let visible = 0;
-
-        rows().forEach((row) => {
-          const matches =
-            !query ||
-            row.dataset.name.includes(query) ||
-            row.dataset.norad.includes(query);
-          row.style.display = matches ? "" : "none";
-          if (matches) {
-            visible += 1;
-          }
-        });
-
-        if (emptyState) {
-          emptyState.hidden = visible !== 0;
-        }
-      });
-    }
-
     updateCount();
     updateLinks();
+    runSearch("");
   })();
 </script>
 

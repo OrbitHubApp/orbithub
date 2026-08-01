@@ -2563,21 +2563,46 @@ async def visibility_page(
     )
 
 
+_downloads_records_cache: dict = {"mtime": None, "value": None}
+
+
+def _parse_and_sort_tle_records() -> list:
+    parser = TLEParser()
+    records = parser.parse_file(TLE_FILE)
+    return sorted(
+        records,
+        key=lambda record: display_satellite_name(record.name).lower(),
+    )
+
+
+async def _get_all_tle_records() -> list:
+    """Geparste + sortierte TLE-Liste, gecacht anhand der Datei-mtime.
+
+    Die TLE-Datei enthaelt den kompletten aktiven Satellitenkatalog
+    (aktuell > 32.000 Eintraege). Parsen + Sortieren kostet auf dem
+    Raspberry Pi spuerbar Zeit. Da sich die Datei nur bei einem
+    TLE-Update aendert, wird das Ergebnis anhand der Datei-mtime
+    zwischengespeichert und nur bei Bedarf in einem Worker-Thread neu
+    berechnet, damit die Event-Loop dabei nicht blockiert wird.
+    """
+    if not TLE_FILE.exists():
+        return []
+    mtime = TLE_FILE.stat().st_mtime
+    cached = _downloads_records_cache
+    if cached["mtime"] == mtime and cached["value"] is not None:
+        return cached["value"]
+    records = await asyncio.to_thread(_parse_and_sort_tle_records)
+    cached["mtime"] = mtime
+    cached["value"] = records
+    return records
+
+
 @app.get(
     "/downloads",
     include_in_schema=False,
 )
 async def downloads_page(request: Request):
-    parser = TLEParser()
-    records = (
-        parser.parse_file(TLE_FILE)
-        if TLE_FILE.exists()
-        else []
-    )
-    records = sorted(
-        records,
-        key=lambda record: display_satellite_name(record.name).lower(),
-    )
+    records = await _get_all_tle_records()
     return templates.TemplateResponse(
         name="downloads.html",
         context={
@@ -2587,7 +2612,7 @@ async def downloads_page(request: Request):
             "version": VERSION,
             "codename": CODENAME,
             "refresh_seconds": DASHBOARD_REFRESH_SECONDS,
-            "satellites": records,
+            "satellite_count": len(records),
         },
     )
 
@@ -2608,8 +2633,7 @@ async def download_tle_export(
             detail="Noch keine TLE-Datei vorhanden.",
         )
 
-    parser = TLEParser()
-    records = parser.parse_file(TLE_FILE)
+    records = await _get_all_tle_records()
 
     selected_ids = {
         part.strip()
@@ -2653,6 +2677,45 @@ async def download_tle_export(
             "Content-Disposition": f'attachment; filename="{filename}"',
         },
     )
+
+
+@app.get(
+    "/downloads/search",
+    include_in_schema=False,
+)
+async def downloads_search(q: str = "", limit: int = 250):
+    """Liefert passende Satelliten fuers Suchfeld auf der Downloads-Seite.
+
+    Die volle Liste (>32.000 Eintraege) wird bewusst NICHT mehr komplett
+    an den Browser geschickt (siehe downloads_page). Stattdessen sucht
+    das Frontend hier bei Eingabe im Suchfeld nach, das Ergebnis wird auf
+    `limit` Treffer begrenzt.
+    """
+    records = await _get_all_tle_records()
+    query = q.strip().lower()
+    if query:
+        matches = [
+            record
+            for record in records
+            if query in display_satellite_name(record.name).lower()
+            or query in record.norad_id.lower()
+        ]
+    else:
+        matches = records
+
+    limit = max(0, limit)
+    limited = matches[:limit]
+    return {
+        "total": len(matches),
+        "truncated": len(matches) > len(limited),
+        "results": [
+            {
+                "name": display_satellite_name(record.name),
+                "norad_id": record.norad_id,
+            }
+            for record in limited
+        ],
+    }
 
 
 @app.get(
