@@ -46,6 +46,47 @@ from app.services.stats_store import (
 from app.services.system_metrics import collect_system_metrics
 from app.services.tle_parser import TLEParser
 from app.services.pass_predictor import PassPredictor
+
+
+_predict_cache: dict = {}
+_PREDICT_CACHE_TTL_SECONDS = 300
+
+
+async def _predict_async(predictor, record, **kwargs):
+    """Wie ein direkter Aufruf von predictor.predict, aber nicht blockierend und kurz gecacht.
+
+    Die Skyfield-Rechnung (find_events je Satellit) ist auf dem Raspberry Pi
+    spuerbar langsam und blockierte bisher synchron die FastAPI-Event-Loop.
+    Sie laeuft jetzt in einem Worker-Thread. Zusaetzlich wird das Ergebnis
+    kurz zwischengespeichert (siehe _PREDICT_CACHE_TTL_SECONDS), damit
+    wiederholtes Laden derselben Seite nicht jedes Mal neu rechnet. Der
+    Cache-Key enthaelt die TLE-Zeilen des Satelliten, invalidiert sich also
+    automatisch, sobald neue TLE-Daten geladen wurden.
+    """
+    if record is None:
+        return []
+
+    observer_settings = kwargs.get("observer_settings")
+    cache_key = (
+        record.norad_id,
+        record.line1,
+        record.line2,
+        kwargs.get("hours"),
+        kwargs.get("minimum_elevation_deg"),
+        getattr(observer_settings, "latitude_deg", None),
+        getattr(observer_settings, "longitude_deg", None),
+        getattr(observer_settings, "elevation_m", None),
+        getattr(observer_settings, "default_minimum_elevation_deg", None),
+    )
+
+    now = time.time()
+    cached = _predict_cache.get(cache_key)
+    if cached is not None and cached[0] > now:
+        return cached[1]
+
+    value = await asyncio.to_thread(predictor.predict, record, **kwargs)
+    _predict_cache[cache_key] = (now + _PREDICT_CACHE_TTL_SECONDS, value)
+    return value
 from app.services.favorites_store import (
     add_favorite,
     load_favorite_norad_ids,
@@ -768,7 +809,7 @@ async def passes_page(
             elevation_m=observer.elevation_m,
         )
 
-        satellite_passes = predictor.predict(
+        satellite_passes = await _predict_async(predictor, 
             selected_record,
             hours=hours,
             minimum_elevation_deg=minimum_elevation,
@@ -784,7 +825,7 @@ async def passes_page(
             if norad_id in records_by_norad_id
         ]
         for watchlist_record in watchlist_records:
-            for watchlist_pass in predictor.predict(
+            for watchlist_pass in await _predict_async(predictor, 
                 watchlist_record,
                 hours=hours,
                 minimum_elevation_deg=minimum_elevation,
@@ -836,7 +877,7 @@ async def passes_page(
         if path is not None
     ]
 
-    bright_entries, _ = _get_cached_bright_entries(records, observer, predictor)
+    bright_entries, _ = await _get_cached_bright_entries(records, observer, predictor)
 
     return templates.TemplateResponse(
         name="passes.html",
@@ -922,7 +963,7 @@ async def passes_export_txt(
             elevation_m=observer.elevation_m,
         )
 
-        satellite_passes = predictor.predict(
+        satellite_passes = await _predict_async(predictor, 
             selected_record,
             hours=hours,
             minimum_elevation_deg=minimum_elevation,
@@ -1044,7 +1085,7 @@ async def passes_export_watchlist_txt(
 
     watchlist_passes = []
     for watchlist_record in watchlist_records:
-        for watchlist_pass in predictor.predict(
+        for watchlist_pass in await _predict_async(predictor, 
             watchlist_record,
             hours=hours,
             minimum_elevation_deg=minimum_elevation,
@@ -1369,7 +1410,7 @@ async def favorites_panel_html(request: Request) -> HTMLResponse:
         longitude_deg=observer.longitude_deg,
         elevation_m=observer.elevation_m,
     )
-    bright_entries, _ = _get_cached_bright_entries(records, observer, predictor)
+    bright_entries, _ = await _get_cached_bright_entries(records, observer, predictor)
     html = templates.get_template("_favorites_panel.html").render(
         {
             "bright_entries": bright_entries,
@@ -2042,7 +2083,7 @@ def load_history_entries() -> list[dict]:
     return raw if isinstance(raw, list) else []
 
 
-def _build_bright_entries(records, observer, predictor):
+async def _build_bright_entries(records, observer, predictor):
     # Baut die Favoriten-Liste (naechster sichtbarer Durchgang je gemerktem Satellit).
     # Wird sowohl von /map als auch von /visibility verwendet.
     favorite_norad_ids = load_favorite_norad_ids()
@@ -2056,7 +2097,7 @@ def _build_bright_entries(records, observer, predictor):
     bright_entries = []
     upcoming_visible_passes = []
     for record in bright_records:
-        candidate_passes = predictor.predict(
+        candidate_passes = await _predict_async(predictor, 
             record,
             hours=168,
             minimum_elevation_deg=(
@@ -2099,7 +2140,7 @@ _bright_entries_cache: dict = {"key": None, "expires": 0.0, "value": None}
 _BRIGHT_ENTRIES_CACHE_TTL_SECONDS = 120
 
 
-def _get_cached_bright_entries(records, observer, predictor):
+async def _get_cached_bright_entries(records, observer, predictor):
     """Wie _build_bright_entries, aber mit kurzem Cache.
 
     Die Vorhersage ueber 168 Stunden ist auf schwacher Hardware (Raspberry Pi)
@@ -2116,7 +2157,7 @@ def _get_cached_bright_entries(records, observer, predictor):
     if cached["key"] == favorite_ids and cached["expires"] > now:
         return cached["value"]
 
-    value = _build_bright_entries(records, observer, predictor)
+    value = await _build_bright_entries(records, observer, predictor)
     cached["key"] = favorite_ids
     cached["expires"] = now + _BRIGHT_ENTRIES_CACHE_TTL_SECONDS
     cached["value"] = value
@@ -2146,7 +2187,7 @@ async def map_page(request: Request):
         longitude_deg=observer.longitude_deg,
         elevation_m=observer.elevation_m,
     )
-    bright_entries, _ = _get_cached_bright_entries(records, observer, predictor)
+    bright_entries, _ = await _get_cached_bright_entries(records, observer, predictor)
 
     return templates.TemplateResponse(
         name="map.html",
@@ -2443,7 +2484,7 @@ async def visibility_page(
                 )
 
         if selected_record is not None:
-            raw_passes = predictor.predict(
+            raw_passes = await _predict_async(predictor, 
                 selected_record,
                 hours=hours,
                 minimum_elevation_deg=minimum_elevation,
@@ -2467,7 +2508,7 @@ async def visibility_page(
                     }
                 )
 
-    bright_entries, upcoming_visible_passes = _get_cached_bright_entries(
+    bright_entries, upcoming_visible_passes = await _get_cached_bright_entries(
         records, observer, predictor
     )
 
