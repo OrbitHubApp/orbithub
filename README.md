@@ -1,36 +1,38 @@
 # OrbitHub
 
+🇬🇧 English | [🇩🇪 Deutsch](README.de.md)
+
 <p align="center">
   <img src="app/static/img/orbithub-mission-logo.png" alt="OrbitHub Logo" width="220">
 </p>
 
-Selbst gehostete Webanwendung zur Vorhersage von Satellitenüberflügen für den Einsatz im Amateurfunk. OrbitHub berechnet alle Bahndaten lokal auf eigener Hardware (z. B. einem Raspberry Pi) – ohne dass Beobachtungsstandort oder Nutzungsdaten das eigene Netzwerk verlassen.
+Self-hosted web application for predicting satellite passes for amateur radio use. OrbitHub computes all orbital data locally on your own hardware (e.g. a Raspberry Pi) — your observation location and usage data never leave your own network.
 
-Im Zentrum steht die Frage, die sich jeder Satelliten-Beobachter stellt: Wann und wo am Himmel wird ein bestimmter Satellit als Nächstes sichtbar sein, und wie lange? OrbitHub beantwortet das mit präzisen, auf den eigenen Standort zugeschnittenen Vorhersagen.
+At the heart of it is the question every satellite observer asks: when and where in the sky will a given satellite next be visible, and for how long? OrbitHub answers this with precise predictions tailored to your own location.
 
-## Funktionen
+## Features
 
-- **Übersicht** – Status der Anlage auf einen Blick: nächster Überflug mit Live-Countdown, Zustand der Bahndaten, Systemmetriken des Hosts.
-- **Satellitenkatalog** – durchsuchbare Liste aller verfügbaren Satelliten mit NORAD-ID.
-- **Überflüge** – Aufgangs-, Kulminations- und Untergangszeiten für einen gewählten Satelliten über einen einstellbaren Zeitraum, inklusive maximaler Elevation und Azimut.
-- **Karte** – interaktive Weltkarte mit Live-Position und Bodenspur, eigenem Standort und Sichtbarkeitsradius.
-- **Visuell** – Vorhersage sichtbarer Überflüge heller Objekte (z. B. ISS), inklusive Abgleich von Sonnen- und Beobachterstand.
-- **Downloads** – Export der Bahndaten als TLE-Datei (2-Zeilen- oder 3-Zeilen-Format), auch als fester Link für den automatischen Import in externe Satellitenprogramme.
-- **Statistik** – Verlauf von TLE-Updates und Systemauslastung.
-- **Einstellungen** – eigener Standort, Rufzeichen, Maidenhead-Locator und eine benutzerdefinierte Horizontmaske (z. B. bei Abschattung durch Gebäude).
-- **Historie** – Änderungsprotokoll der Anwendung selbst.
+- **Dashboard** – status of the setup at a glance: next pass with a live countdown, orbital data freshness, host system metrics.
+- **Satellite catalog** – searchable list of all available satellites with NORAD ID.
+- **Passes** – rise, culmination, and set times for a chosen satellite over an adjustable time range, including maximum elevation and azimuth.
+- **Map** – interactive world map with live position and ground track, your own location, and visibility radius.
+- **Visual** – prediction of visible passes of bright objects (e.g. the ISS), including sun and observer position matching.
+- **Downloads** – export orbital data as a TLE file (2-line or 3-line format), also available as a fixed link for automatic import into external satellite tracking software.
+- **Statistics** – history of TLE updates and system load.
+- **Settings** – your own location, callsign, Maidenhead locator, and a custom horizon mask (e.g. for obstruction by buildings).
+- **History** – changelog of the application itself.
 
-## Technik
+## Technology
 
-- Backend: [FastAPI](https://fastapi.tiangolo.com/) mit Jinja2-Templates
-- Bahnberechnung: [Skyfield](https://rhodesmill.org/skyfield/)
-- Bahndaten-Quellen: [CelesTrak](https://celestrak.org/) und [SatNOGS](https://db.satnogs.org/) (automatischer Fallback)
-- Bereitstellung: Docker / Docker Compose
+- Backend: [FastAPI](https://fastapi.tiangolo.com/) with Jinja2 templates
+- Orbit calculation: [Skyfield](https://rhodesmill.org/skyfield/)
+- Orbital data sources: [CelesTrak](https://celestrak.org/) and [SatNOGS](https://db.satnogs.org/) (automatic fallback)
+- Deployment: Docker / Docker Compose
 
-## Voraussetzungen
+## Requirements
 
-- Docker und Docker Compose
-- Getestet auf einem Raspberry Pi 3B, läuft aber auf jedem Docker-Host (auch x86)
+- Docker and Docker Compose
+- Tested on a Raspberry Pi 3B, but runs on any Docker host (including x86)
 
 ## Installation
 
@@ -40,77 +42,57 @@ cd orbithub
 cp data/observer-settings.example.json data/observer-settings.json
 ```
 
-Trage in `data/observer-settings.json` deinen eigenen Standort ein (Rufzeichen, Maidenhead-Locator oder Breiten-/Längengrad). Alternativ lässt sich das nach dem Start bequem über die Seite **Einstellungen** in der Weboberfläche erledigen.
+Enter your own location in `data/observer-settings.json` (callsign, Maidenhead locator, or latitude/longitude). Alternatively, this can be done conveniently after startup via the **Settings** page in the web interface.
 
 ```bash
 docker compose up -d --build
 ```
 
-Anschließend ist OrbitHub unter `http://<host>:8765` erreichbar.
+OrbitHub is then reachable at `http://<host>:8765`.
 
-### Konfiguration
+### Configuration
 
-| Umgebungsvariable | Standard | Bedeutung |
+| Environment variable | Default | Meaning |
 | --- | --- | --- |
-| `ORBITHUB_REFRESH_HOURS` | `6` | Intervall für den automatischen Abruf frischer Bahndaten |
+| `ORBITHUB_REFRESH_HOURS` | `6` | Interval for automatically fetching fresh orbital data |
 
-Der Port lässt sich in `docker-compose.yml` über den `ports`-Eintrag anpassen. Alle Laufzeitdaten (Bahndaten, Einstellungen, Verlauf) liegen im Verzeichnis `data/`, das als Volume eingebunden ist und Neustarts sowie Updates übersteht.
+The port can be changed in `docker-compose.yml` via the `ports` entry. All runtime data (orbital data, settings, history) lives in the `data/` directory, which is mounted as a volume and survives restarts and updates.
 
-## Lizenz
+### Installing on a Raspberry Pi
 
-Veröffentlicht unter der [MIT-Lizenz](LICENSE).
+OrbitHub can be installed directly on a Raspberry Pi. You'll need a Raspberry Pi running a current Raspberry Pi OS and an existing internet connection.
 
-## Danksagung
+1. **Update the system**
 
-Entwickelt von Christian Henkel (DL7AG) für den Einsatz im Amateurfunk. Beiträge und Pull Requests sind willkommen.
+   ```bash
+   sudo apt update
+   sudo apt upgrade -y
+   ```
 
+2. **Install Git** (if not already installed)
 
+   ```bash
+   sudo apt install git -y
+   ```
 
+3. **Download OrbitHub**
 
-## Installation
+   ```bash
+   git clone https://github.com/OrbitHubApp/orbithub.git
+   cd orbithub
+   ```
 
-Hier ist eine kurze Version, die sich gut für die Webseite oder direkt für die GitHub-README eignet:
+4. **Install OrbitHub**
 
-OrbitHub auf dem Raspberry Pi installieren
+   Follow the installation steps above to install the required dependencies and configure OrbitHub. Once set up, OrbitHub can be started on the Raspberry Pi and accessed via a web browser on the local network.
 
-OrbitHub lässt sich direkt auf einem Raspberry Pi installieren. Voraussetzung ist ein Raspberry Pi mit einem aktuellen Raspberry Pi OS sowie eine bestehende Internetverbindung.
+Full installation guide, starting from a bare Raspberry Pi: https://orbithubapp.de/installation/
 
-1. System aktualisieren
+## License
 
-Öffne ein Terminal und aktualisiere zunächst das System:
+Released under the [MIT license](LICENSE).
 
-sudo apt update
-sudo apt upgrade -y
+## Acknowledgments
 
-2. Git installieren
-
-Falls Git noch nicht installiert ist:
-
-sudo apt install git -y
-
-3. OrbitHub herunterladen
-
-Klone das OrbitHub-Repository von GitHub:
-
-git clone https://github.com/OrbitHubApp/orbithub.git
-
-Wechsle anschließend in das Projektverzeichnis:
-
-cd orbithub
-
-4. OrbitHub installieren
-
-Folge nun den Installationsschritten des Projekts, um die benötigten Abhängigkeiten zu installieren und OrbitHub zu konfigurieren.
-
-Nach erfolgreicher Einrichtung kann OrbitHub auf dem Raspberry Pi gestartet und über einen Webbrowser im lokalen Netzwerk aufgerufen werden.
-
-Projekt auf GitHub:
-https://github.com/OrbitHubApp/orbithub
-
----
-
-Ausführliche Installation, angefangen vom nackten RaspberryPi:
-https://orbithubapp.de/installation/
-
-
+Developed by Christian Henkel (DL7AG) for amateur radio use. Contributions and pull requests are welcome.
 
