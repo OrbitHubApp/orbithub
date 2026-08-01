@@ -50,6 +50,7 @@ from app.services.pass_predictor import PassPredictor
 
 _predict_cache: dict = {}
 _PREDICT_CACHE_TTL_SECONDS = 300
+_predict_semaphore = asyncio.Semaphore(1)
 
 
 async def _predict_async(predictor, record, **kwargs):
@@ -84,9 +85,19 @@ async def _predict_async(predictor, record, **kwargs):
     if cached is not None and cached[0] > now:
         return cached[1]
 
-    value = await asyncio.to_thread(predictor.predict, record, **kwargs)
-    _predict_cache[cache_key] = (now + _PREDICT_CACHE_TTL_SECONDS, value)
-    return value
+    # Nur eine schwere Skyfield-Berechnung gleichzeitig zulassen: mehrere
+    # parallele Worker-Threads wuerden sich auf dem Pi sonst gegenseitig die
+    # Python-GIL streitig machen und dabei auch leichte Seiten (z. B. die
+    # Uebersicht) ausbremsen, obwohl die eigentliche Arbeit in Threads laeuft.
+    async with _predict_semaphore:
+        now = time.time()
+        cached = _predict_cache.get(cache_key)
+        if cached is not None and cached[0] > now:
+            return cached[1]
+
+        value = await asyncio.to_thread(predictor.predict, record, **kwargs)
+        _predict_cache[cache_key] = (now + _PREDICT_CACHE_TTL_SECONDS, value)
+        return value
 from app.services.favorites_store import (
     add_favorite,
     load_favorite_norad_ids,
