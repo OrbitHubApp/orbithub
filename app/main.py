@@ -49,7 +49,7 @@ from app.services.pass_predictor import PassPredictor
 
 
 _predict_cache: dict = {}
-_PREDICT_CACHE_TTL_SECONDS = 300
+_PREDICT_CACHE_TTL_SECONDS = 900
 _predict_semaphore = asyncio.Semaphore(1)
 
 
@@ -596,6 +596,35 @@ async def periodic_tle_refresh_loop() -> None:
             print(f"OrbitHub Statistik-Bereinigung-Fehler: {exc!r}")
 
 
+BRIGHT_ENTRIES_PREWARM_INTERVAL_SECONDS = 600
+
+
+async def periodic_bright_entries_prewarm_loop() -> None:
+    """Haelt den Favoriten-Cache (_bright_entries_cache) im Hintergrund warm.
+
+    Die 168h-Vorhersage je Favorit ist auf dem Pi spuerbar langsam (mehrere
+    Sekunden je Favorit). Ohne Vorwaermen traegt die erste Anfrage nach
+    Ablauf von _BRIGHT_ENTRIES_CACHE_TTL_SECONDS auf /passes, /map und
+    /visibility diese Kosten synchron. Diese Schleife berechnet das
+    Ergebnis stattdessen proaktiv im Hintergrund - lange bevor der Cache
+    abgelaufen ist (Intervall deutlich kuerzer als die TTL).
+    """
+    while True:
+        await asyncio.sleep(BRIGHT_ENTRIES_PREWARM_INTERVAL_SECONDS)
+        try:
+            records = await _get_all_tle_records()
+            if records:
+                observer = load_observer_settings()
+                predictor = PassPredictor(
+                    latitude_deg=observer.latitude_deg,
+                    longitude_deg=observer.longitude_deg,
+                    elevation_m=observer.elevation_m,
+                )
+                await _get_cached_bright_entries(records, observer, predictor)
+        except Exception as exc:
+            print(f"OrbitHub Favoriten-Vorwaerm-Fehler: {exc!r}")
+
+
 BERLIN_TZ = ZoneInfo("Europe/Berlin")
 
 
@@ -691,6 +720,7 @@ async def startup_event() -> None:
     await update_tle()
     asyncio.create_task(system_metrics_sampler_loop())
     asyncio.create_task(periodic_tle_refresh_loop())
+    asyncio.create_task(periodic_bright_entries_prewarm_loop())
 
 
 @app.get("/")
@@ -767,20 +797,7 @@ async def passes_page(
     hours: int = 24,
     minimum_elevation: float = 10.0,
 ):
-    parser = TLEParser()
-
-    records = (
-        parser.parse_file(TLE_FILE)
-        if TLE_FILE.exists()
-        else []
-    )
-
-    records = sorted(
-        records,
-        key=lambda record: display_satellite_name(
-            record.name
-        ).lower(),
-    )
+    records = await _get_all_tle_records()
 
     allowed_hours = {24, 48, 72}
 
@@ -2148,7 +2165,7 @@ async def _build_bright_entries(records, observer, predictor):
 
 
 _bright_entries_cache: dict = {"key": None, "expires": 0.0, "value": None}
-_BRIGHT_ENTRIES_CACHE_TTL_SECONDS = 120
+_BRIGHT_ENTRIES_CACHE_TTL_SECONDS = 900
 
 
 async def _get_cached_bright_entries(records, observer, predictor):
