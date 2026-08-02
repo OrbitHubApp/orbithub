@@ -1,0 +1,10 @@
+:8443 {
+  tls /certs/orbithub.pem /certs/orbithub-key.pem
+  log {
+    output stdout
+    format console
+  }
+  reverse_proxy orbithub:8765 {
+    header_down -Content-Disposition
+  }
+}

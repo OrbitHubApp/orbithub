@@ -9,3 +9,15 @@ services:
       - ./data:/app/data
     environment:
       - ORBITHUB_REFRESH_HOURS=6
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: orbithub-caddy
+    restart: unless-stopped
+    depends_on:
+      - orbithub
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./certs:/certs:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro

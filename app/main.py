@@ -2699,6 +2699,14 @@ async def download_tle_export(
         format, (StandardExporter(), "3LE", "txt", "text/plain")
     )
 
+    if format in ('alt', 'satgazer'):
+        records = [r for r in records if r.norad_id.isdigit()]
+        if not records:
+            raise HTTPException(
+                status_code=404,
+                detail='Keine SatGazer-kompatiblen Satelliten (ohne Alpha-5-Katalognummer) gefunden.',
+            )
+
     content = exporter.export(records)
     scope_tag = "Auswahl" if selected_ids else "alle"
     filename = (

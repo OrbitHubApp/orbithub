@@ -22,3 +22,4 @@ data/*.json
 data/*.tle
 data/*.jsonl
 !data/observer-settings.example.json
+certs/
