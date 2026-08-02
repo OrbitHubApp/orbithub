@@ -1,3 +1,24 @@
+/* --- OrbitHub: gemeinsamer "Bitte warten"-Hinweis (Überflüge-Seite) --- */
+(function () {
+  function getToast() {
+    return document.getElementById("orbit-wait-toast");
+  }
+  window.OrbitWait = {
+    show: function () {
+      var toast = getToast();
+      if (toast) {
+        toast.classList.add("is-visible");
+      }
+    },
+    hide: function () {
+      var toast = getToast();
+      if (toast) {
+        toast.classList.remove("is-visible");
+      }
+    },
+  };
+})();
+
 (() => {
 window.OrbitFavorites = {
     refreshPanel: function () {
@@ -19,14 +40,33 @@ window.OrbitFavorites = {
         return window.OrbitFavorites.refreshPanel();
       });
     },
-    remove: function (noradId) {
+    remove: function (noradId, button) {
+      if (button) {
+        button.disabled = true;
+        button.classList.add("is-loading");
+      }
+      if (window.OrbitWait) {
+        window.OrbitWait.show();
+      }
       return fetch("/api/favorites/remove", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ norad_id: noradId }),
-      }).then(function () {
-        return window.OrbitFavorites.refreshPanel();
-      });
+      })
+        .then(function () {
+          return window.OrbitFavorites.refreshPanel();
+        })
+        .catch(function (error) {
+          if (button) {
+            button.disabled = false;
+            button.classList.remove("is-loading");
+          }
+        })
+        .finally(function () {
+          if (window.OrbitWait) {
+            window.OrbitWait.hide();
+          }
+        });
     },
     wirePanel: function () {
       var body = document.getElementById("favorites-panel-body");
@@ -34,19 +74,27 @@ window.OrbitFavorites = {
       body.querySelectorAll(".visibility-bright-card[data-href]").forEach(function (card) {
         card.addEventListener("click", function (event) {
           if (event.target.closest(".favorite-remove-button")) return;
+          card.classList.add("is-loading");
+          if (window.OrbitWait) {
+            window.OrbitWait.show();
+          }
           window.location.href = card.getAttribute("data-href");
         });
         card.addEventListener("keydown", function (event) {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            window.location.href = card.getAttribute("data-href");
+            card.classList.add("is-loading");
+          if (window.OrbitWait) {
+            window.OrbitWait.show();
+          }
+          window.location.href = card.getAttribute("data-href");
           }
         });
       });
       body.querySelectorAll(".favorite-remove-button").forEach(function (button) {
         button.addEventListener("click", function (event) {
           event.stopPropagation();
-          window.OrbitFavorites.remove(button.getAttribute("data-norad-id"));
+          window.OrbitFavorites.remove(button.getAttribute("data-norad-id"), button);
         });
       });
     },

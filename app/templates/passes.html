@@ -163,18 +163,22 @@
 
         <div class="source-form-actions">
           <button
-            class="source-action-button primary"
-            type="submit"
-          >
-            Überflüge berechnen
-          </button>
+          class="source-action-button primary"
+          type="submit"
+          id="passes-submit-button"
+        >
+          <span class="button-spinner" aria-hidden="true"></span>
+          <span class="button-label">Überflüge berechnen</span>
+        </button>
 
           <a
-            class="source-action-button secondary"
-            href="/passes/export.txt?satellite={{ selected_satellite.norad_id if selected_satellite else '' }}&hours={{ hours }}&minimum_elevation={{ minimum_elevation }}"
-          >
-            Als TXT exportieren
-          </a>
+          class="source-action-button secondary"
+          href="/passes/export.txt?satellite={{ selected_satellite.norad_id if selected_satellite else '' }}&hours={{ hours }}&minimum_elevation={{ minimum_elevation }}"
+          id="passes-export-link"
+        >
+          <span class="button-spinner" aria-hidden="true"></span>
+          <span class="button-label">Als TXT exportieren</span>
+        </a>
         </div>
       </form>
     </div>
@@ -479,9 +483,14 @@
       </label>
 
           <div class="source-form-actions">
-            <button class="source-action-button primary" type="submit">
-              Hinzufügen
-            </button>
+            <button
+            class="source-action-button primary"
+            type="submit"
+            id="watchlist-add-button"
+          >
+            <span class="button-spinner" aria-hidden="true"></span>
+            <span class="button-label">Hinzufügen</span>
+          </button>
           </div>
         </div>
       </form>
@@ -589,9 +598,13 @@
 
     <div class="source-form-actions watchlist-table-toolbar">
       <a
-        class="source-action-button secondary"
-        href="/passes/export-watchlist.txt?hours={{ hours }}&amp;minimum_elevation={{ minimum_elevation }}"
-      >TXT-Download (Merkliste)</a>
+          class="source-action-button secondary"
+          href="/passes/export-watchlist.txt?hours={{ hours }}&amp;minimum_elevation={{ minimum_elevation }}"
+          id="watchlist-export-link"
+        >
+          <span class="button-spinner" aria-hidden="true"></span>
+          <span class="button-label">TXT-Download (Merkliste)</span>
+        </a>
     </div>
 
     {% if watchlist_passes %}
@@ -666,4 +679,104 @@
 </script>
 {% endif %}
 
+
+<div
+  class="orbit-wait-toast"
+  id="orbit-wait-toast"
+  role="status"
+  aria-live="polite"
+>
+  <span class="button-spinner" aria-hidden="true"></span>
+  <span>Bitte warten …</span>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  function setBusy(el, busyLabel) {
+    if (!el) {
+      return function () {};
+    }
+    var label = el.querySelector(".button-label");
+    var originalLabel = label ? label.textContent : null;
+    el.classList.add("is-loading");
+    el.setAttribute("aria-busy", "true");
+    if (el.tagName === "BUTTON") {
+      el.disabled = true;
+    }
+    if (label && busyLabel) {
+      label.textContent = busyLabel;
+    }
+    if (window.OrbitWait) {
+      window.OrbitWait.show();
+    }
+    var reset = function () {
+      el.classList.remove("is-loading");
+      el.removeAttribute("aria-busy");
+      if (el.tagName === "BUTTON") {
+        el.disabled = false;
+      }
+      if (label && originalLabel !== null) {
+        label.textContent = originalLabel;
+      }
+      if (window.OrbitWait) {
+        window.OrbitWait.hide();
+      }
+    };
+    /* Sicherheitsnetz: Falls eine Aktion fehlschlaegt und kein expliziter
+       Reset erfolgt (z. B. Netzwerkfehler bei der Merkliste), wird der
+       Ladezustand spaetestens nach 8 Sekunden wieder aufgehoben. */
+    window.setTimeout(reset, 8000);
+    return reset;
+  }
+
+  /* Überflüge berechnen: normales GET-Formular - Ladezustand vor dem
+     Absenden anzeigen, der Seitenwechsel übernimmt danach. */
+  var passesForm = document.querySelector("form.passes-form");
+  var passesSubmitButton = document.getElementById("passes-submit-button");
+  if (passesForm && passesSubmitButton) {
+    passesForm.addEventListener("submit", function () {
+      setBusy(passesSubmitButton, "Bitte warten …");
+    });
+  }
+
+  /* Als TXT exportieren / TXT-Download (Merkliste): Downloads lösen keine
+     Seitennavigation aus, daher Ladezustand nach kurzer Zeit zurücksetzen. */
+  [
+    document.getElementById("passes-export-link"),
+    document.getElementById("watchlist-export-link"),
+  ].forEach(function (link) {
+    if (!link) {
+      return;
+    }
+    link.addEventListener("click", function () {
+      var reset = setBusy(link, "Bitte warten …");
+      window.setTimeout(reset, 1200);
+    });
+  });
+
+  /* Merkliste hinzufügen: Formular wird per fetch abgeschickt (dashboard.js),
+     hier nur den Ladezustand anzeigen. */
+  var watchlistAddForm = document.getElementById("watchlist-add-form");
+  var watchlistAddButton = document.getElementById("watchlist-add-button");
+  var watchlistAddSelect = document.getElementById("watchlist-add-select");
+  if (watchlistAddForm && watchlistAddButton) {
+    watchlistAddForm.addEventListener("submit", function () {
+      if (!watchlistAddSelect || !watchlistAddSelect.value) {
+        return;
+      }
+      setBusy(watchlistAddButton, "Bitte warten …");
+    });
+  }
+
+  /* Merkliste entfernen (Chips) */
+  document.querySelectorAll(".watchlist-chip-remove").forEach(function (button) {
+    button.addEventListener("click", function () {
+      setBusy(button, null);
+    });
+  });
+})();
+</script>
 {% endblock %}
