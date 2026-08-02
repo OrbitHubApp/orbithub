@@ -235,7 +235,7 @@
         </span>
 
         <small class="operator-station-version">
-          OrbitHub Beta V.2.4.0 (Mars)
+          OrbitHub Beta V.3.0.0 (Jupiter)
         </small>
 
           <button
@@ -315,7 +315,21 @@
           </span>
           </div>
 
-          <span class="operator-icon">◯</span>
+          <span class="operator-icon" aria-hidden="true">
+            <svg class="operator-globe" viewBox="0 0 40 40" role="img" focusable="false">
+              <defs>
+                <clipPath id="operatorGlobeClip">
+                  <circle cx="20" cy="20" r="17"></circle>
+                </clipPath>
+              </defs>
+              <circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="1.4"></circle>
+              <g clip-path="url(#operatorGlobeClip)" fill="none" stroke="currentColor" stroke-width="1.1">
+                <ellipse cx="20" cy="20" rx="7.5" ry="17"></ellipse>
+                <ellipse cx="20" cy="20" rx="17" ry="7.5"></ellipse>
+                <line x1="3" y1="20" x2="37" y2="20"></line>
+              </g>
+            </svg>
+          </span>
         </div>
 
       </div>

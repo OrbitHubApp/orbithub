@@ -1727,7 +1727,31 @@ body::before {
 
 .operator-icon {
   color: #dceeff;
-  font-size: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.operator-icon .operator-globe {
+  width: 2rem;
+  height: 2rem;
+  transform-origin: 50% 50%;
+  animation: operator-globe-spin 9s linear infinite;
+}
+
+@keyframes operator-globe-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .operator-icon .operator-globe {
+    animation: none;
+  }
 }
 
 .mission-content {
