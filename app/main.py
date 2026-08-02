@@ -718,6 +718,7 @@ def format_tle_file_time() -> str:
 @app.on_event("startup")
 async def startup_event() -> None:
     await update_tle()
+    await _get_all_tle_records()
     asyncio.create_task(system_metrics_sampler_loop())
     asyncio.create_task(periodic_tle_refresh_loop())
     asyncio.create_task(periodic_bright_entries_prewarm_loop())
@@ -2612,6 +2613,24 @@ async def _get_all_tle_records() -> list:
     cached["mtime"] = mtime
     cached["value"] = records
     return records
+
+
+def _nav_satellite_count() -> str:
+    """Satelliten-Anzahl fuer das Sidebar-Badge.
+
+    Nutzt ausschliesslich den bereits vorhandenen Cache (siehe
+    _get_all_tle_records) und parst nie selbst neu, damit die Navigation
+    auf JEDER Seite sofort erscheint. Vor dem ersten Befuellen des Caches
+    (z. B. kurz nach einem Neustart) liefert die Funktion "-" statt einer
+    Zahl.
+    """
+    cached_records = _downloads_records_cache.get("value")
+    if not cached_records:
+        return "–"
+    return str(len(cached_records))
+
+
+templates.env.globals["nav_satellite_count"] = _nav_satellite_count
 
 
 @app.get(
