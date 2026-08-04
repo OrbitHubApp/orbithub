@@ -313,6 +313,42 @@ def _deduplicate_by_freshness(records):
     return list(best_by_norad.values())
 
 
+
+_TRANSIENT_FETCH_RETRIES = 2
+_TRANSIENT_FETCH_RETRY_DELAY_SECONDS = 3.0
+
+
+async def _fetch_source_text_with_retry(
+    client: httpx.AsyncClient,
+    source: dict[str, str],
+    spacetrack_credentials: dict[str, str] | None,
+) -> str:
+    """Wie fetch_source_text, aber mit kurzen Wiederholungsversuchen bei
+    voruebergehenden Netzwerkproblemen (z. B. DNS-Ausfall durch einen
+    Pi-hole-Neustart, abgebrochene Verbindung, Timeout). Erst nach
+    _TRANSIENT_FETCH_RETRIES gescheiterten Versuchen wird der Fehler an
+    den Aufrufer weitergegeben, sodass update_tle() dann wie bisher auf
+    die naechste Quelle zurueckfaellt."""
+    last_error: Exception | None = None
+
+    for attempt in range(_TRANSIENT_FETCH_RETRIES + 1):
+        try:
+            return await fetch_source_text(
+                client,
+                source,
+                spacetrack_credentials=spacetrack_credentials,
+            )
+        except (httpx.TransportError, OSError) as exc:
+            last_error = exc
+            if attempt < _TRANSIENT_FETCH_RETRIES:
+                await asyncio.sleep(_TRANSIENT_FETCH_RETRY_DELAY_SECONDS)
+                continue
+            raise
+
+    assert last_error is not None
+    raise last_error
+
+
 async def update_tle() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -368,12 +404,10 @@ async def update_tle() -> None:
         ) as client:
             for source in source_order:
                 try:
-                    candidate_text = (
-                        await fetch_source_text(
-                            client,
-                            source,
-                            spacetrack_credentials=spacetrack_credentials,
-                        )
+                    candidate_text = await _fetch_source_text_with_retry(
+                        client,
+                        source,
+                        spacetrack_credentials,
                     )
 
                     _check_tle_freshness(candidate_text)
