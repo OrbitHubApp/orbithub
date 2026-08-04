@@ -27,6 +27,7 @@ from app.config import (
     CUSTOM_SOURCES_FILE,
     DATA_DIR,
     HISTORY_FILE,
+    SATNOGS_ALIASES_FILE,
     SOURCE_SETTINGS_FILE,
     SOURCE_URLS,
     SPACETRACK_CREDENTIALS_FILE,
@@ -45,6 +46,7 @@ from app.services.stats_store import (
 )
 from app.services.system_metrics import collect_system_metrics
 from app.services.tle_parser import TLEParser
+from app.services.satnogs_aliases import fetch_and_save_satnogs_aliases
 from app.services.pass_predictor import PassPredictor
 
 
@@ -624,6 +626,22 @@ async def periodic_tle_refresh_loop() -> None:
     while True:
         await asyncio.sleep(TLE_REFRESH_HOURS * 3600)
         await update_tle()
+
+
+SATNOGS_ALIAS_REFRESH_HOURS = 24
+
+
+async def update_satnogs_aliases() -> None:
+    try:
+        await fetch_and_save_satnogs_aliases(SATNOGS_ALIASES_FILE)
+    except Exception as exc:
+        print(f"OrbitHub SatNOGS-Alias-Fehler: {exc!r}")
+
+
+async def periodic_satnogs_alias_refresh_loop() -> None:
+    while True:
+        await asyncio.sleep(SATNOGS_ALIAS_REFRESH_HOURS * 3600)
+        await update_satnogs_aliases()
         try:
             prune_old_entries()
         except Exception as exc:
@@ -752,9 +770,11 @@ def format_tle_file_time() -> str:
 @app.on_event("startup")
 async def startup_event() -> None:
     await update_tle()
+    await update_satnogs_aliases()
     await _get_all_tle_records()
     asyncio.create_task(system_metrics_sampler_loop())
     asyncio.create_task(periodic_tle_refresh_loop())
+    asyncio.create_task(periodic_satnogs_alias_refresh_loop())
     asyncio.create_task(periodic_bright_entries_prewarm_loop())
 
 

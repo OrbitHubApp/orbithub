@@ -2,6 +2,12 @@ from pathlib import Path
 
 from app.models.tle_record import TLERecord
 
+from app.config import SATNOGS_ALIASES_FILE
+from app.services.satnogs_aliases import (
+    enrich_name_with_alias,
+    load_satnogs_aliases,
+)
+
 
 class TLEParser:
     """
@@ -46,6 +52,21 @@ class TLEParser:
                 continue
 
             index += 1
+
+        aliases = load_satnogs_aliases(SATNOGS_ALIASES_FILE)
+        if aliases:
+            records = [
+                TLERecord(
+                    name=enrich_name_with_alias(
+                        record.name,
+                        record.norad_id,
+                        aliases,
+                    ),
+                    line1=record.line1,
+                    line2=record.line2,
+                )
+                for record in records
+            ]
 
         return records
 
