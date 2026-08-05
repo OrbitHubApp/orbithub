@@ -930,6 +930,11 @@ async def passes_page(
         favorite_norad_ids = load_favorite_norad_ids()
     watchlist_records = []
     watchlist_passes = []
+    favorites_count = len(load_favorite_norad_ids())
+    package_counts = {
+        package_id: len(load_package_norad_ids(package_id))
+        for package_id in PACKAGE_LABELS
+    }
 
     if records:
         if satellite:
@@ -1046,6 +1051,8 @@ async def passes_page(
             "watchlist_selection": watchlist_selection,
             "available_packages": PACKAGE_LABELS,
             "active_package_label": active_package_label,
+            "favorites_count": favorites_count,
+            "package_counts": package_counts,
             "horizon_shadow_segments": horizon_shadow_segments,
             "observer_name": observer.qth_name,
             "observer_locator": observer.locator,

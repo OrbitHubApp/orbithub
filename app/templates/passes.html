@@ -446,15 +446,23 @@
           type="button"
           class="source-action-button {% if watchlist_selection == 'favorites' %}primary{% else %}secondary{% endif %}"
           data-watchlist-selection="favorites"
+          data-watchlist-count="{{ favorites_count }}"
         >Meine Favoriten</button>
         {% for package_id, package_label in available_packages.items() %}
         <button
           type="button"
           class="source-action-button {% if watchlist_selection == 'package:' ~ package_id %}primary{% else %}secondary{% endif %}"
           data-watchlist-selection="package:{{ package_id }}"
+          data-watchlist-count="{{ package_counts.get(package_id, 0) }}"
         >{{ package_label }}</button>
         {% endfor %}
       </div>
+      <div
+        class="dataset-update-status"
+        id="watchlist-source-status"
+        role="status"
+        aria-live="polite"
+      ></div>
 
       {% if watchlist_selection != "favorites" %}
       <p class="watchlist-empty-hint">
@@ -796,22 +804,57 @@
   }
 
   /* Satelliten-Quelle umschalten (Favoriten <-> Paket) */
+  var watchlistSourceStatus = document.getElementById(
+    "watchlist-source-status"
+  );
+  function showWatchlistSourceStatus(message, state) {
+    if (!watchlistSourceStatus) {
+      return;
+    }
+    watchlistSourceStatus.textContent = message;
+    watchlistSourceStatus.className = (
+      "dataset-update-status " + (state || "")
+    ).trim();
+  }
   document
     .querySelectorAll(".watchlist-source-switch [data-watchlist-selection]")
     .forEach(function (button) {
       button.addEventListener("click", function () {
         var selection = button.getAttribute("data-watchlist-selection");
+        var label = (button.textContent || "").trim();
+        var count = button.getAttribute("data-watchlist-count") || "0";
+        document
+          .querySelectorAll(
+            ".watchlist-source-switch [data-watchlist-selection]"
+          )
+          .forEach(function (other) {
+            other.disabled = true;
+          });
         setBusy(button, "Bitte warten …");
+        showWatchlistSourceStatus(
+          "Wechsle zu " +
+            label +
+            " (" +
+            count +
+            " Satelliten) … Die Überflüge werden für alle Satelliten neu " +
+            "berechnet, das kann bei vielen Satelliten bis zu einer Minute " +
+            "dauern.",
+          "is-running"
+        );
         fetch("/api/watchlist/select", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ selection: selection }),
         })
           .then(function () {
-            window.location.reload();
+            window.setTimeout(function () {
+              window.location.reload();
+            }, 1200);
           })
           .catch(function () {
-            window.location.reload();
+            window.setTimeout(function () {
+              window.location.reload();
+            }, 1200);
           });
       });
     });
