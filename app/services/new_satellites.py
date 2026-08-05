@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-NEW_SATELLITE_MAX_AGE_DAYS = 60
+NEW_SATELLITE_MAX_AGE_DAYS = 30
 
 
 def _read_store(path: Path) -> list:
