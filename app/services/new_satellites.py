@@ -23,6 +23,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+NEW_SATELLITE_MAX_AGE_DAYS = 60
+
 
 def _read_store(path: Path) -> list:
     if not path.exists():
@@ -57,11 +59,33 @@ def load_new_satellites(path: Path) -> list:
     )
 
 
+def _is_recent_launch(
+    norad_id: str,
+    satnogs_launched: dict,
+    max_age_days: int = NEW_SATELLITE_MAX_AGE_DAYS,
+) -> bool:
+    """Prueft, ob ein Objekt laut SatNOGS-Startdatum jung genug ist,
+    um noch als 'neu entdeckt' zu gelten. Ohne bekanntes Startdatum
+    wird das Objekt sicherheitshalber ausgeschlossen."""
+    launched_at = satnogs_launched.get(norad_id)
+    if not launched_at:
+        return False
+    try:
+        launched_dt = datetime.fromisoformat(
+            launched_at.replace("Z", "+00:00")
+        )
+    except ValueError:
+        return False
+    age_days = (datetime.now(timezone.utc) - launched_dt).days
+    return 0 <= age_days <= max_age_days
+
+
 def record_new_satellites(
     new_ids,
     new_by_norad: dict,
     satnogs_aliases: dict,
     tinygs_aliases: dict,
+    satnogs_launched: dict,
     path: Path,
 ) -> list:
     """Prueft neu aufgetauchte NORAD-IDs auf einen bekannten
@@ -91,6 +115,9 @@ def record_new_satellites(
             source = "satnogs"
 
         if not alias_name:
+            continue
+
+        if not _is_recent_launch(norad_id, satnogs_launched):
             continue
 
         record = new_by_norad.get(norad_id)

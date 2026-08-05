@@ -51,6 +51,7 @@ from app.services.tle_parser import TLEParser
 from app.services.satnogs_aliases import (
     fetch_and_save_satnogs_aliases,
     load_satnogs_aliases,
+    load_satnogs_launched,
 )
 from app.services.tinygs_aliases import (
     fetch_and_save_tinygs_aliases,
@@ -479,11 +480,13 @@ async def update_tle() -> None:
         
         satnogs_aliases_map = load_satnogs_aliases(SATNOGS_ALIASES_FILE)
         tinygs_aliases_map = load_tinygs_aliases(TINYGS_ALIASES_FILE)
+        satnogs_launched_map = load_satnogs_launched(SATNOGS_ALIASES_FILE)
         record_new_satellites(
             new_ids,
             new_by_norad,
             satnogs_aliases_map,
             tinygs_aliases_map,
+            satnogs_launched_map,
             NEW_SATELLITES_FILE,
         )
 

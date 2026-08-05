@@ -16,14 +16,14 @@
   <div>
     <div class="eyebrow">COMMUNITY-ERKENNUNG</div>
 
-    <h2>Kuerzlich aufgetauchte Satelliten</h2>
+    <h2>Kürzlich aufgetauchte Satelliten</h2>
 
     <p>
       Objekte, die neu in der aktiven TLE-Quelle erschienen sind und von
       TinyGS oder SatNOGS DB bereits einen Namen zugeordnet bekommen haben,
-      obwohl der offizielle Katalog sie noch als Platzhalter fuehrt
+      obwohl der offizielle Katalog sie noch als Platzhalter führt
       (z. B. "OBJECT BJ"). Bahndaten liegen bereits vor - ein Klick
-      genuegt, um sie zu den Favoriten hinzuzufuegen.
+      genügt, um sie zu den Favoriten hinzuzufügen.
     </p>
   </div>
 
@@ -56,7 +56,7 @@
           <td>{{ entry.name }}</td>
           <td>{{ entry.norad_id }}</td>
           <td>{{ entry.source }}</td>
-          <td>{{ entry.first_seen_utc[:16]|replace("T", " ") }} UTC</td>
+          <td>{{ entry.first_seen_utc[:10] }}</td>
           <td>
             {% if entry.norad_id in favorite_norad_ids %}
               <span class="source-action-button secondary" aria-disabled="true">In Favoriten</span>
@@ -67,7 +67,7 @@
                 data-add-new-satellite
                 data-norad="{{ entry.norad_id }}"
               >
-                Zu Favoriten hinzufuegen
+                Favorisieren
               </button>
             {% endif %}
             <a
@@ -92,13 +92,13 @@
 <section class="source-update-panel">
   <div>
     <div class="label">
-      DATENSAETZE
+      DATENSÄTZE
     </div>
 
     <h3>Neue Satelliten jetzt suchen</h3>
 
     <p>
-      Prueft die aktive TLE-Quelle auf neu hinzugekommene Objekte und
+      Prüft die aktive TLE-Quelle auf neu hinzugekommene Objekte und
       gleicht sie sofort mit TinyGS- und SatNOGS-Aliasen ab.
     </p>
   </div>
@@ -160,7 +160,7 @@
         throw new Error(data.error || "Aktualisierung fehlgeschlagen.");
       }
       showGlobalStatus(
-        "Datensaetze aktualisiert. Seite wird neu geladen …",
+        "Datensätze aktualisiert. Seite wird neu geladen …",
         "is-success"
       );
       window.setTimeout(() => {
@@ -185,7 +185,7 @@ document.addEventListener("click", async function (event) {
 
   var noradId = button.getAttribute("data-norad");
   button.disabled = true;
-  button.textContent = "Wird hinzugefuegt...";
+  button.textContent = "Wird hinzugefügt...";
 
   try {
     var response = await fetch("/api/favorites/add", {
@@ -201,8 +201,8 @@ document.addEventListener("click", async function (event) {
     button.outerHTML = '<span class="source-action-button secondary" aria-disabled="true">In Favoriten</span>';
   } catch (error) {
     button.disabled = false;
-    button.textContent = "Zu Favoriten hinzufuegen";
-    window.alert("Konnte nicht zu Favoriten hinzugefuegt werden.");
+    button.textContent = "Favorisieren";
+    window.alert("Konnte nicht zu Favoriten hinzugefügt werden.");
   }
 });
 </script>

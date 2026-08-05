@@ -74,9 +74,13 @@ async def fetch_and_save_satnogs_aliases(path: Path) -> dict[str, Any]:
         satellites = response.json()
 
     aliases: dict[str, str] = {}
+    launched: dict[str, str] = {}
     for satellite in satellites:
         norad_cat_id = satellite.get("norad_cat_id")
         name = (satellite.get("name") or "").strip()
+        launched_at = satellite.get("launched")
+        if norad_cat_id is not None and launched_at:
+            launched[str(norad_cat_id)] = launched_at
         if norad_cat_id is None or not name:
             continue
         aliases[str(norad_cat_id)] = name
@@ -86,6 +90,7 @@ async def fetch_and_save_satnogs_aliases(path: Path) -> dict[str, Any]:
         "source": SATNOGS_SATELLITES_URL,
         "count": len(aliases),
         "aliases": aliases,
+        "launched": launched,
     }
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -96,6 +101,39 @@ async def fetch_and_save_satnogs_aliases(path: Path) -> dict[str, Any]:
     _cache["mtime"] = None
 
     return payload
+
+
+_launch_cache: dict[str, Any] = {"mtime": None, "value": {}}
+
+
+def _read_launch_cache_file(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    launched = payload.get("launched", {})
+    if not isinstance(launched, dict):
+        return {}
+    return launched
+
+
+def load_satnogs_launched(path: Path) -> dict[str, str]:
+    """Liest die zwischengespeicherten SatNOGS-Startdaten
+    (norad_cat_id -> ISO-Startdatum), gecacht anhand der Datei-mtime."""
+    if not path.exists():
+        return {}
+
+    mtime = path.stat().st_mtime
+    if _launch_cache["mtime"] == mtime:
+        return _launch_cache["value"]
+
+    launched = _read_launch_cache_file(path)
+    _launch_cache["mtime"] = mtime
+    _launch_cache["value"] = launched
+    return launched
 
 
 def enrich_name_with_alias(name: str, norad_id: str, aliases: dict[str, str]) -> str:
