@@ -89,6 +89,93 @@
   {% endif %}
 </section>
 
+<section class="source-update-panel">
+  <div>
+    <div class="label">
+      DATENSAETZE
+    </div>
+
+    <h3>Neue Satelliten jetzt suchen</h3>
+
+    <p>
+      Prueft die aktive TLE-Quelle auf neu hinzugekommene Objekte und
+      gleicht sie sofort mit TinyGS- und SatNOGS-Aliasen ab.
+    </p>
+  </div>
+
+  <button
+    class="update-dataset-button"
+    id="new-satellites-update-button"
+    type="button"
+  >
+    <span class="update-button-icon">↻</span>
+    Jetzt aktualisieren
+  </button>
+</section>
+
+<div
+  class="dataset-update-status"
+  id="new-satellites-global-status"
+  role="status"
+  aria-live="polite"
+></div>
+
+<script>
+(() => {
+  const updateButton = document.getElementById(
+    "new-satellites-update-button"
+  );
+  const globalStatus = document.getElementById(
+    "new-satellites-global-status"
+  );
+
+  function showGlobalStatus(message, state = "") {
+    globalStatus.textContent = message;
+    globalStatus.className =
+      `dataset-update-status ${state}`.trim();
+  }
+
+  async function postJson(url, payload = {}) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+    return response.json();
+  }
+
+  updateButton.addEventListener("click", async () => {
+    updateButton.disabled = true;
+    updateButton.classList.add("is-updating");
+    showGlobalStatus(
+      "Neue Satelliten werden gesucht …",
+      "is-running"
+    );
+
+    try {
+      const data = await postJson("/api/sources/refresh");
+      if (!data.ok) {
+        throw new Error(data.error || "Aktualisierung fehlgeschlagen.");
+      }
+      showGlobalStatus(
+        "Datensaetze aktualisiert. Seite wird neu geladen …",
+        "is-success"
+      );
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 900);
+    } catch (error) {
+      showGlobalStatus(`Fehler: ${error.message}`, "is-error");
+    } finally {
+      updateButton.disabled = false;
+      updateButton.classList.remove("is-updating");
+    }
+  });
+})();
+</script>
+
 <script>
 document.addEventListener("click", async function (event) {
   var button = event.target.closest("[data-add-new-satellite]");
