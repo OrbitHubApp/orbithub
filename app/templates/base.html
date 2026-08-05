@@ -149,6 +149,14 @@
             </span>
           </a>
 
+    <a class="nav-item {% block nav_new_satellites %}{% endblock %}" href="/new-satellites">
+      <span class="nav-icon">*</span>
+      <span>Neue Satelliten</span>
+      <span class="nav-count">
+        {{ nav_new_satellite_count() }}
+      </span>
+    </a>
+    
     <a class="nav-item {% block nav_map %}{% endblock %}" href="/map">
             <span class="nav-icon">◎</span>
             <span>Karte</span>

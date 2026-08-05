@@ -28,6 +28,8 @@ from app.config import (
     DATA_DIR,
     HISTORY_FILE,
     SATNOGS_ALIASES_FILE,
+    TINYGS_ALIASES_FILE,
+    NEW_SATELLITES_FILE,
     SOURCE_SETTINGS_FILE,
     SOURCE_URLS,
     SPACETRACK_CREDENTIALS_FILE,
@@ -46,7 +48,18 @@ from app.services.stats_store import (
 )
 from app.services.system_metrics import collect_system_metrics
 from app.services.tle_parser import TLEParser
-from app.services.satnogs_aliases import fetch_and_save_satnogs_aliases
+from app.services.satnogs_aliases import (
+    fetch_and_save_satnogs_aliases,
+    load_satnogs_aliases,
+)
+from app.services.tinygs_aliases import (
+    fetch_and_save_tinygs_aliases,
+    load_tinygs_aliases,
+)
+from app.services.new_satellites import (
+    load_new_satellites,
+    record_new_satellites,
+)
 from app.services.pass_predictor import PassPredictor
 
 
@@ -463,6 +476,16 @@ async def update_tle() -> None:
 
         old_ids = set(old_by_norad)
         new_ids = set(new_by_norad)
+        
+        satnogs_aliases_map = load_satnogs_aliases(SATNOGS_ALIASES_FILE)
+        tinygs_aliases_map = load_tinygs_aliases(TINYGS_ALIASES_FILE)
+        record_new_satellites(
+            new_ids,
+            new_by_norad,
+            satnogs_aliases_map,
+            tinygs_aliases_map,
+            NEW_SATELLITES_FILE,
+        )
 
         new_satellites = len(
             new_ids - old_ids
@@ -631,6 +654,22 @@ async def periodic_tle_refresh_loop() -> None:
 SATNOGS_ALIAS_REFRESH_HOURS = 24
 
 
+TINYGS_ALIAS_REFRESH_HOURS = 24
+
+
+async def update_tinygs_aliases() -> None:
+    try:
+        await fetch_and_save_tinygs_aliases(TINYGS_ALIASES_FILE)
+    except Exception as exc:
+        print(f"OrbitHub TinyGS-Alias-Fehler: {exc!r}")
+
+
+async def periodic_tinygs_alias_refresh_loop() -> None:
+    while True:
+        await asyncio.sleep(TINYGS_ALIAS_REFRESH_HOURS * 3600)
+        await update_tinygs_aliases()
+
+
 async def update_satnogs_aliases() -> None:
     try:
         await fetch_and_save_satnogs_aliases(SATNOGS_ALIASES_FILE)
@@ -771,10 +810,12 @@ def format_tle_file_time() -> str:
 async def startup_event() -> None:
     await update_tle()
     await update_satnogs_aliases()
+    await update_tinygs_aliases()
     await _get_all_tle_records()
     asyncio.create_task(system_metrics_sampler_loop())
     asyncio.create_task(periodic_tle_refresh_loop())
     asyncio.create_task(periodic_satnogs_alias_refresh_loop())
+    asyncio.create_task(periodic_tinygs_alias_refresh_loop())
     asyncio.create_task(periodic_bright_entries_prewarm_loop())
 
 
@@ -1391,6 +1432,28 @@ async def satellites_page(request: Request):
             ),
             "records": status["records"],
             "satellites": records,
+        },
+    )
+
+
+@app.get("/new-satellites")
+async def new_satellites_page(request: Request):
+    entries = load_new_satellites(NEW_SATELLITES_FILE)
+    favorite_norad_ids = load_favorite_norad_ids()
+
+    return templates.TemplateResponse(
+        name="new_satellites.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "version": VERSION,
+            "codename": CODENAME,
+            "refresh_seconds": (
+                DASHBOARD_REFRESH_SECONDS
+            ),
+            "new_satellites": entries,
+            "favorite_norad_ids": favorite_norad_ids,
         },
     )
 
@@ -2685,6 +2748,24 @@ def _nav_satellite_count() -> str:
 
 
 templates.env.globals["nav_satellite_count"] = _nav_satellite_count
+
+
+def _nav_new_satellite_count() -> str:
+    """Anzahl der neu erkannten, noch nicht favorisierten Satelliten
+    fuer das Sidebar-Badge."""
+    entries = load_new_satellites(NEW_SATELLITES_FILE)
+    favorite_norad_ids = set(load_favorite_norad_ids())
+    pending = [
+        entry
+        for entry in entries
+        if entry.get("norad_id") not in favorite_norad_ids
+    ]
+    if not pending:
+        return "-"
+    return str(len(pending))
+
+
+templates.env.globals["nav_new_satellite_count"] = _nav_new_satellite_count
 
 
 @app.get(

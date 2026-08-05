@@ -2,11 +2,12 @@ from pathlib import Path
 
 from app.models.tle_record import TLERecord
 
-from app.config import SATNOGS_ALIASES_FILE
+from app.config import SATNOGS_ALIASES_FILE, TINYGS_ALIASES_FILE
 from app.services.satnogs_aliases import (
     enrich_name_with_alias,
     load_satnogs_aliases,
 )
+from app.services.tinygs_aliases import load_tinygs_aliases
 
 
 class TLEParser:
@@ -53,7 +54,10 @@ class TLEParser:
 
             index += 1
 
-        aliases = load_satnogs_aliases(SATNOGS_ALIASES_FILE)
+        aliases = {
+            **load_satnogs_aliases(SATNOGS_ALIASES_FILE),
+            **load_tinygs_aliases(TINYGS_ALIASES_FILE),
+        }
         if aliases:
             records = [
                 TLERecord(

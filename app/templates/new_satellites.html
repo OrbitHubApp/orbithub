@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}
+  OrbitHub &middot; Neue Satelliten
+{% endblock %}
+
+{% block nav_new_satellites %}active{% endblock %}
+
+{% block page_heading %}
+  Neue Satelliten
+{% endblock %}
+
+{% block content %}
+
+<section class="mission-hero">
+  <div>
+    <div class="eyebrow">COMMUNITY-ERKENNUNG</div>
+
+    <h2>Kuerzlich aufgetauchte Satelliten</h2>
+
+    <p>
+      Objekte, die neu in der aktiven TLE-Quelle erschienen sind und von
+      TinyGS oder SatNOGS DB bereits einen Namen zugeordnet bekommen haben,
+      obwohl der offizielle Katalog sie noch als Platzhalter fuehrt
+      (z. B. "OBJECT BJ"). Bahndaten liegen bereits vor - ein Klick
+      genuegt, um sie zu den Favoriten hinzuzufuegen.
+    </p>
+  </div>
+
+  <div class="hero-online">
+    <span class="hero-online-dot"></span>
+    <div>
+      <strong>{{ new_satellites|length }}</strong>
+      <small>Kandidaten</small>
+    </div>
+  </div>
+</section>
+
+<section>
+  {% if new_satellites %}
+  <div class="table-scroll">
+    <table class="mission-table" id="new-satellite-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>NORAD-ID</th>
+          <th>Quelle</th>
+          <th>Erstmals gesehen</th>
+          <th>Aktion</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for entry in new_satellites %}
+        <tr data-norad="{{ entry.norad_id|lower }}">
+          <td>{{ entry.name }}</td>
+          <td>{{ entry.norad_id }}</td>
+          <td>{{ entry.source }}</td>
+          <td>{{ entry.first_seen_utc[:16]|replace("T", " ") }} UTC</td>
+          <td>
+            {% if entry.norad_id in favorite_norad_ids %}
+              <span class="source-action-button secondary" aria-disabled="true">In Favoriten</span>
+            {% else %}
+              <button
+                type="button"
+                class="source-action-button"
+                data-add-new-satellite
+                data-norad="{{ entry.norad_id }}"
+              >
+                Zu Favoriten hinzufuegen
+              </button>
+            {% endif %}
+            <a
+              class="source-action-button secondary"
+              href="/passes?satellite={{ entry.norad_id }}"
+            >
+              Ueberfluege
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="satellite-empty-block">
+    Aktuell keine neuen, von der Community identifizierten Satelliten.
+  </p>
+  {% endif %}
+</section>
+
+<script>
+document.addEventListener("click", async function (event) {
+  var button = event.target.closest("[data-add-new-satellite]");
+  if (!button) {
+    return;
+  }
+
+  var noradId = button.getAttribute("data-norad");
+  button.disabled = true;
+  button.textContent = "Wird hinzugefuegt...";
+
+  try {
+    var response = await fetch("/api/favorites/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ norad_id: noradId }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Anfrage fehlgeschlagen");
+    }
+
+    button.outerHTML = '<span class="source-action-button secondary" aria-disabled="true">In Favoriten</span>';
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = "Zu Favoriten hinzufuegen";
+    window.alert("Konnte nicht zu Favoriten hinzugefuegt werden.");
+  }
+});
+</script>
+
+{% endblock %}

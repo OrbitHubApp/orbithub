@@ -15,6 +15,8 @@ CUSTOM_SOURCES_FILE = DATA_DIR / "custom-sources.json"
 SPACETRACK_CREDENTIALS_FILE = DATA_DIR / "spacetrack-credentials.json"
 HISTORY_FILE = DATA_DIR / "history.json"
 SATNOGS_ALIASES_FILE = DATA_DIR / "satnogs-aliases.json"
+TINYGS_ALIASES_FILE = DATA_DIR / "tinygs-aliases.json"
+NEW_SATELLITES_FILE = DATA_DIR / "new-satellites.json"
 
 DASHBOARD_REFRESH_SECONDS = 60
 
