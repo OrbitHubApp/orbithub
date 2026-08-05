@@ -124,6 +124,12 @@
       <input type="checkbox" id="map-track-toggle" class="map-track-toggle" />
       Bahnverfolgung für ausgewählte Satelliten
     </label>
+    <span
+      id="map-track-limit-hint"
+      class="map-track-limit-hint"
+      hidden
+      style="color: var(--mission-muted); font-size: 0.85rem;"
+    >Bei mehr als 20 Satelliten deaktiviert, um den Server nicht zu überlasten.</span>
     <div class="map-track-legend" id="map-track-legend"></div>
     </div>
     <div class="world-map-wrap">
@@ -434,9 +440,21 @@
     trackRefreshTimer = window.setInterval(fetchTrack, 30000);
   }
 
-  function updateTrackOptions() {
+  const TRACK_MAX_SATELLITES = 20;
+    const trackLimitHint = document.getElementById("map-track-limit-hint");
+
+    function updateTrackOptions() {
       if (!trackToggle) return;
-      if (trackToggle.checked && selectedIds().length > 0) {
+      const count = selectedIds().length;
+      const overLimit = count > TRACK_MAX_SATELLITES;
+      trackToggle.disabled = overLimit;
+      if (trackLimitHint) {
+        trackLimitHint.hidden = !overLimit;
+      }
+      if (overLimit && trackToggle.checked) {
+        trackToggle.checked = false;
+      }
+      if (trackToggle.checked && count > 0 && !overLimit) {
         startTrack();
       } else {
         stopTrack();
