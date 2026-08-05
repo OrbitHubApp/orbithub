@@ -119,6 +119,11 @@ from app.services.favorites_store import (
     load_favorite_norad_ids,
     remove_favorite,
 )
+from app.services.satellite_packages import PACKAGE_LABELS, load_package_norad_ids
+from app.services.watchlist_selection import (
+    load_watchlist_selection,
+    save_watchlist_selection,
+)
 from app.services.visibility import (
     assess_visibility,
     is_known_bright_satellite,
@@ -910,7 +915,19 @@ async def passes_page(
 
     selected_record = None
     satellite_passes = []
-    favorite_norad_ids = load_favorite_norad_ids()
+    watchlist_selection = load_watchlist_selection()
+    active_package_label = None
+    if watchlist_selection.startswith("package:"):
+        package_id = watchlist_selection.split(":", 1)[1]
+        favorite_norad_ids = load_package_norad_ids(package_id)
+        if favorite_norad_ids:
+            active_package_label = PACKAGE_LABELS.get(package_id, package_id)
+        else:
+            watchlist_selection = "favorites"
+            favorite_norad_ids = load_favorite_norad_ids()
+    else:
+        watchlist_selection = "favorites"
+        favorite_norad_ids = load_favorite_norad_ids()
     watchlist_records = []
     watchlist_passes = []
 
@@ -1026,6 +1043,9 @@ async def passes_page(
             "watchlist_passes": watchlist_passes,
             "watchlist_satellites": watchlist_records,
             "watchlist_norad_ids": favorite_norad_ids,
+            "watchlist_selection": watchlist_selection,
+            "available_packages": PACKAGE_LABELS,
+            "active_package_label": active_package_label,
             "horizon_shadow_segments": horizon_shadow_segments,
             "observer_name": observer.qth_name,
             "observer_locator": observer.locator,
@@ -1543,6 +1563,28 @@ async def remove_favorite_satellite(request: Request) -> dict:
 
     favorites = remove_favorite(norad_id)
     return {"ok": True, "favorites": favorites}
+
+
+@app.post("/api/watchlist/select")
+async def select_watchlist_source(request: Request) -> dict:
+    payload = await request.json()
+
+    selection = str(payload.get("selection", "")).strip() or "favorites"
+    if selection != "favorites":
+        package_id = (
+            selection.split(":", 1)[1]
+            if selection.startswith("package:")
+            else selection
+        )
+        if package_id not in PACKAGE_LABELS:
+            raise HTTPException(
+                status_code=400,
+                detail="Unbekanntes Satelliten-Paket.",
+            )
+        selection = f"package:{package_id}"
+
+    save_watchlist_selection(selection)
+    return {"ok": True, "selection": selection}
 
 
 @app.get("/api/favorites/panel-html")

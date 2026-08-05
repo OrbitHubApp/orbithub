@@ -435,12 +435,35 @@
   <div class="passes-left-column">
     <div class="add-source-panel watchlist-panel">
       <span class="label">MERKLISTE</span>
-      <h3>Meine Satelliten</h3>
+      <h3>{% if watchlist_selection == "favorites" %}Meine Satelliten{% else %}{{ active_package_label }}{% endif %}</h3>
       <p>
         Satelliten aus dem Katalog hinzufügen, um ihre Überflüge
         gesammelt zu sehen. Die Liste kann jederzeit geändert werden.
       </p>
 
+      <div class="watchlist-source-switch" role="group" aria-label="Satellitenquelle">
+        <button
+          type="button"
+          class="source-action-button {% if watchlist_selection == 'favorites' %}primary{% else %}secondary{% endif %}"
+          data-watchlist-selection="favorites"
+        >Meine Favoriten</button>
+        {% for package_id, package_label in available_packages.items() %}
+        <button
+          type="button"
+          class="source-action-button {% if watchlist_selection == 'package:' ~ package_id %}primary{% else %}secondary{% endif %}"
+          data-watchlist-selection="package:{{ package_id }}"
+        >{{ package_label }}</button>
+        {% endfor %}
+      </div>
+
+      {% if watchlist_selection != "favorites" %}
+      <p class="watchlist-empty-hint">
+        {{ active_package_label }}-Paket aktiv: zeigt automatisch alle aktuell bekannten Satelliten dieser Quelle.
+        Um die Merkliste selbst zu bearbeiten, zurueck zu &quot;Meine Favoriten&quot; wechseln.
+      </p>
+      {% endif %}
+
+      {% if watchlist_selection == "favorites" %}
       <form id="watchlist-add-form" class="add-source-form passes-form-grid">
         <div class="source-form-grid passes-form-grid">
       <label>
@@ -494,6 +517,7 @@
           </div>
         </div>
       </form>
+      {% endif %}
 
       {% if watchlist_satellites %}
         <ul class="watchlist-chips" id="watchlist-chips">
@@ -502,7 +526,7 @@
               <span>{{ satellite.name|display_name }}</span>
               <button
                 type="button"
-                class="watchlist-chip-remove"
+                class="watchlist-chip-remove" {% if watchlist_selection != "favorites" %}hidden{% endif %}
                 data-norad-id="{{ satellite.norad_id }}"
                 aria-label="{{ satellite.name|display_name }} entfernen"
               >&times;</button>
@@ -770,6 +794,27 @@
       setBusy(watchlistAddButton, "Bitte warten …");
     });
   }
+
+  /* Satelliten-Quelle umschalten (Favoriten <-> Paket) */
+  document
+    .querySelectorAll(".watchlist-source-switch [data-watchlist-selection]")
+    .forEach(function (button) {
+      button.addEventListener("click", function () {
+        var selection = button.getAttribute("data-watchlist-selection");
+        setBusy(button, "Bitte warten …");
+        fetch("/api/watchlist/select", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ selection: selection }),
+        })
+          .then(function () {
+            window.location.reload();
+          })
+          .catch(function () {
+            window.location.reload();
+          });
+      });
+    });
 
   /* Merkliste entfernen (Chips) */
   document.querySelectorAll(".watchlist-chip-remove").forEach(function (button) {
