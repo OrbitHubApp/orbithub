@@ -35,6 +35,13 @@
   </div>
 </section>
 
+{% if preselect_label %}
+<section class="source-summary-card visibility-bright-panel">
+  <span>Kartenansicht: {{ preselect_label }} ({{ preselect_indices|length }} Satelliten)</span>
+  <p class="watchlist-empty-hint">Automatisch aus der Ueberfluege-Ansicht uebernommen.</p>
+</section>
+{% endif %}
+
 <section class="source-summary-card visibility-bright-panel">
   <span>Favoriten – Status der nächsten Sichtbarkeit</span>
   <div id="favorites-panel-body">
@@ -149,6 +156,8 @@
     if (!mapContainer || typeof L === "undefined") {
       return;
     }
+
+    const PRESELECT_INDICES = {{ preselect_indices|tojson }};
 
     const obsLat = Number(mapContainer.dataset.observerLat);
     const obsLon = Number(mapContainer.dataset.observerLon);
@@ -577,10 +586,20 @@
       });
     });
 
-    restoreSelection();
-    updateTrackOptions();
-    if (selectedIds().length > 0) {
+    if (PRESELECT_INDICES && PRESELECT_INDICES.length > 0) {
+      const preselectSet = new Set(PRESELECT_INDICES.map(String));
+      document.querySelectorAll(".map-satellite-checkbox").forEach((checkbox) => {
+        checkbox.checked = preselectSet.has(checkbox.value);
+      });
+      saveSelection();
+      updateTrackOptions();
       scheduleRefresh();
+    } else {
+      restoreSelection();
+      updateTrackOptions();
+      if (selectedIds().length > 0) {
+        scheduleRefresh();
+      }
     }
 
     const searchInput = document.getElementById("map-satellite-search");

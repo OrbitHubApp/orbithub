@@ -2363,7 +2363,7 @@ async def _get_cached_bright_entries(records, observer, predictor):
 
 
 @app.get("/map")
-async def map_page(request: Request):
+async def map_page(request: Request, selection: str = ""):
     parser = TLEParser()
 
     records = (
@@ -2378,6 +2378,22 @@ async def map_page(request: Request):
             record.name,
         ).lower(),
     )
+
+    preselect_norad_ids: set[str] = set()
+    preselect_label = None
+    if selection.startswith("package:"):
+        package_id = selection.split(":", 1)[1]
+        preselect_norad_ids = set(load_package_norad_ids(package_id))
+        preselect_label = PACKAGE_LABELS.get(package_id, package_id)
+    elif selection == "favorites":
+        preselect_norad_ids = set(load_favorite_norad_ids())
+        preselect_label = "Meine Favoriten"
+
+    preselect_indices = [
+        index
+        for index, record in enumerate(records)
+        if record.norad_id in preselect_norad_ids
+    ]
 
     observer = load_observer_settings()
     predictor = PassPredictor(
@@ -2403,6 +2419,8 @@ async def map_page(request: Request):
             "tle_generated": format_tle_file_time(),
             "bright_entries": bright_entries,
             "observer_default_minimum_elevation": observer.default_minimum_elevation_deg,
+            "preselect_indices": preselect_indices,
+            "preselect_label": preselect_label,
         },
     )
 
