@@ -45,14 +45,14 @@
   <div class="watchlist-source-switch" role="group" aria-label="Satellitenquelle">
     <button
       type="button"
-      class="source-action-button {% if watchlist_selection == 'favorites' %}primary{% else %}secondary{% endif %}"
+      class="source-action-button {% if watchlist_selection == 'favorites' %}toggle-active{% else %}secondary{% endif %}"
       data-watchlist-selection="favorites"
       data-watchlist-count="{{ favorites_count }}"
     >Meine Favoriten</button>
     {% for package_id, package_label in available_packages.items() %}
     <button
       type="button"
-      class="source-action-button {% if watchlist_selection == 'package:' ~ package_id %}primary{% else %}secondary{% endif %}"
+      class="source-action-button {% if watchlist_selection == 'package:' ~ package_id %}toggle-active{% else %}secondary{% endif %}"
       data-watchlist-selection="package:{{ package_id }}"
       data-watchlist-count="{{ package_counts.get(package_id, 0) }}"
     >{{ package_label }}</button>

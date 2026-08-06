@@ -2744,6 +2744,13 @@ body::before {
   color: #5ddfff;
 }
 
+.source-action-button.toggle-active {
+  border: 1px solid rgba(71, 209, 140, 0.45);
+  background: rgba(71, 209, 140, 0.2);
+  color: var(--green);
+  font-weight: 700;
+}
+
 .source-action-button:hover:not(:disabled) {
   transform: translateY(-1px);
   filter: brightness(1.15);
@@ -3885,8 +3892,8 @@ a.source-action-button {
 }
 
 .chart-range-button.is-active {
-  background: #7ad0ff;
-  border-color: #7ad0ff;
+  background: var(--green);
+  border-color: var(--green);
   color: #0b1622;
   font-weight: 600;
 }
