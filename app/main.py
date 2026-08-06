@@ -725,6 +725,108 @@ async def periodic_bright_entries_prewarm_loop() -> None:
             print(f"OrbitHub Favoriten-Vorwaerm-Fehler: {exc!r}")
 
 
+WATCHLIST_PASSES_PREWARM_INTERVAL_SECONDS = 600
+
+_watchlist_passes_cache: dict = {"key": None, "expires": 0.0, "value": None}
+_WATCHLIST_PASSES_CACHE_TTL_SECONDS = 900
+
+
+async def _build_watchlist_passes(
+    records, observer, predictor, favorite_norad_ids, hours, minimum_elevation
+):
+    """Berechnet die naechsten Ueberfluege aller favorisierten Satelliten.
+
+    Eine Vorhersage pro Favorit kostet auf dem Pi mehrere Sekunden - bei
+    vielen Favoriten summiert sich das schnell. Siehe auch
+    _get_cached_bright_entries fuer denselben Trick bei /map und /visibility.
+    """
+    records_by_norad_id = {record.norad_id: record for record in records}
+    watchlist_records = [
+        records_by_norad_id[norad_id]
+        for norad_id in favorite_norad_ids
+        if norad_id in records_by_norad_id
+    ]
+    watchlist_passes = []
+    for watchlist_record in watchlist_records:
+        for watchlist_pass in await _predict_async(
+            predictor,
+            watchlist_record,
+            hours=hours,
+            minimum_elevation_deg=minimum_elevation,
+            observer_settings=observer,
+        ):
+            watchlist_passes.append(
+                {
+                    "rise_time": watchlist_pass.rise_time,
+                    "culmination_time": (
+                        watchlist_pass.culmination_time
+                    ),
+                    "set_time": watchlist_pass.set_time,
+                    "max_elevation_deg": (
+                        watchlist_pass.max_elevation_deg
+                    ),
+                    "rise_azimuth_deg": (
+                        watchlist_pass.rise_azimuth_deg
+                    ),
+                    "set_azimuth_deg": (
+                        watchlist_pass.set_azimuth_deg
+                    ),
+                    "duration_seconds": (
+                        watchlist_pass.duration_seconds
+                    ),
+                    "track_points": watchlist_pass.track_points,
+                    "satellite_name": watchlist_record.name,
+                    "satellite_norad_id": (
+                        watchlist_record.norad_id
+                    ),
+                }
+            )
+    watchlist_passes.sort(key=lambda entry: entry["rise_time"])
+    return watchlist_records, watchlist_passes
+
+
+async def _get_cached_watchlist_passes(
+    records, observer, predictor, favorite_norad_ids, hours, minimum_elevation
+):
+    """Wie _build_watchlist_passes, aber mit kurzem Cache."""
+    import time as _time
+
+    key = (tuple(favorite_norad_ids), hours, minimum_elevation)
+    now = _time.time()
+    cached = _watchlist_passes_cache
+    if cached["key"] == key and cached["expires"] > now:
+        return cached["value"]
+
+    value = await _build_watchlist_passes(
+        records, observer, predictor, favorite_norad_ids, hours, minimum_elevation
+    )
+    cached["key"] = key
+    cached["expires"] = now + _WATCHLIST_PASSES_CACHE_TTL_SECONDS
+    cached["value"] = value
+    return value
+
+
+async def periodic_watchlist_passes_prewarm_loop() -> None:
+    """Haelt den Favoriten-Ueberflug-Cache im Hintergrund warm (Default-Filter)."""
+    while True:
+        await asyncio.sleep(WATCHLIST_PASSES_PREWARM_INTERVAL_SECONDS)
+        try:
+            records = await _get_all_tle_records()
+            if records:
+                observer = load_observer_settings()
+                predictor = PassPredictor(
+                    latitude_deg=observer.latitude_deg,
+                    longitude_deg=observer.longitude_deg,
+                    elevation_m=observer.elevation_m,
+                )
+                favorite_norad_ids = load_favorite_norad_ids()
+                await _get_cached_watchlist_passes(
+                    records, observer, predictor, favorite_norad_ids, 24, 10.0
+                )
+        except Exception as exc:
+            print(f"OrbitHub Favoriten-Ueberflug-Vorwaerm-Fehler: {exc!r}")
+
+
 BERLIN_TZ = ZoneInfo("Europe/Berlin")
 
 
@@ -826,6 +928,7 @@ async def startup_event() -> None:
     asyncio.create_task(periodic_satnogs_alias_refresh_loop())
     asyncio.create_task(periodic_tinygs_alias_refresh_loop())
     asyncio.create_task(periodic_bright_entries_prewarm_loop())
+    asyncio.create_task(periodic_watchlist_passes_prewarm_loop())
 
 
 @app.get("/")
@@ -977,50 +1080,9 @@ async def passes_page(
             observer_settings=observer,
         )
 
-        records_by_norad_id = {
-            record.norad_id: record for record in records
-        }
-        watchlist_records = [
-            records_by_norad_id[norad_id]
-            for norad_id in favorite_norad_ids
-            if norad_id in records_by_norad_id
-        ]
-        for watchlist_record in watchlist_records:
-            for watchlist_pass in await _predict_async(predictor, 
-                watchlist_record,
-                hours=hours,
-                minimum_elevation_deg=minimum_elevation,
-                observer_settings=observer,
-            ):
-                watchlist_passes.append(
-                    {
-                        "rise_time": watchlist_pass.rise_time,
-                        "culmination_time": (
-                            watchlist_pass.culmination_time
-                        ),
-                        "set_time": watchlist_pass.set_time,
-                        "max_elevation_deg": (
-                            watchlist_pass.max_elevation_deg
-                        ),
-                        "rise_azimuth_deg": (
-                            watchlist_pass.rise_azimuth_deg
-                        ),
-                        "set_azimuth_deg": (
-                            watchlist_pass.set_azimuth_deg
-                        ),
-                        "duration_seconds": (
-                            watchlist_pass.duration_seconds
-                        ),
-                        "track_points": watchlist_pass.track_points,
-                        "satellite_name": watchlist_record.name,
-                        "satellite_norad_id": (
-                            watchlist_record.norad_id
-                        ),
-                    }
-                )
-        watchlist_passes.sort(
-            key=lambda entry: entry["rise_time"]
-        )
+        watchlist_records, watchlist_passes = await _get_cached_watchlist_passes(
+        records, observer, predictor, favorite_norad_ids, hours, minimum_elevation
+    )
 
     horizon_shadow_segments = [
         {"d": path}
