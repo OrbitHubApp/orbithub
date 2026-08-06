@@ -57,10 +57,7 @@ from app.services.tinygs_aliases import (
     fetch_and_save_tinygs_aliases,
     load_tinygs_aliases,
 )
-from app.services.tinygs_station_status import (
-    fetch_all_tinygs_station_statuses,
-    tinygs_station_page_url,
-)
+from app.services.tinygs_station_status import tinygs_station_page_url
 from app.services.new_satellites import (
     load_new_satellites,
     record_new_satellites,
@@ -667,25 +664,6 @@ SATNOGS_ALIAS_REFRESH_HOURS = 24
 
 
 TINYGS_ALIAS_REFRESH_HOURS = 24
-TINYGS_STATION_STATUS_REFRESH_MINUTES = 5
-
-tinygs_station_status_cache: dict[str, dict] = {}
-
-
-async def update_tinygs_station_status() -> None:
-    try:
-        observer = load_observer_settings()
-        statuses = await fetch_all_tinygs_station_statuses(observer.tinygs_stations)
-        tinygs_station_status_cache.clear()
-        tinygs_station_status_cache.update(statuses)
-    except Exception as exc:
-        print(f"OrbitHub TinyGS-Stationsstatus-Fehler: {exc!r}")
-
-
-async def periodic_tinygs_station_status_loop() -> None:
-    while True:
-        await asyncio.sleep(TINYGS_STATION_STATUS_REFRESH_MINUTES * 60)
-        await update_tinygs_station_status()
 
 
 async def update_tinygs_aliases() -> None:
@@ -842,13 +820,11 @@ async def startup_event() -> None:
     await update_tle()
     await update_satnogs_aliases()
     await update_tinygs_aliases()
-    await update_tinygs_station_status()
     await _get_all_tle_records()
     asyncio.create_task(system_metrics_sampler_loop())
     asyncio.create_task(periodic_tle_refresh_loop())
     asyncio.create_task(periodic_satnogs_alias_refresh_loop())
     asyncio.create_task(periodic_tinygs_alias_refresh_loop())
-    asyncio.create_task(periodic_tinygs_station_status_loop())
     asyncio.create_task(periodic_bright_entries_prewarm_loop())
 
 
@@ -858,8 +834,8 @@ async def index(request: Request):
     tinygs_stations = [
         {
             "station_id": station_id,
+            "station_name": station_id.split("@")[0] or station_id,
             "page_url": tinygs_station_page_url(station_id),
-            **tinygs_station_status_cache.get(station_id, {}),
         }
         for station_id in observer.tinygs_stations
     ]
