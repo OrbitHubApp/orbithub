@@ -2461,13 +2461,15 @@ async def map_page(request: Request, selection: str = ""):
         ).lower(),
     )
 
+    watchlist_selection = selection or load_watchlist_selection()
     preselect_norad_ids: set[str] = set()
     preselect_label = None
-    if selection.startswith("package:"):
-        package_id = selection.split(":", 1)[1]
+    if watchlist_selection.startswith("package:"):
+        package_id = watchlist_selection.split(":", 1)[1]
         preselect_norad_ids = set(load_package_norad_ids(package_id))
         preselect_label = PACKAGE_LABELS.get(package_id, package_id)
-    elif selection == "favorites":
+    if not preselect_norad_ids:
+        watchlist_selection = "favorites"
         preselect_norad_ids = set(load_favorite_norad_ids())
         preselect_label = "Meine Favoriten"
 
@@ -2503,6 +2505,13 @@ async def map_page(request: Request, selection: str = ""):
             "observer_default_minimum_elevation": observer.default_minimum_elevation_deg,
             "preselect_indices": preselect_indices,
             "preselect_label": preselect_label,
+            "watchlist_selection": watchlist_selection,
+            "available_packages": PACKAGE_LABELS,
+            "favorites_count": len(load_favorite_norad_ids()),
+            "package_counts": {
+                package_id: len(load_package_norad_ids(package_id))
+                for package_id in PACKAGE_LABELS
+            },
         },
     )
 

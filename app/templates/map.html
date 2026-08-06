@@ -35,12 +35,31 @@
   </div>
 </section>
 
-{% if preselect_label %}
 <section class="source-summary-card visibility-bright-panel">
   <span>Kartenansicht: {{ preselect_label }} ({{ preselect_indices|length }} Satelliten)</span>
-  <p class="watchlist-empty-hint">Automatisch aus der Ueberfluege-Ansicht uebernommen.</p>
+  <p class="watchlist-empty-hint">
+    Diese Satelliten sind unten in der Liste automatisch markiert. Wechsel zwischen
+    eigenen Favoriten und einem automatisch gepflegten Paket (z. B. allen aktuell von
+    TinyGS getrackten Satelliten):
+  </p>
+  <div class="watchlist-source-switch" role="group" aria-label="Satellitenquelle">
+    <button
+      type="button"
+      class="source-action-button {% if watchlist_selection == 'favorites' %}primary{% else %}secondary{% endif %}"
+      data-watchlist-selection="favorites"
+      data-watchlist-count="{{ favorites_count }}"
+    >Meine Favoriten</button>
+    {% for package_id, package_label in available_packages.items() %}
+    <button
+      type="button"
+      class="source-action-button {% if watchlist_selection == 'package:' ~ package_id %}primary{% else %}secondary{% endif %}"
+      data-watchlist-selection="package:{{ package_id }}"
+      data-watchlist-count="{{ package_counts.get(package_id, 0) }}"
+    >{{ package_label }}</button>
+    {% endfor %}
+  </div>
+  <div class="dataset-update-status" id="map-watchlist-source-status" role="status" aria-live="polite"></div>
 </section>
-{% endif %}
 
 <section class="source-summary-card visibility-bright-panel">
   <span>Favoriten – Status der nächsten Sichtbarkeit</span>
@@ -55,6 +74,11 @@
       <span class="label">SATELLITEN AUSWÄHLEN</span>
       <span class="history-count">{{ satellites|length }} verfügbar</span>
     </div>
+    <p class="watchlist-empty-hint">
+      Kompletter Satelliten-Katalog zum manuellen Hinzufuegen einzelner Satelliten zur
+      Karte - unabhaengig von der Auswahl oben.
+    </p>
+
 
     <input
       type="search"
@@ -869,5 +893,56 @@
   }
 
       })();
+</script>
+
+<script>
+  (function () {
+    var mapWatchlistStatus = document.getElementById(
+      "map-watchlist-source-status"
+    );
+    function showMapWatchlistStatus(message, state) {
+      if (!mapWatchlistStatus) {
+        return;
+      }
+      mapWatchlistStatus.textContent = message;
+      mapWatchlistStatus.className = (
+        "dataset-update-status " + (state || "")
+      ).trim();
+    }
+    document
+      .querySelectorAll(".watchlist-source-switch [data-watchlist-selection]")
+      .forEach(function (button) {
+        button.addEventListener("click", function () {
+          var selection = button.getAttribute("data-watchlist-selection");
+          var label = (button.textContent || "").trim();
+          document
+            .querySelectorAll(
+              ".watchlist-source-switch [data-watchlist-selection]"
+            )
+            .forEach(function (other) {
+              other.disabled = true;
+            });
+          showMapWatchlistStatus(
+            "Wechsle zu " + label + " \u2026",
+            "is-running"
+          );
+          fetch("/api/watchlist/select", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ selection: selection }),
+          })
+            .then(function () {
+              window.setTimeout(function () {
+                window.location.reload();
+              }, 600);
+            })
+            .catch(function () {
+              window.setTimeout(function () {
+                window.location.reload();
+              }, 600);
+            });
+        });
+      });
+  })();
 </script>
 {% endblock %}
