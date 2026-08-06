@@ -644,25 +644,32 @@
     const rows = tableBody ? Array.from(tableBody.querySelectorAll("tr")) : [];
     const emptyState = document.getElementById("map-satellite-empty");
 
-    function applyFilter() {
-      const query = (searchInput.value || "").trim().toLowerCase();
-      let visible = 0;
-      rows.forEach((row) => {
-        const matches =
-          !query ||
-          row.dataset.name.indexOf(query) !== -1 ||
-          row.dataset.norad.indexOf(query) !== -1;
-        row.hidden = !matches;
-        if (matches) visible += 1;
-      });
-      if (emptyState) {
-        emptyState.hidden = visible !== 0;
-      }
+      function applyFilter() {
+    const query = (searchInput.value || "").trim().toLowerCase();
+    let visible = 0;
+    rows.forEach((row) => {
+      const matches =
+        !!query &&
+        (row.dataset.name.indexOf(query) !== -1 ||
+          row.dataset.norad.indexOf(query) !== -1);
+      const checkbox = row.querySelector(".map-satellite-checkbox");
+      const show = matches || (checkbox ? checkbox.checked : false);
+      row.hidden = !show;
+      if (show) visible += 1;
+    });
+    if (emptyState) {
+      emptyState.hidden = visible !== 0;
+      emptyState.textContent = query
+        ? "Keine Satelliten für diese Suche gefunden."
+        : "Tippe einen Namen oder eine NORAD-ID ein, um Satelliten zu finden.";
     }
+  }
 
     if (searchInput) {
       searchInput.addEventListener("input", applyFilter);
     }
+
+  applyFilter();
 
     const fullscreenBtn = document.getElementById(
       "map-fullscreen-btn",
