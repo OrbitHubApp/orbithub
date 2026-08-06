@@ -236,7 +236,7 @@
       ),
     };
 
-    baseLayers["Voyager (Standard)"].addTo(worldMap);
+    baseLayers["Satellit"].addTo(worldMap);
     L.control.layers(baseLayers, null, { position: "topright" }).addTo(worldMap);
 
     const mapLoadingOverlay = document.getElementById("map-loading-overlay");
@@ -248,7 +248,7 @@
         mapLoadingOverlay.classList.add("is-hidden");
       }
     }
-    baseLayers["Voyager (Standard)"].once("load", markMapLoaded);
+    baseLayers["Satellit"].once("load", markMapLoaded);
     window.setTimeout(markMapLoaded, 6000);
 
     L.circleMarker([obsLat, obsLon], {
@@ -267,6 +267,18 @@
       const clamped = Math.min(1, Math.max(-1, ratio));
       const centralAngle = Math.acos(clamped);
       return earthRadiusKm * centralAngle * 1000;
+    }
+
+    function distanceMeters(lat1, lon1, lat2, lon2) {
+      const earthRadiusKm = 6371;
+      const toRad = (deg) => (deg * Math.PI) / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return earthRadiusKm * c * 1000;
     }
 
     const layers = new Map();
@@ -479,6 +491,13 @@
       const id = String(position.id);
       const latLng = [position.lat_deg, position.lon_deg];
       const radius = footprintRadiusMeters(position.alt_km);
+
+    const visible =
+      distanceMeters(obsLat, obsLon, position.lat_deg, position.lon_deg) <= radius;
+    if (!visible) {
+      removeSatelliteLayer(id);
+      return;
+    }
 
       let entry = layers.get(id);
       if (!entry) {
