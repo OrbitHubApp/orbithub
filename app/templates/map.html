@@ -814,8 +814,8 @@
     if (window.documentPictureInPicture) {
       try {
         win = await window.documentPictureInPicture.requestWindow({
-          width: 440,
-          height: 620,
+          width: 680,
+          height: 860,
         });
       } catch (error) {
         win = null;
@@ -825,7 +825,7 @@
       win = window.open(
         "",
         "orbithub-map-popout",
-        "width=460,height=660,resizable=yes",
+        "width=680,height=860,resizable=yes",
       );
     }
     if (!win) {
