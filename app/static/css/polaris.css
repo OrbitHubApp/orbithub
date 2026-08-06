@@ -1864,8 +1864,8 @@ body::before {
 
 .mission-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .mission-card {
@@ -1873,8 +1873,8 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 137px;
-  padding: 20px 22px;
+  min-height: 130px;
+  padding: 16px 18px;
   overflow: hidden;
   border: 1px solid var(--mission-border);
   border-radius: 14px;
@@ -1914,7 +1914,7 @@ body::before {
 }
 
 .mission-card .value.metric {
-  font-size: 2.6rem;
+  font-size: 2.2rem;
 }
 
 .mission-card .value.compact {
@@ -2093,7 +2093,7 @@ body::before {
   }
 
   .mission-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .mission-footer {
@@ -2864,7 +2864,10 @@ body::before {
 }
 
 .source-form-grid input,
-.source-form-grid select {
+.source-form-grid select,
+.source-form-grid textarea {
+  font-family: inherit;
+  resize: vertical;
   width: 100%;
   min-height: 42px;
   box-sizing: border-box;
@@ -2879,12 +2882,14 @@ body::before {
 }
 
 .source-form-grid input:focus,
-.source-form-grid select:focus {
+.source-form-grid select:focus,
+.source-form-grid textarea:focus {
   border-color: rgba(68, 217, 255, 0.65);
   box-shadow: 0 0 0 3px rgba(68, 217, 255, 0.08);
 }
 
-.source-form-grid input::placeholder {
+.source-form-grid input::placeholder,
+.source-form-grid textarea::placeholder {
   color: #587185;
 }
 
@@ -4427,4 +4432,17 @@ a.source-action-button {
 .visibility-bright-card.is-loading {
   opacity: 0.65;
   cursor: wait;
+}
+
+.tinygs-station-link {
+  display: inline-block;
+  margin-top: 6px;
+  color: #4dd4ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.tinygs-station-link:hover {
+  text-decoration: underline;
 }

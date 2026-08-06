@@ -144,6 +144,15 @@
         <option value="utc" {% if settings.time_display == "utc" %}selected{% endif %}>GMT / UTC</option>
       </select>
     </label>
+
+    <label class="source-form-wide">
+      <span>TinyGS-Empfangsstation(en)</span>
+      <textarea
+        id="settings-tinygs-stations"
+        rows="3"
+        placeholder="z. B. TinyGS@5279258241 (eine Station pro Zeile)"
+      >{{ settings.tinygs_stations|join("\n") }}</textarea>
+    </label>
   </div>
 </section>
 
@@ -375,6 +384,11 @@
         "settings-time-display"
       ).value,
       horizon_segments: segments,
+      tinygs_stations: document
+        .getElementById("settings-tinygs-stations")
+        .value.split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0),
     };
 
     try {

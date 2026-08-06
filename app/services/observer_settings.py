@@ -19,6 +19,7 @@ DEFAULT_SETTINGS = {
     "default_minimum_elevation_deg": 10.0,
     "horizon_segments": [],
     "time_display": "local",
+    "tinygs_stations": [],
 }
 
 
@@ -42,6 +43,7 @@ class ObserverSettings:
         default_factory=tuple,
     )
     time_display: str = "local"
+    tinygs_stations: tuple[str, ...] = field(default_factory=tuple)
 
     def minimum_elevation_at(self, azimuth_deg: float) -> float:
         """Required minimum elevation for a given azimuth, taking the
@@ -104,6 +106,13 @@ def load_observer_settings() -> ObserverSettings:
         if isinstance(segment, dict)
     )
 
+    raw_tinygs_stations = data.get("tinygs_stations") or []
+    tinygs_stations = tuple(
+        str(station).strip()
+        for station in raw_tinygs_stations
+        if isinstance(station, str) and str(station).strip()
+    )
+
     return ObserverSettings(
         callsign=str(data.get("callsign", DEFAULT_SETTINGS["callsign"])),
         locator=str(data.get("locator", DEFAULT_SETTINGS["locator"])),
@@ -130,6 +139,7 @@ def load_observer_settings() -> ObserverSettings:
             in ("local", "utc")
             else DEFAULT_SETTINGS["time_display"]
         ),
+        tinygs_stations=tinygs_stations,
     )
 
 
@@ -150,6 +160,7 @@ def save_observer_settings(settings: ObserverSettings) -> None:
             asdict(segment) for segment in settings.horizon_segments
         ],
         "time_display": settings.time_display,
+        "tinygs_stations": list(settings.tinygs_stations),
     }
 
     OBSERVER_SETTINGS_FILE.write_text(

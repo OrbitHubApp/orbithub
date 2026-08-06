@@ -57,6 +57,10 @@ from app.services.tinygs_aliases import (
     fetch_and_save_tinygs_aliases,
     load_tinygs_aliases,
 )
+from app.services.tinygs_station_status import (
+    fetch_all_tinygs_station_statuses,
+    tinygs_station_page_url,
+)
 from app.services.new_satellites import (
     load_new_satellites,
     record_new_satellites,
@@ -663,6 +667,25 @@ SATNOGS_ALIAS_REFRESH_HOURS = 24
 
 
 TINYGS_ALIAS_REFRESH_HOURS = 24
+TINYGS_STATION_STATUS_REFRESH_MINUTES = 5
+
+tinygs_station_status_cache: dict[str, dict] = {}
+
+
+async def update_tinygs_station_status() -> None:
+    try:
+        observer = load_observer_settings()
+        statuses = await fetch_all_tinygs_station_statuses(observer.tinygs_stations)
+        tinygs_station_status_cache.clear()
+        tinygs_station_status_cache.update(statuses)
+    except Exception as exc:
+        print(f"OrbitHub TinyGS-Stationsstatus-Fehler: {exc!r}")
+
+
+async def periodic_tinygs_station_status_loop() -> None:
+    while True:
+        await asyncio.sleep(TINYGS_STATION_STATUS_REFRESH_MINUTES * 60)
+        await update_tinygs_station_status()
 
 
 async def update_tinygs_aliases() -> None:
@@ -819,16 +842,28 @@ async def startup_event() -> None:
     await update_tle()
     await update_satnogs_aliases()
     await update_tinygs_aliases()
+    await update_tinygs_station_status()
     await _get_all_tle_records()
     asyncio.create_task(system_metrics_sampler_loop())
     asyncio.create_task(periodic_tle_refresh_loop())
     asyncio.create_task(periodic_satnogs_alias_refresh_loop())
     asyncio.create_task(periodic_tinygs_alias_refresh_loop())
+    asyncio.create_task(periodic_tinygs_station_status_loop())
     asyncio.create_task(periodic_bright_entries_prewarm_loop())
 
 
 @app.get("/")
 async def index(request: Request):
+    observer = load_observer_settings()
+    tinygs_stations = [
+        {
+            "station_id": station_id,
+            "page_url": tinygs_station_page_url(station_id),
+            **tinygs_station_status_cache.get(station_id, {}),
+        }
+        for station_id in observer.tinygs_stations
+    ]
+
     context = {
         "request": request,
         "app_name": APP_NAME,
@@ -836,6 +871,7 @@ async def index(request: Request):
         "version": VERSION,
         "codename": CODENAME,
         "refresh_seconds": DASHBOARD_REFRESH_SECONDS,
+        "tinygs_stations": tinygs_stations,
         "state": (
             "ONLINE"
             if status["ok"]
@@ -1395,6 +1431,13 @@ async def update_settings(request: Request) -> dict:
         min(90.0, coerce_float(payload.get("default_minimum_elevation_deg"), 10.0)),
     )
 
+    raw_tinygs_stations = payload.get("tinygs_stations") or []
+    tinygs_stations = tuple(
+        str(station).strip()
+        for station in raw_tinygs_stations
+        if isinstance(station, str) and str(station).strip()
+    )
+
     horizon_segments = []
     for raw_segment in payload.get("horizon_segments") or []:
         if not isinstance(raw_segment, dict):
@@ -1425,6 +1468,7 @@ async def update_settings(request: Request) -> dict:
         default_minimum_elevation_deg=default_minimum_elevation_deg,
         horizon_segments=tuple(horizon_segments),
         time_display=time_display,
+        tinygs_stations=tinygs_stations,
     )
 
     save_observer_settings(settings)
