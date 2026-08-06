@@ -45,12 +45,13 @@
 <section class="mission-grid">
 
   {% for station in tinygs_stations %}
-  <article class="mission-card change-card {{ 'positive' if station.online else 'removed' }}">
+  <article class="mission-card change-card {{ 'positive' if station.online else ('unchanged' if station.error else 'removed') }}">
     <div>
       <div class="label">TinyGS-Station</div>
       <div class="value compact">{{ station.station_id }}</div>
       <div class="card-note">
-        {% if station.online %}Online{% else %}Offline{% endif %}
+        {% if station.error %}Status nicht abrufbar
+        {% elif station.online %}Online{% else %}Offline{% endif %}
         {% if station.satellite %} &middot; zuletzt: {{ station.satellite }}{% endif %}
       </div>
       <a class="tinygs-station-link" href="{{ station.page_url }}" target="_blank" rel="noopener">

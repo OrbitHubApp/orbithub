@@ -18,8 +18,8 @@ TINYGS_STATION_STATUS_URL = "https://api.tinygs.com/v1/station/{station_id}"
 
 
 def tinygs_station_page_url(station_id: str) -> str:
-    """Baut den Link zur oeffentlichen TinyGS-Stationsseite."""
-    return f"https://tinygs.com/station/{station_id}"
+    """Baut den Link zur TinyGS-Stationsseite (Web-App, nicht die Marketing-Seite)."""
+    return f"https://app.tinygs.com/station/{station_id}"
 
 
 def _coerce_online(value: object) -> bool:
