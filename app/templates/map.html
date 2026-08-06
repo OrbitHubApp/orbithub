@@ -120,6 +120,13 @@
       >
         Vollbild
       </button>
+    <button
+      type="button"
+      id="map-detach-btn"
+      class="source-action-button secondary"
+    >
+      Karte lösen
+    </button>
       <label class="map-track-label map-track-toggle-label" for="map-track-toggle">
       <input type="checkbox" id="map-track-toggle" class="map-track-toggle" />
       Bahnverfolgung für ausgewählte Satelliten
@@ -753,6 +760,113 @@
         }, 400);
       });
     }
+
+  const detachBtn = document.getElementById("map-detach-btn");
+  let popoutWindow = null;
+  let mapCardHome = null;
+
+  function copyStylesInto(targetDocument) {
+    document
+      .querySelectorAll('link[rel="stylesheet"], style')
+      .forEach((node) => {
+        targetDocument.head.appendChild(node.cloneNode(true));
+      });
+  }
+
+  function refreshMapSize() {
+    window.setTimeout(() => {
+      const orbithubMapFitBounds = worldMap.getBounds();
+      worldMap.invalidateSize();
+      worldMap.fitBounds(orbithubMapFitBounds);
+    }, 50);
+    window.setTimeout(() => {
+      const orbithubMapFitBounds = worldMap.getBounds();
+      worldMap.invalidateSize();
+      worldMap.fitBounds(orbithubMapFitBounds);
+    }, 350);
+  }
+
+  function reattachMap() {
+    if (!popoutWindow) return;
+    const win = popoutWindow;
+    popoutWindow = null;
+    if (mapCardHome && mapCardHome.parentNode) {
+      mapCardHome.parentNode.insertBefore(mapCard, mapCardHome);
+      mapCardHome.remove();
+    }
+    mapCardHome = null;
+    try {
+      win.close();
+    } catch (error) {
+      /* Fenster war bereits geschlossen */
+    }
+    if (detachBtn) detachBtn.textContent = "Karte lösen";
+    refreshMapSize();
+  }
+
+  async function detachMap() {
+    if (popoutWindow || !mapCard) return;
+
+    mapCardHome = document.createComment("map-card-home");
+    mapCard.parentNode.insertBefore(mapCardHome, mapCard);
+
+    let win = null;
+    if (window.documentPictureInPicture) {
+      try {
+        win = await window.documentPictureInPicture.requestWindow({
+          width: 440,
+          height: 620,
+        });
+      } catch (error) {
+        win = null;
+      }
+    }
+    if (!win) {
+      win = window.open(
+        "",
+        "orbithub-map-popout",
+        "width=460,height=660,resizable=yes",
+      );
+    }
+    if (!win) {
+      mapCardHome.remove();
+      mapCardHome = null;
+      alert(
+        "Fenster konnte nicht geöffnet werden. Bitte Popups für diese Seite erlauben.",
+      );
+      return;
+    }
+
+    win.document.title = "OrbitHub – Karte";
+    win.document.body.style.margin = "0";
+    win.document.body.style.background = "#0b1220";
+    copyStylesInto(win.document);
+    win.document.body.appendChild(mapCard);
+    popoutWindow = win;
+    if (detachBtn) detachBtn.textContent = "Karte anheften";
+
+    win.addEventListener("pagehide", reattachMap);
+    if (!window.documentPictureInPicture) {
+      const closeCheck = window.setInterval(() => {
+        if (!popoutWindow || popoutWindow.closed) {
+          window.clearInterval(closeCheck);
+          if (popoutWindow) reattachMap();
+        }
+      }, 500);
+    }
+
+    refreshMapSize();
+  }
+
+  if (detachBtn && mapCard) {
+    detachBtn.addEventListener("click", () => {
+      if (popoutWindow) {
+        reattachMap();
+      } else {
+        detachMap();
+      }
+    });
+  }
 
       })();
 </script>
