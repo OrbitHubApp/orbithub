@@ -2333,6 +2333,8 @@ async def info_page(request: Request):
             "request": request,
             "app_name": APP_NAME,
             "app_slogan": APP_SLOGAN,
+                "version": VERSION,
+                "codename": CODENAME,
         },
     )
 
@@ -2634,6 +2636,8 @@ async def update_page(request: Request):
             "request": request,
             "app_name": APP_NAME,
             "app_slogan": APP_SLOGAN,
+                "version": VERSION,
+                "codename": CODENAME,
         },
     )
 
@@ -2663,6 +2667,8 @@ async def history_page(request: Request):
             "request": request,
             "app_name": APP_NAME,
             "app_slogan": APP_SLOGAN,
+                "version": VERSION,
+                "codename": CODENAME,
             "days": days,
             "total_entries": len(entries),
         },
