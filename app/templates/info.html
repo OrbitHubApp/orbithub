@@ -1,30 +1,28 @@
 {% extends "base.html" %}
 
-{% block title %}
-  OrbitHub · Info & Kontakt
-{% endblock %}
+{% block title %}{{ t('nav.info') }} — {{ app_name }}{% endblock %}
 
 {% block nav_info %}active{% endblock %}
 
-{% block page_heading %}Info & Kontakt{% endblock %}
+{% block page_heading %}{{ t('nav.info') }}{% endblock %}
 
 {% block content %}
 
 <section class="mission-hero sources-hero">
   <div>
-    <div class="eyebrow">KONTAKT & LINKS</div>
-    <h2>Info & Kontakt</h2>
+    <div class="eyebrow">{{ t('info.eyebrow') }}</div>
+    <h2>{{ t('nav.info') }}</h2>
     <p>
-      Alle Links und Kontaktmöglichkeiten rund um OrbitHub auf einen Blick.
+      {{ t('info.intro') }}
     </p>
   </div>
 </section>
 
 <div class="add-source-panel">
-  <span class="label">PROJEKT</span>
+  <span class="label">{{ t('info.label_project') }}</span>
   <h3>GitHub</h3>
   <p>
-    Quellcode, Issues und Weiterentwicklung von OrbitHub.
+    {{ t('info.p_github') }}
   </p>
   <p>
     <a href="https://github.com/OrbitHubApp/orbithub" target="_blank" rel="noopener" class="info-link link-card-cta">github.com/OrbitHubApp/orbithub</a>
@@ -32,10 +30,10 @@
 </div>
 
 <div class="add-source-panel">
-  <span class="label">WEBSEITE</span>
+  <span class="label">{{ t('info.label_website') }}</span>
   <h3>orbithubapp.de</h3>
   <p>
-    Alles rund um OrbitHub im Netz.
+    {{ t('info.p_website') }}
   </p>
   <p>
     <a href="http://orbithubapp.de" target="_blank" rel="noopener" class="info-link link-card-cta">http://orbithubapp.de</a>
@@ -43,10 +41,10 @@
 </div>
 
 <div class="add-source-panel">
-  <span class="label">SOCIAL MEDIA</span>
+  <span class="label">{{ t('info.label_social') }}</span>
   <h3>Facebook</h3>
   <p>
-    Neuigkeiten und Updates zu OrbitHub.
+    {{ t('info.p_facebook') }}
   </p>
   <p>
     <a href="https://www.facebook.com/orbithubapp" target="_blank" rel="noopener" class="info-link link-card-cta">facebook.com/orbithubapp</a>
@@ -54,10 +52,10 @@
 </div>
 
 <div class="add-source-panel">
-  <span class="label">KONTAKT</span>
-  <h3>E-Mail</h3>
+  <span class="label">{{ t('info.label_contact') }}</span>
+  <h3>{{ t('info.h3_email') }}</h3>
   <p>
-    Fragen, Feedback oder Anregungen zu OrbitHub.
+    {{ t('info.p_email') }}
   </p>
   <p>
     <a href="mailto:dl7ag@orbithubapp.de" class="info-link link-card-cta">dl7ag@orbithubapp.de</a>
