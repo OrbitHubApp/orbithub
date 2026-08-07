@@ -1,423 +1,302 @@
 <!doctype html>
 {% set observer = observer_settings() %}
-<html lang="de">
+<html lang="{{ lang() }}">
 <head>
-  <meta charset="utf-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
-
-  <meta
-    name="theme-color"
-    content="#061321"
-  >
-
-  <meta
-    name="description"
-    content="Satellite Orbit Data for Amateur Radio"
-  >
-
-  <title>
-    {% block title %}OrbitHub{% endblock %}
-  </title>
-
-  <link
-    rel="icon"
-    type="image/png"
-    href="{{ url_for('static', path='img/orbithub-mission-logo.png') }}"
-  >
-
-  <link
-    rel="manifest"
-    href="{{ url_for('static', path='favicon/site.webmanifest') }}"
-  >
-
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', path='css/polaris.css') }}?v={{ version }}"
-  >
-
-  {% block head %}{% endblock %}
-
-  <style>
-    #page-loading-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 16px;
-      background: rgba(6, 19, 33, 0.92);
-      backdrop-filter: blur(2px);
-    }
-
-    #page-loading-overlay.is-active {
-      display: flex;
-    }
-
-    #page-loading-overlay .page-loading-spinner {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      border: 4px solid rgba(255, 255, 255, 0.2);
-      border-top-color: #38bdf8;
-      animation: page-loading-spin 0.8s linear infinite;
-    }
-
-    #page-loading-overlay .page-loading-text {
-      color: #e2e8f0;
-      font-size: 1rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      text-align: center;
-      padding: 0 24px;
-    }
-
-    @keyframes page-loading-spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#061321">
+<meta name="description" content="Satellite Orbit Data for Amateur Radio">
+<title>{% block title %}OrbitHub{% endblock %}</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', path='img/orbithub-mission-logo.png') }}">
+<link rel="manifest" href="{{ url_for('static', path='favicon/site.webmanifest') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='css/polaris.css') }}?v={{ version }}">
+{% block head %}{% endblock %}
+<style>
+#page-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  background: rgba(6, 19, 33, 0.92);
+  backdrop-filter: blur(2px);
+}
+#page-loading-overlay.is-active {
+  display: flex;
+}
+#page-loading-overlay .page-loading-spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #38bdf8;
+  animation: page-loading-spin 0.8s linear infinite;
+}
+#page-loading-overlay .page-loading-text {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+  padding: 0 24px;
+}
+@keyframes page-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style>
 </head>
-
 <body data-refresh-seconds="{{ refresh_seconds | default(60) }}" data-time-display="{{ observer.time_display }}">
 
-  <div id="page-loading-overlay" aria-hidden="true">
-    <div class="page-loading-spinner"></div>
-    <div class="page-loading-text">Wird geladen – Berechnung läuft, bitte kurz warten…</div>
-  </div>
+<div id="page-loading-overlay" aria-hidden="true">
+<div class="page-loading-spinner"></div>
+<div class="page-loading-text">{{ t('loading.text') }}</div>
+</div>
 
-  <button
-    class="mobile-menu-button"
-    id="mobile-menu-button"
-    type="button"
-    aria-label="Navigation öffnen"
-    aria-controls="sidebar"
-    aria-expanded="false"
-  >
-    <span></span>
-    <span></span>
-    <span></span>
-  </button>
+<button class="mobile-menu-button" id="mobile-menu-button" type="button" aria-label="{{ t('nav.open') }}" aria-controls="sidebar" aria-expanded="false">
+<span></span>
+<span></span>
+<span></span>
+</button>
 
-  <div
-    class="sidebar-overlay"
-    id="sidebar-overlay"
-  ></div>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-  <aside
-    class="sidebar mission-sidebar"
-    id="sidebar"
-  >
-    <a
-      class="mission-brand"
-      href="/"
-      aria-label="OrbitHub Startseite"
-    >
-      <img
-        src="{{ url_for('static', path='img/orbithub-mission-logo.png') }}"
-        alt="OrbitHub – Satellite Orbit Data for Amateur Radio"
-      >
+<aside class="sidebar mission-sidebar" id="sidebar">
+<a class="mission-brand" href="/" aria-label="{{ t('nav.home_aria') }}">
+<img src="{{ url_for('static', path='img/orbithub-mission-logo.png') }}" alt="OrbitHub – Satellite Orbit Data for Amateur Radio">
+<div class="sidebar-brand-operator">by <strong>DL7AG</strong></div>
+</a>
 
-      <div class="sidebar-brand-operator">
-        by <strong>DL7AG</strong>
-      </div>
-    </a>
+<nav class="sidebar-navigation mission-navigation" aria-label="{{ t('nav.main_aria') }}">
+<a class="nav-item {% block nav_dashboard %}{% endblock %}" href="/">
+<span class="nav-icon">⌂</span>
+<span>{{ t('nav.dashboard') }}</span>
+</a>
 
-    <nav
-      class="sidebar-navigation mission-navigation"
-      aria-label="Hauptnavigation"
-    >
-    <a
-            class="nav-item {% block nav_dashboard %}{% endblock %}"
-            href="/"
-          >
-            <span class="nav-icon">⌂</span>
-            <span>Übersicht</span>
-          </a>
+<a class="nav-item {% block nav_satellites %}{% endblock %}" href="/satellites">
+<span class="nav-icon">◈</span>
+<span>{{ t('nav.satellites') }}</span>
+<span class="nav-count">{{ nav_satellite_count() }}</span>
+</a>
 
-    <a class="nav-item {% block nav_satellites %}{% endblock %}" href="/satellites">
-            <span class="nav-icon">◈</span>
-            <span>Satelliten</span>
-            <span class="nav-count">
-              {{ nav_satellite_count() }}
-            </span>
-          </a>
+<a class="nav-item {% block nav_new_satellites %}{% endblock %}" href="/new-satellites">
+<span class="nav-icon">*</span>
+<span>{{ t('nav.new_satellites') }}</span>
+<span class="nav-count">{{ nav_new_satellite_count() }}</span>
+</a>
 
-    <a class="nav-item {% block nav_new_satellites %}{% endblock %}" href="/new-satellites">
-      <span class="nav-icon">*</span>
-      <span>Neue Satelliten</span>
-      <span class="nav-count">
-        {{ nav_new_satellite_count() }}
-      </span>
-    </a>
-    
-    <a class="nav-item {% block nav_map %}{% endblock %}" href="/map">
-            <span class="nav-icon">◎</span>
-            <span>Karte</span>
-            </a>
+<a class="nav-item {% block nav_map %}{% endblock %}" href="/map">
+<span class="nav-icon">◎</span>
+<span>{{ t('nav.map') }}</span>
+</a>
 
-    <a
-            class="nav-item {% block nav_sources %}{% endblock %}"
-            href="/sources"
-          >
-            <span class="nav-icon">◉</span>
-            <span>Daten &amp; Quellen</span>
-          </a>
+<a class="nav-item {% block nav_sources %}{% endblock %}" href="/sources">
+<span class="nav-icon">◉</span>
+<span>{{ t('nav.sources') }}</span>
+</a>
 
-    <a
-      class="nav-item {% block nav_passes %}{% endblock %}"
-      href="/passes"
-    >
-      <span class="nav-icon">⌁</span>
-      <span>Überflüge</span>
-    </a>
+<a class="nav-item {% block nav_passes %}{% endblock %}" href="/passes">
+<span class="nav-icon">⁁</span>
+<span>{{ t('nav.passes') }}</span>
+</a>
 
-    <a class="nav-item {% block nav_visibility %}{% endblock %}" href="/visibility">
-            <span class="nav-icon">☉</span>
-            <span>Visuell</span>
-          </a>
+<a class="nav-item {% block nav_visibility %}{% endblock %}" href="/visibility">
+<span class="nav-icon">☉</span>
+<span>{{ t('nav.visibility') }}</span>
+</a>
 
-    <a class="nav-item {% block nav_downloads %}{% endblock %}" href="/downloads">
-            <span class="nav-icon">⇩</span>
-            <span>Downloads</span>
-          </a>
+<a class="nav-item {% block nav_downloads %}{% endblock %}" href="/downloads">
+<span class="nav-icon">⇩</span>
+<span>{{ t('nav.downloads') }}</span>
+</a>
 
-    <a class="nav-item {% block nav_statistics %}{% endblock %}" href="/statistics">
-            <span class="nav-icon">↗</span>
-            <span>Statistik</span>
-          </a>
+<a class="nav-item {% block nav_statistics %}{% endblock %}" href="/statistics">
+<span class="nav-icon">↗</span>
+<span>{{ t('nav.statistics') }}</span>
+</a>
 
-    <a class="nav-item {% block nav_settings %}{% endblock %}" href="/settings">
-            <span class="nav-icon">⚙</span>
-            <span>Einstellungen</span>
-          </a>
+<a class="nav-item {% block nav_settings %}{% endblock %}" href="/settings">
+<span class="nav-icon">⚙</span>
+<span>{{ t('nav.settings') }}</span>
+</a>
 
-    <a class="nav-item {% block nav_history %}{% endblock %}" href="/history">
-            <span class="nav-icon">◷</span>
-            <span>Historie</span>
-            </a>
+<a class="nav-item {% block nav_history %}{% endblock %}" href="/history">
+<span class="nav-icon">◷</span>
+<span>{{ t('nav.history') }}</span>
+</a>
 
-    <a class="nav-item {% block nav_about %}{% endblock %}" href="/about">
-            <span class="nav-icon">i</span>
-            <span>Über OrbitHub</span>
-          </a>
+<a class="nav-item {% block nav_about %}{% endblock %}" href="/about">
+<span class="nav-icon">i</span>
+<span>{{ t('nav.about') }}</span>
+</a>
 
-    <div class="nav-divider"></div>
+<div class="nav-divider"></div>
 
-    <a class="nav-item {% block nav_info %}{% endblock %}" href="/info">
-      <span class="nav-icon">✉</span>
-      <span>Info & Kontakt</span>
-    </a>
+<a class="nav-item {% block nav_info %}{% endblock %}" href="/info">
+<span class="nav-icon">✉</span>
+<span>{{ t('nav.info') }}</span>
+</a>
 
-  <a class="nav-item {% block nav_support %}{% endblock %}" href="/support">
-    <span class="nav-icon">☕</span>
-    <span>Unterstützung</span>
-  </a>
+<a class="nav-item {% block nav_support %}{% endblock %}" href="/support">
+<span class="nav-icon">☕</span>
+<span>{{ t('nav.support') }}</span>
+</a>
 
-  </nav>
+<div class="sidebar-lang-switch" role="group" aria-label="{{ t('lang.switch_aria') }}">
+<a href="/set-lang/de?next={{ request.url.path | urlencode }}" class="lang-switch-option{{ ' is-active' if lang() == 'de' else '' }}">DE</a>
+<a href="/set-lang/en?next={{ request.url.path | urlencode }}" class="lang-switch-option{{ ' is-active' if lang() == 'en' else '' }}">EN</a>
+</div>
 
-    <div class="mission-system-status operator-station-card">
-      <span class="system-pulse"></span>
+</nav>
 
-      <div>
-        <small class="operator-station-label">
-          OPERATOR
-        </small>
+<div class="mission-system-status operator-station-card">
+<span class="system-pulse"></span>
+<div>
+<small class="operator-station-label">OPERATOR</small>
+<strong class="operator-station-call">{{ observer.callsign }}</strong>
+<span class="operator-station-location">{{ observer.qth_name }}</span>
+<span class="operator-station-locator">{{ t('sidebar.locator') }} {{ observer.locator }}</span>
+<small class="operator-station-version">OrbitHub Beta V.{{ version }} ({{ codename }})</small>
+<button type="button" id="update-check-button" class="update-check-button">
+<span class="button-spinner" aria-hidden="true"></span>
+<span class="button-label">{{ t('sidebar.check_updates') }}</span>
+</button>
+<div id="update-check-result" class="update-check-result" hidden></div>
+</div>
+</div>
+</aside>
 
-        <strong class="operator-station-call">
-          {{ observer.callsign }}
-        </strong>
+<div class="app-shell">
 
-        <span class="operator-station-location">
-          {{ observer.qth_name }}
-        </span>
+<header class="mission-header">
 
-        <span class="operator-station-locator">
-          Locator {{ observer.locator }}
-        </span>
+<div class="mission-heading">
+<div class="application-eyebrow">ORBITHUB CONTROL CENTER</div>
+<h1>{% block page_heading %}{{ t('nav.dashboard') }}{% endblock %}</h1>
+<p>{{ t('header.welcome') }} <strong>{{ observer.callsign }}</strong>!</p>
+</div>
 
-        <small class="operator-station-version">
-          OrbitHub Beta V.{{ version }} ({{ codename }})
-        </small>
+<div class="mission-header-status">
 
-          <button
-            type="button"
-            id="update-check-button"
-            class="update-check-button"
-          >
-            <span class="button-spinner" aria-hidden="true"></span>
-            <span class="button-label">Nach Updates suchen</span>
-          </button>
-          <div
-            id="update-check-result"
-            class="update-check-result"
-            hidden
-          ></div>
-      </div>
-    </div>
-  </aside>
+<div class="header-status-card live-card">
+<span class="live-dot"></span>
+<div>
+<strong>LIVE</strong>
+<span id="local-clock">--:--:--</span>
+<small class="local-time-zone" id="local-time-zone">{{ t('header.local_time') }}</small>
+</div>
+</div>
 
-  <div class="app-shell">
+<div class="header-status-card live-metric-card">
+<small>CPU</small>
+<strong id="system-cpu">–</strong>
+</div>
 
-    <header class="mission-header">
+<div class="header-status-card live-metric-card">
+<small>RAM</small>
+<strong id="system-memory">–</strong>
+</div>
 
-      <div class="mission-heading">
-        <div class="application-eyebrow">
-          ORBITHUB CONTROL CENTER
-        </div>
+<div class="header-status-card live-metric-card temperature-card">
+<small>TEMP</small>
+<strong id="system-temperature">–</strong>
+</div>
 
-        <h1>
-          {% block page_heading %}Übersicht{% endblock %}
-        </h1>
+<div class="operator-card">
+<div>
+<strong>{{ observer.callsign }}</strong>
+<small>{{ observer.qth_name }}</small>
+<span class="operator-locator">{{ observer.locator }}</span>
+</div>
+<span class="operator-icon" aria-hidden="true">
+<svg class="operator-globe" viewBox="0 0 40 40" role="img" focusable="false">
+<defs>
+<clipPath id="operatorGlobeClip">
+<circle cx="20" cy="20" r="17"></circle>
+</clipPath>
+</defs>
+<circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="1.4"></circle>
+<g clip-path="url(#operatorGlobeClip)" fill="none" stroke="currentColor" stroke-width="1.1">
+<ellipse cx="20" cy="20" rx="7.5" ry="17"></ellipse>
+<ellipse cx="20" cy="20" rx="17" ry="7.5"></ellipse>
+<line x1="3" y1="20" x2="37" y2="20"></line>
+</g>
+</svg>
+</span>
+</div>
 
-        <p>
-          Willkommen zurück, <strong>{{ observer.callsign }}</strong>!
-        </p>
-      </div>
+</div>
+</header>
 
-      <div class="mission-header-status">
+<main class="application-content mission-content">
+{% block content %}{% endblock %}
+</main>
 
-        <div class="header-status-card live-card">
-          <span class="live-dot"></span>
+<footer class="mission-footer">
 
-          <div>
-            <strong>LIVE</strong>
-            <span id="local-clock">--:--:--</span>
+<div class="footer-brand">
+<img src="{{ url_for('static', path='img/orbithub-mission-logo.png') }}" alt="OrbitHub">
+</div>
 
-            <small
-              class="local-time-zone"
-              id="local-time-zone"
-            >
-              Ortszeit
-            </small>
-          </div>
-        </div>
+<div class="footer-developer">
+<small>Designed &amp; Developed by</small>
+<strong>DL7AG</strong>
+</div>
 
-        <div class="header-status-card live-metric-card">
-          <small>CPU</small>
-          <strong id="system-cpu">–</strong>
-        </div>
+<div class="footer-community">
+<span>Made for the<br>Amateur Radio Community</span>
+</div>
 
-        <div class="header-status-card live-metric-card">
-          <small>RAM</small>
-          <strong id="system-memory">–</strong>
-        </div>
+<div class="footer-version">Version {{ version }} „{{ codename }}“</div>
 
-        <div class="header-status-card live-metric-card temperature-card">
-          <small>TEMP</small>
-          <strong id="system-temperature">–</strong>
-        </div>
+</footer>
 
-        <div class="operator-card">
-          <div>
-            <strong>{{ observer.callsign }}</strong>
-          <small>{{ observer.qth_name }}</small>
-          <span class="operator-locator">
-            {{ observer.locator }}
-          </span>
-          </div>
+</div>
 
-          <span class="operator-icon" aria-hidden="true">
-            <svg class="operator-globe" viewBox="0 0 40 40" role="img" focusable="false">
-              <defs>
-                <clipPath id="operatorGlobeClip">
-                  <circle cx="20" cy="20" r="17"></circle>
-                </clipPath>
-              </defs>
-              <circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="1.4"></circle>
-              <g clip-path="url(#operatorGlobeClip)" fill="none" stroke="currentColor" stroke-width="1.1">
-                <ellipse cx="20" cy="20" rx="7.5" ry="17"></ellipse>
-                <ellipse cx="20" cy="20" rx="17" ry="7.5"></ellipse>
-                <line x1="3" y1="20" x2="37" y2="20"></line>
-              </g>
-            </svg>
-          </span>
-        </div>
+<script src="{{ url_for('static', path='js/dashboard.js') }}?v={{ version }}"></script>
 
-      </div>
-    </header>
+<script>
+(function () {
+var overlay = document.getElementById("page-loading-overlay");
+if (!overlay) {
+return;
+}
 
-    <main class="application-content mission-content">
-      {% block content %}{% endblock %}
-    </main>
+function hideOverlay() {
+overlay.classList.remove("is-active");
+}
 
-    <footer class="mission-footer">
+document.addEventListener("click", function (event) {
+var link = event.target.closest("a.nav-item, a[href^='/passes']");
+if (!link) {
+return;
+}
+if (
+event.defaultPrevented ||
+event.button !== 0 ||
+event.metaKey ||
+event.ctrlKey ||
+event.shiftKey ||
+event.altKey ||
+link.target === "_blank"
+) {
+return;
+}
+var targetUrl = new URL(link.href, window.location.href);
+if (targetUrl.href === window.location.href) {
+return;
+}
+overlay.classList.add("is-active");
+});
 
-      <div class="footer-brand">
-        <img
-          src="{{ url_for('static', path='img/orbithub-mission-logo.png') }}"
-          alt="OrbitHub"
-        >
-      </div>
+window.addEventListener("pageshow", hideOverlay);
+})();
+</script>
 
-      <div class="footer-developer">
-        <small>Designed &amp; Developed by</small>
-        <strong>DL7AG</strong>
-      </div>
-
-      <div class="footer-community">
-        <span>
-          Made for the<br>
-          Amateur Radio Community
-        </span>
-      </div>
-
-      <div class="footer-version">
-        Version {{ version }} „{{ codename }}“
-      </div>
-
-    </footer>
-
-  </div>
-
-  <script
-    src="{{ url_for('static', path='js/dashboard.js') }}?v={{ version }}"
-  ></script>
-
-  <script>
-    (function () {
-      var overlay = document.getElementById("page-loading-overlay");
-      if (!overlay) {
-        return;
-      }
-
-      function hideOverlay() {
-        overlay.classList.remove("is-active");
-      }
-
-      document.addEventListener("click", function (event) {
-        var link = event.target.closest("a.nav-item, a[href^='/passes']");
-        if (!link) {
-          return;
-        }
-        if (
-          event.defaultPrevented ||
-          event.button !== 0 ||
-          event.metaKey ||
-          event.ctrlKey ||
-          event.shiftKey ||
-          event.altKey ||
-          link.target === "_blank"
-        ) {
-          return;
-        }
-        var targetUrl = new URL(link.href, window.location.href);
-        if (targetUrl.href === window.location.href) {
-          return;
-        }
-        overlay.classList.add("is-active");
-      });
-
-      window.addEventListener("pageshow", hideOverlay);
-    })();
-  </script>
-
-  {% block scripts %}{% endblock %}
+{% block scripts %}{% endblock %}
 </body>
 </html>

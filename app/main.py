@@ -152,6 +152,7 @@ from app.services.tle_sources import (
     save_spacetrack_credentials,
 )
 from app.version import CODENAME, VERSION
+from app.i18n import SUPPORTED_LANGS, get_current_lang, set_current_lang, t as translate_text
 
 
 app = FastAPI(
@@ -159,6 +160,12 @@ app = FastAPI(
     version=VERSION,
     description=APP_DESCRIPTION,
 )
+
+
+@app.middleware("http")
+async def _language_middleware(request: Request, call_next):
+    set_current_lang(request.cookies.get("lang", "de"))
+    return await call_next(request)
 
 app.mount(
     "/static",
@@ -185,6 +192,23 @@ def display_satellite_name(name: str) -> str:
 
 templates.env.filters["display_name"] = display_satellite_name
 templates.env.globals["observer_settings"] = load_observer_settings
+
+templates.env.globals["t"] = translate_text
+templates.env.globals["lang"] = get_current_lang
+
+
+@app.get("/set-lang/{lang_code}")
+async def set_language(lang_code: str, request: Request):
+    if lang_code not in SUPPORTED_LANGS:
+        lang_code = "de"
+    next_path = request.query_params.get("next") or request.headers.get("referer") or "/"
+    parsed = urlparse(next_path)
+    safe_path = parsed.path or "/"
+    if parsed.query:
+        safe_path += "?" + parsed.query
+    response = RedirectResponse(url=safe_path, status_code=303)
+    response.set_cookie("lang", lang_code, max_age=60 * 60 * 24 * 365, samesite="lax")
+    return response
 
 
 def _polarplot_point(azimuth_deg: float, radius: float) -> tuple[float, float]:

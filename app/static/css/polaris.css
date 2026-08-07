@@ -4453,3 +4453,37 @@ a.source-action-button {
 .tinygs-station-link:hover {
   text-decoration: underline;
 }
+
+.sidebar-lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 14px 4px 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.lang-switch-option {
+  flex: 1;
+  text-align: center;
+  padding: 6px 0;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(226, 232, 240, 0.65);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.lang-switch-option:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lang-switch-option.is-active {
+  background: #38bdf8;
+  color: #061321;
+}
