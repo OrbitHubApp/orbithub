@@ -1,24 +1,23 @@
 {% extends "base.html" %}
 
-{% block title %}Statistik – {{ app_name }}{% endblock %}
+{% block title %}{{ t('nav.statistics') }} – {{ app_name }}{% endblock %}
 
 {% block nav_statistics %}active{% endblock %}
 
 {% block page_heading %}
-  Statistik
+{{ t('nav.statistics') }}
 {% endblock %}
 
 {% block content %}
 
 <section class="mission-hero">
   <div>
-    <div class="eyebrow">BETRIEBSSTATISTIK</div>
+    <div class="eyebrow">{{ t('statistics.eyebrow') }}</div>
 
-    <h2>Verlauf von System und TLE-Quellen</h2>
+    <h2>{{ t('statistics.hero_heading') }}</h2>
 
     <p>
-      Verlaufsgraphen für Auslastung und Temperatur des Raspberry Pi sowie
-      für Erfolgsquote und Antwortzeiten der TLE-Quellen über die Zeit.
+      {{ t('statistics.hero_intro') }}
     </p>
   </div>
 
@@ -27,41 +26,41 @@
 
     <div>
       <strong id="stats-last-sample">–</strong>
-      <small>letzte Messung</small>
+      <small>{{ t('statistics.last_sample') }}</small>
     </div>
   </div>
 </section>
 
 <section class="source-summary satellite-summary-grid">
   <article class="source-summary-card">
-    <span>CPU aktuell</span>
+    <span>{{ t('statistics.cpu_current') }}</span>
     <strong id="stats-current-cpu">–</strong>
   </article>
 
   <article class="source-summary-card">
-    <span>RAM aktuell</span>
+    <span>{{ t('statistics.ram_current') }}</span>
     <strong id="stats-current-ram">–</strong>
   </article>
 
   <article class="source-summary-card">
-    <span>Temperatur aktuell</span>
+    <span>{{ t('statistics.temp_current') }}</span>
     <strong id="stats-current-temp">–</strong>
   </article>
 
   <article class="source-summary-card">
-    <span>TLE-Erfolgsquote</span>
+    <span>{{ t('statistics.tle_success_rate') }}</span>
     <strong id="stats-current-success">–</strong>
   </article>
 </section>
 
 <section class="chart-panel">
   <div class="chart-panel-header">
-    <h3>Pi-Systemwerte im Verlauf</h3>
+    <h3>{{ t('statistics.system_chart_heading') }}</h3>
 
     <div class="chart-range-toggle" id="system-range-toggle">
-      <button type="button" class="chart-range-button" data-hours="24">24 Std.</button>
-      <button type="button" class="chart-range-button" data-hours="168">7 Tage</button>
-      <button type="button" class="chart-range-button" data-hours="720">30 Tage</button>
+      <button type="button" class="chart-range-button" data-hours="24">{{ t('statistics.range_24h') }}</button>
+      <button type="button" class="chart-range-button" data-hours="168">{{ t('statistics.range_7d') }}</button>
+      <button type="button" class="chart-range-button" data-hours="720">{{ t('statistics.range_30d') }}</button>
     </div>
   </div>
 
@@ -70,19 +69,18 @@
   </div>
 
   <p class="chart-empty-state" id="system-empty-state" hidden>
-    Noch keine Messwerte vorhanden. Der Sampler legt alle 5 Minuten einen
-    neuen Datenpunkt an.
+    {{ t('statistics.no_samples') }}
   </p>
 </section>
 
 <section class="chart-panel">
   <div class="chart-panel-header">
-    <h3>Antwortzeiten der TLE-Quellen</h3>
+    <h3>{{ t('statistics.tle_response_heading') }}</h3>
 
     <div class="chart-range-toggle" id="tle-range-toggle">
-      <button type="button" class="chart-range-button" data-days="7">7 Tage</button>
-      <button type="button" class="chart-range-button" data-days="30">30 Tage</button>
-      <button type="button" class="chart-range-button" data-days="90">90 Tage</button>
+      <button type="button" class="chart-range-button" data-days="7">{{ t('statistics.range_7d') }}</button>
+      <button type="button" class="chart-range-button" data-days="30">{{ t('statistics.range_30d') }}</button>
+      <button type="button" class="chart-range-button" data-days="90">{{ t('statistics.range_90d') }}</button>
     </div>
   </div>
 
@@ -91,13 +89,13 @@
   </div>
 
   <p class="chart-empty-state" id="duration-empty-state" hidden>
-    Noch keine Aktualisierungen im gewählten Zeitraum vorhanden.
+    {{ t('statistics.no_updates') }}
   </p>
 </section>
 
 <section class="chart-panel">
   <div class="chart-panel-header">
-    <h3>Satelliten je Quelle</h3>
+    <h3>{{ t('statistics.satellites_per_source_heading') }}</h3>
   </div>
 
   <div class="chart-canvas-wrap chart-canvas-wrap-small">
@@ -105,7 +103,7 @@
   </div>
 
   <p class="chart-empty-state" id="success-empty-state" hidden>
-    Noch keine Aktualisierungen im gewählten Zeitraum vorhanden.
+    {{ t('statistics.no_updates') }}
   </p>
 </section>
 
@@ -138,6 +136,7 @@
 
     let systemHours = 24;
     let tleDays = 7;
+const jsLocale = "{{ lang() }}" === "de" ? "de-DE" : "en-US";
 
     const statusBox = document.getElementById("stats-status");
 
@@ -154,12 +153,12 @@
     function formatTimeLabel(isoString, hours) {
       const date = new Date(isoString);
       if (hours <= 24) {
-        return date.toLocaleTimeString("de-DE", {
+        return date.toLocaleTimeString(jsLocale, {
           hour: "2-digit",
           minute: "2-digit",
         });
       }
-      return date.toLocaleDateString("de-DE", {
+      return date.toLocaleDateString(jsLocale, {
         day: "2-digit",
         month: "2-digit",
         hour: "2-digit",
@@ -237,7 +236,7 @@
                 borderWidth: 2,
               },
               {
-                label: "Temperatur °C",
+                label: "{{ t('statistics.chart_label_temp') }}",
                 data: samples.map((sample) => sample.temperature_celsius),
                 borderColor: chartColors.temp,
                 backgroundColor: chartColors.temp,
@@ -289,13 +288,13 @@
               ? `${last.temperature_celsius.toFixed(1)} °C`
               : "–";
           document.getElementById("stats-last-sample").textContent =
-            new Date(last.timestamp_utc).toLocaleTimeString("de-DE", {
+            new Date(last.timestamp_utc).toLocaleTimeString(jsLocale, {
               hour: "2-digit",
               minute: "2-digit",
             });
         }
       } catch (error) {
-        showStatus("Systemwerte konnten nicht geladen werden.", "is-error");
+        showStatus("{{ t('statistics.system_load_error') }}", "is-error");
       }
     }
 
@@ -318,7 +317,7 @@
           events.length !== 0;
 
         const sourceNames = Array.from(
-          new Set(events.map((event) => event.source || "Unbekannt"))
+          new Set(events.map((event) => event.source || "{{ t('statistics.unknown_source') }}"))
         );
         const palette = [
           "#7ad0ff",
@@ -330,7 +329,7 @@
 
         const datasets = sourceNames.map((sourceName, index) => {
           const points = events
-            .filter((event) => (event.source || "Unbekannt") === sourceName)
+            .filter((event) => (event.source || "{{ t('statistics.unknown_source') }}") === sourceName)
             .map((event) => ({
               x: new Date(event.timestamp_utc).getTime(),
               y: event.duration_ms,
@@ -367,7 +366,7 @@
                 grid: { color: chartColors.grid },
               },
               y: {
-                title: { display: true, text: "Millisekunden" },
+                title: { display: true, text: "{{ t('statistics.axis_milliseconds') }}" },
                 grid: { color: chartColors.grid },
               },
             },
@@ -383,7 +382,7 @@
         renderSuccessChart(data.per_source || []);
       } catch (error) {
         showStatus(
-          "TLE-Aktualisierungsdaten konnten nicht geladen werden.",
+          "{{ t('statistics.tle_load_error') }}",
           "is-error"
         );
       }
@@ -405,7 +404,7 @@
           labels: perSource.map((entry) => entry.source),
           datasets: [
             {
-              label: "Satelliten",
+              label: "{{ t('statistics.chart_label_satellites') }}",
               data: perSource.map((entry) => entry.satellites),
               backgroundColor: chartColors.cpu,
               borderRadius: 6,
@@ -420,7 +419,7 @@
             x: {
           min: 0,
           grid: { color: chartColors.grid },
-          title: { display: true, text: "Satelliten" },
+          title: { display: true, text: "{{ t('statistics.chart_label_satellites') }}" },
         },
             y: {
               grid: { display: false },
