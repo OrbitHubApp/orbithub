@@ -2497,7 +2497,7 @@ async def map_page(request: Request, selection: str = ""):
     if not preselect_norad_ids:
         watchlist_selection = "favorites"
         preselect_norad_ids = set(load_favorite_norad_ids())
-        preselect_label = "Meine Favoriten"
+        preselect_label = translate_text("map.my_favorites_label")
 
     preselect_indices = [
         index

@@ -1,948 +1,938 @@
 {% extends "base.html" %}
 
-{% block title %}OrbitHub - Karte{% endblock %}
+{% block title %}OrbitHub - {{ t('nav.map') }}{% endblock %}
 
 {% block head %}
 <link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-  crossorigin=""
+rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+crossorigin=""
 >
 {% endblock %}
 
 {% block nav_map %}active{% endblock %}
 
-{% block page_heading %}Karte{% endblock %}
+{% block page_heading %}{{ t('nav.map') }}{% endblock %}
 
 {% block content %}
 
 <span
-  data-pause-auto-refresh
-  style="display: none"
-  aria-hidden="true"
+data-pause-auto-refresh
+style="display: none"
+aria-hidden="true"
 ></span>
 
 <section class="mission-hero sources-hero">
-  <div>
-    <div class="eyebrow">{{ app_name }} - {{ app_slogan }}</div>
-    <h2>Live-Weltkarte</h2>
-    <p>
-      Zoombare Weltkarte mit deinem Standort. Wähle Satelliten aus, um ihre
-      aktuelle Position sowie ihren ungefähren Sichtbarkeitsbereich (Footprint
-      bei 0 Grad Elevation) live auf der Karte zu sehen.
-    </p>
-  </div>
+<div>
+<div class="eyebrow">{{ app_name }} - {{ app_slogan }}</div>
+<h2>{{ t('map.hero_heading') }}</h2>
+<p>
+{{ t('map.hero_intro') }}
+</p>
+</div>
 </section>
 
 <section class="source-summary-card visibility-bright-panel">
-  <span>Kartenansicht: {{ preselect_label }} ({{ preselect_indices|length }} Satelliten)</span>
-  <p class="watchlist-empty-hint">
-    Diese Satelliten sind unten in der Liste automatisch markiert. Wechsel zwischen
-    eigenen Favoriten und einem automatisch gepflegten Paket (z. B. allen aktuell von
-    TinyGS getrackten Satelliten):
-  </p>
-  <div class="watchlist-source-switch" role="group" aria-label="Satellitenquelle">
-    <button
-      type="button"
-      class="source-action-button {% if watchlist_selection == 'favorites' %}toggle-active{% else %}secondary{% endif %}"
-      data-watchlist-selection="favorites"
-      data-watchlist-count="{{ favorites_count }}"
-    >Meine Favoriten</button>
-    {% for package_id, package_label in available_packages.items() %}
-    <button
-      type="button"
-      class="source-action-button {% if watchlist_selection == 'package:' ~ package_id %}toggle-active{% else %}secondary{% endif %}"
-      data-watchlist-selection="package:{{ package_id }}"
-      data-watchlist-count="{{ package_counts.get(package_id, 0) }}"
-    >{{ package_label }}</button>
-    {% endfor %}
-  </div>
-  <div class="dataset-update-status" id="map-watchlist-source-status" role="status" aria-live="polite"></div>
+<span>{{ t('map.view_prefix') }} {{ preselect_label }} ({{ preselect_indices|length }} {{ t('map.satellites_unit') }})</span>
+<p class="watchlist-empty-hint">
+{{ t('map.watchlist_hint') }}
+</p>
+<div class="watchlist-source-switch" role="group" aria-label="{{ t('map.source_switch_aria') }}">
+<button
+type="button"
+class="source-action-button {% if watchlist_selection == 'favorites' %}toggle-active{% else %}secondary{% endif %}"
+data-watchlist-selection="favorites"
+data-watchlist-count="{{ favorites_count }}"
+>{{ t('map.my_favorites_label') }}</button>
+{% for package_id, package_label in available_packages.items() %}
+<button
+type="button"
+class="source-action-button {% if watchlist_selection == 'package:' ~ package_id %}toggle-active{% else %}secondary{% endif %}"
+data-watchlist-selection="package:{{ package_id }}"
+data-watchlist-count="{{ package_counts.get(package_id, 0) }}"
+>{{ package_label }}</button>
+{% endfor %}
+</div>
+<div class="dataset-update-status" id="map-watchlist-source-status" role="status" aria-live="polite"></div>
 </section>
 
 <section class="source-summary-card visibility-bright-panel">
-  <span>Favoriten – Status der nächsten Sichtbarkeit</span>
-  <div id="favorites-panel-body">
-    {% include "_favorites_panel.html" %}
-  </div>
+<span>{{ t('map.favorites_status_heading') }}</span>
+<div id="favorites-panel-body">
+{% include "_favorites_panel.html" %}
+</div>
 </section>
 
 <div class="pass-center-grid">
-  <div class="add-source-panel">
-    <div class="add-source-panel-header">
-      <span class="label">SATELLITEN AUSWÄHLEN</span>
-      <span class="history-count">{{ satellites|length }} verfügbar</span>
-    </div>
-    <p class="watchlist-empty-hint">
-      Kompletter Satelliten-Katalog zum manuellen Hinzufuegen einzelner Satelliten zur
-      Karte - unabhaengig von der Auswahl oben.
-    </p>
+<div class="add-source-panel">
+<div class="add-source-panel-header">
+<span class="label">{{ t('map.select_satellites_eyebrow') }}</span>
+<span class="history-count">{{ satellites|length }} {{ t('map.available_suffix') }}</span>
+</div>
+<p class="watchlist-empty-hint">
+{{ t('map.catalog_hint') }}
+</p>
 
+<input
+type="search"
+id="map-satellite-search"
+class="satellite-search-input"
+placeholder="{{ t('map.search_placeholder') }}"
+autocomplete="off"
+/>
 
-    <input
-      type="search"
-      id="map-satellite-search"
-      class="satellite-search-input"
-      placeholder="Suche nach Name oder NORAD-ID..."
-      autocomplete="off"
-    />
+{% if satellites %}
+<div class="table-scroll">
+<table class="mission-table" id="map-satellite-table">
+<thead>
+<tr>
+<th></th>
+<th>{{ t('satellites.col_name') }}</th>
+<th>{{ t('satellites.col_norad') }}</th>
+</tr>
+</thead>
+<tbody>
+{% for satellite in satellites %}
+<tr
+data-name="{{ satellite.name|display_name|lower }}"
+data-norad="{{ satellite.norad_id|lower }}"
+>
+<td>
+<input
+type="checkbox"
+class="map-satellite-checkbox"
+value="{{ loop.index0 }}"
+data-name="{{ satellite.name|display_name }}"
+data-norad-id="{{ satellite.norad_id }}"
+/>
+</td>
+<td>{{ satellite.name|display_name }}</td>
+<td>{{ satellite.norad_id }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+<p class="satellite-empty-block" id="map-satellite-empty" hidden>
+{{ t('satellites.no_search_results') }}
+</p>
+{% else %}
+<div class="satellite-empty-block">
+<strong>{{ t('satellites.no_tle_title') }}</strong>
+<p>{{ t('satellites.no_tle_desc') }}</p>
+</div>
+{% endif %}
+</div>
 
-    {% if satellites %}
-      <div class="table-scroll">
-        <table class="mission-table" id="map-satellite-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Name</th>
-              <th>NORAD-ID</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for satellite in satellites %}
-              <tr
-                data-name="{{ satellite.name|display_name|lower }}"
-                data-norad="{{ satellite.norad_id|lower }}"
-              >
-                <td>
-                  <input
-                    type="checkbox"
-                    class="map-satellite-checkbox"
-                    value="{{ loop.index0 }}"
-                    data-name="{{ satellite.name|display_name }}"
-                    data-norad-id="{{ satellite.norad_id }}"
-                  />
-                </td>
-                <td>{{ satellite.name|display_name }}</td>
-                <td>{{ satellite.norad_id }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <p class="satellite-empty-block" id="map-satellite-empty" hidden>
-        Keine Satelliten für diese Suche gefunden.
-      </p>
-    {% else %}
-      <div class="satellite-empty-block">
-        <strong>Keine TLE-Daten verfügbar</strong>
-        <p>Es wurden noch keine Satellitendaten geladen.</p>
-      </div>
-    {% endif %}
-  </div>
-
-  <div class="map-card" id="map-card">
-    <div class="map-card-header">
-      <span class="label">WELTKARTE</span>
-      <span class="history-count" id="map-tle-generated">
-        TLE-Datensatz vom {{ tle_generated }}
-      </span>
-      <button
-        type="button"
-        id="map-fullscreen-btn"
-        class="source-action-button secondary"
-      >
-        Vollbild
-      </button>
-    <button
-      type="button"
-      id="map-detach-btn"
-      class="source-action-button secondary"
-    >
-      Karte lösen
-    </button>
-      <label class="map-track-label map-track-toggle-label" for="map-track-toggle">
-      <input type="checkbox" id="map-track-toggle" class="map-track-toggle" />
-      Bahnverfolgung für ausgewählte Satelliten
-    </label>
-    <span
-      id="map-track-limit-hint"
-      class="map-track-limit-hint"
-      hidden
-      style="color: var(--mission-muted); font-size: 0.85rem;"
-    >Bei mehr als 20 Satelliten deaktiviert, um den Server nicht zu überlasten.</span>
-    <div class="map-track-legend" id="map-track-legend"></div>
-    </div>
-    <div class="world-map-wrap">
-      <div
-        id="world-map"
-        class="ground-map world-map"
-        data-observer-lat="{{ observer_latitude_deg }}"
-        data-observer-lon="{{ observer_longitude_deg }}"
-        data-observer-name="{{ observer_name }}"
-      ></div>
-      <div class="map-loading-overlay" id="map-loading-overlay">
-        <span class="map-loading-spinner" aria-hidden="true"></span>
-        <span>Karte wird geladen …</span>
-      </div>
-    </div>
-  </div>
+<div class="map-card" id="map-card">
+<div class="map-card-header">
+<span class="label">{{ t('map.world_map_eyebrow') }}</span>
+<span class="history-count" id="map-tle-generated">
+{{ t('map.tle_dataset_prefix') }} {{ tle_generated }}
+</span>
+<button
+type="button"
+id="map-fullscreen-btn"
+class="source-action-button secondary"
+>
+{{ t('map.fullscreen_button') }}
+</button>
+<button
+type="button"
+id="map-detach-btn"
+class="source-action-button secondary"
+>
+{{ t('map.detach_button') }}
+</button>
+<label class="map-track-label map-track-toggle-label" for="map-track-toggle">
+<input type="checkbox" id="map-track-toggle" class="map-track-toggle" />
+{{ t('map.track_label') }}
+</label>
+<span
+id="map-track-limit-hint"
+class="map-track-limit-hint"
+hidden
+style="color: var(--mission-muted); font-size: 0.85rem;"
+>{{ t('map.track_limit_hint') }}</span>
+<div class="map-track-legend" id="map-track-legend"></div>
+</div>
+<div class="world-map-wrap">
+<div
+id="world-map"
+class="ground-map world-map"
+data-observer-lat="{{ observer_latitude_deg }}"
+data-observer-lon="{{ observer_longitude_deg }}"
+data-observer-name="{{ observer_name }}"
+></div>
+<div class="map-loading-overlay" id="map-loading-overlay">
+<span class="map-loading-spinner" aria-hidden="true"></span>
+<span>{{ t('map.loading_text') }}</span>
+</div>
+</div>
+</div>
 </div>
 
 {% endblock %}
 
 {% block scripts %}
 <script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-  crossorigin=""
+src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+crossorigin=""
 ></script>
 <script>
-  (function () {
-    const mapContainer = document.getElementById("world-map");
-    if (!mapContainer || typeof L === "undefined") {
-      return;
-    }
-
-    const PRESELECT_INDICES = {{ preselect_indices|tojson }};
-
-    const obsLat = Number(mapContainer.dataset.observerLat);
-    const obsLon = Number(mapContainer.dataset.observerLon);
-    const obsName = mapContainer.dataset.observerName || "Standort";
-
-    const WORLD_BOUNDS = [
-      [-85, -180],
-      [85, 180],
-    ];
-
-    const worldMap = L.map(mapContainer, {
-      worldCopyJump: false,
-      maxBounds: WORLD_BOUNDS,
-      maxBoundsViscosity: 1.0,
-      minZoom: 2,
-    zoomSnap: 0,
-    zoomDelta: 1,
-    }).setView([obsLat, obsLon], 2);
-
-    if (window.ResizeObserver) {
-      const mapResizeObserver = new ResizeObserver(() => {
-        worldMap.invalidateSize();
-      });
-      mapResizeObserver.observe(mapContainer);
-    }
-
-    const baseLayers = {
-      "Voyager (Standard)": L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          subdomains: "abcd",
-          maxZoom: 19,
-          noWrap: true,
-          bounds: WORLD_BOUNDS,
-        },
-      ),
-      "OpenStreetMap": L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
-          subdomains: "abc",
-          maxZoom: 19,
-          noWrap: true,
-          bounds: WORLD_BOUNDS,
-        },
-      ),
-      "Satellit": L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        {
-          attribution:
-            "Tiles &copy; Esri, Maxar, Earthstar Geographics und die GIS User Community",
-          maxZoom: 19,
-          noWrap: true,
-          bounds: WORLD_BOUNDS,
-        },
-      ),
-      "Topografisch": L.tileLayer(
-        "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-        {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, SRTM | Kartendarstellung: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
-          subdomains: "abc",
-          maxZoom: 17,
-          noWrap: true,
-          bounds: WORLD_BOUNDS,
-        },
-      ),
-    };
-
-    baseLayers["Satellit"].addTo(worldMap);
-    L.control.layers(baseLayers, null, { position: "topright" }).addTo(worldMap);
-
-    const mapLoadingOverlay = document.getElementById("map-loading-overlay");
-    let mapLoadingHidden = false;
-    function markMapLoaded() {
-      if (mapLoadingHidden) return;
-      mapLoadingHidden = true;
-      if (mapLoadingOverlay) {
-        mapLoadingOverlay.classList.add("is-hidden");
-      }
-    }
-    baseLayers["Satellit"].once("load", markMapLoaded);
-    window.setTimeout(markMapLoaded, 6000);
-
-    L.circleMarker([obsLat, obsLon], {
-      radius: 7,
-      color: "#f2c14e",
-      fillColor: "#f2c14e",
-      fillOpacity: 0.9,
-      weight: 2,
-    })
-      .addTo(worldMap)
-      .bindTooltip(obsName);
-
-    function footprintRadiusMeters(altitudeKm) {
-      const earthRadiusKm = 6371;
-      const ratio = earthRadiusKm / (earthRadiusKm + altitudeKm);
-      const clamped = Math.min(1, Math.max(-1, ratio));
-      const centralAngle = Math.acos(clamped);
-      return earthRadiusKm * centralAngle * 1000;
-    }
-
-    function distanceMeters(lat1, lon1, lat2, lon2) {
-      const earthRadiusKm = 6371;
-      const toRad = (deg) => (deg * Math.PI) / 180;
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return earthRadiusKm * c * 1000;
-    }
-
-    const layers = new Map();
-
-  const satelliteDivIcon = L.divIcon({
-    className: "satellite-icon-marker",
-    html:
-      '<svg viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg">' +
-      '<g stroke="#ffffff" stroke-width="1" stroke-linejoin="round" stroke-linecap="round">' +
-      '<line x1="12" y1="9.3" x2="12" y2="5.4"></line>' +
-      '<circle cx="12" cy="4.6" r="1" fill="#ffd166"></circle>' +
-      '<line x1="7.6" y1="12" x2="9.3" y2="12"></line>' +
-      '<line x1="14.7" y1="12" x2="16.4" y2="12"></line>' +
-      '<rect x="2.4" y="9" width="5.2" height="6" rx="0.6" fill="#0ea5c4"></rect>' +
-      '<rect x="16.4" y="9" width="5.2" height="6" rx="0.6" fill="#0ea5c4"></rect>' +
-      '<rect x="9.3" y="9.3" width="5.4" height="5.4" rx="1" fill="#0b3d5c"></rect>' +
-      "</g>" +
-      "</svg>",
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-  });
-
-  const trackLayerGroup = L.layerGroup().addTo(worldMap);
-  const trackToggle = document.getElementById("map-track-toggle");
-    const trackLegend = document.getElementById("map-track-legend");
-    const TRACK_COLORS = ["#4ec9f0", "#ffd166", "#c792ea", "#7ee787", "#ff8fab", "#f2c14e", "#89ddff", "#ff6b6b"];
-    let currentTrackData = new Map();
-  let trackRefreshTimer = null;
-
-  function splitTrackSegments(points) {
-    const segments = [];
-    let current = [];
-    for (let index = 0; index < points.length; index += 1) {
-      const point = points[index];
-      if (current.length > 0) {
-        const previous = current[current.length - 1];
-        if (Math.abs(point.lon_deg - previous.lon_deg) > 180) {
-          segments.push(current);
-          current = [];
-        }
-      }
-      current.push(point);
-    }
-    if (current.length > 0) {
-      segments.push(current);
-    }
-    return segments;
-  }
-
-  function trackColorFor(id) {
-      const ids = Array.from(currentTrackData.keys());
-      const index = ids.indexOf(id);
-      return TRACK_COLORS[(index >= 0 ? index : 0) % TRACK_COLORS.length];
-    }
-
-    function renderTrack() {
-      trackLayerGroup.clearLayers();
-      if (trackLegend) {
-        trackLegend.innerHTML = "";
-      }
-      if (!currentTrackData || currentTrackData.size === 0) return;
-
-      const now = Date.now();
-
-      currentTrackData.forEach((points, id) => {
-        if (!points || points.length === 0) return;
-        const color = trackColorFor(id);
-        const past = points.filter((point) => point.time <= now);
-        const future = points.filter((point) => point.time >= now);
-
-        if (past.length > 1) {
-          splitTrackSegments(past).forEach((segment) => {
-            L.polyline(
-              segment.map((point) => [point.lat_deg, point.lon_deg]),
-              {
-                color: color,
-                weight: 2,
-                opacity: 0.6,
-                dashArray: "1, 6",
-                className: "satellite-track-past",
-              },
-            ).addTo(trackLayerGroup);
-          });
-        }
-
-        if (future.length > 1) {
-          splitTrackSegments(future).forEach((segment) => {
-            L.polyline(
-              segment.map((point) => [point.lat_deg, point.lon_deg]),
-              {
-                color: color,
-                weight: 2.5,
-                opacity: 0.9,
-                className: "satellite-track-future",
-              },
-            ).addTo(trackLayerGroup);
-          });
-        }
-
-        if (trackLegend) {
-          const entry = document.createElement("span");
-          entry.className = "map-track-legend-item";
-          const checkbox = document.querySelector(
-            '.map-satellite-checkbox[value="' + id + '"]',
-          );
-          const name = (checkbox && checkbox.dataset.name) || id;
-          entry.innerHTML =
-            '<span class="map-track-legend-dot" style="background:' +
-            color +
-            '"></span>' +
-            name;
-          trackLegend.appendChild(entry);
-        }
-      });
-    }
-
-    async function fetchTrack() {
-      if (!trackToggle || !trackToggle.checked) return;
-      const ids = selectedIds();
-      if (ids.length === 0) {
-        currentTrackData = new Map();
-        renderTrack();
-        return;
-      }
-      try {
-        const results = await Promise.all(
-          ids.map((id) =>
-            fetch(
-              "/api/satellites/track?index=" +
-                encodeURIComponent(id) +
-                "&minutes_back=15&minutes_forward=45",
-            )
-              .then((response) => (response.ok ? response.json() : null))
-              .then((data) => ({ id: id, track: data ? data.track || [] : [] }))
-              .catch(() => ({ id: id, track: [] })),
-          ),
-        );
-        const nextTrackData = new Map();
-        results.forEach((result) => {
-          nextTrackData.set(
-            result.id,
-            result.track.map((point) => ({
-              lat_deg: point.lat_deg,
-              lon_deg: point.lon_deg,
-              time: new Date(point.timestamp).getTime(),
-            })),
-          );
-        });
-        currentTrackData = nextTrackData;
-        renderTrack();
-      } catch (error) {
-        /* Netzwerkfehler ignorieren, nächster Versuch folgt */
-      }
-    }
-
-    function stopTrack() {
-      currentTrackData = new Map();
-      trackLayerGroup.clearLayers();
-      if (trackLegend) {
-        trackLegend.innerHTML = "";
-      }
-      if (trackRefreshTimer) {
-        window.clearInterval(trackRefreshTimer);
-        trackRefreshTimer = null;
-      }
-    }
-
-    function startTrack() {
-    fetchTrack();
-    if (trackRefreshTimer) window.clearInterval(trackRefreshTimer);
-    trackRefreshTimer = window.setInterval(fetchTrack, 30000);
-  }
-
-  const TRACK_MAX_SATELLITES = 20;
-    const trackLimitHint = document.getElementById("map-track-limit-hint");
-
-    function updateTrackOptions() {
-      if (!trackToggle) return;
-      const count = selectedIds().length;
-      const overLimit = count > TRACK_MAX_SATELLITES;
-      trackToggle.disabled = overLimit;
-      if (trackLimitHint) {
-        trackLimitHint.hidden = !overLimit;
-      }
-      if (overLimit && trackToggle.checked) {
-        trackToggle.checked = false;
-      }
-      if (trackToggle.checked && count > 0 && !overLimit) {
-        startTrack();
-      } else {
-        stopTrack();
-      }
-    }
-
-    if (trackToggle) {
-      trackToggle.addEventListener("change", () => {
-        updateTrackOptions();
-      });
-    }
-
-    function removeSatelliteLayer(id) {
-      const entry = layers.get(id);
-      if (!entry) return;
-      worldMap.removeLayer(entry.marker);
-      worldMap.removeLayer(entry.circle);
-      layers.delete(id);
-    }
-
-    function upsertSatelliteLayer(position) {
-      const id = String(position.id);
-      const latLng = [position.lat_deg, position.lon_deg];
-      const radius = footprintRadiusMeters(position.alt_km);
-
-    const visible =
-      distanceMeters(obsLat, obsLon, position.lat_deg, position.lon_deg) <= radius;
-    if (!visible) {
-      removeSatelliteLayer(id);
-      return;
-    }
-
-      let entry = layers.get(id);
-      if (!entry) {
-      const marker = L.marker(latLng, { icon: satelliteDivIcon })
-          .addTo(worldMap)
-          .bindTooltip(
-            position.name + " (" + Math.round(position.alt_km) + " km)",
-            {
-              permanent: true,
-              direction: "top",
-              offset: [0, -8],
-              className: "satellite-label",
-            },
-          );
-
-        const circle = L.circle(latLng, {
-          radius: radius,
-          color: "#4ec9f0",
-          weight: 1,
-          fillColor: "#4ec9f0",
-          fillOpacity: 0.08,
-          className: "satellite-footprint",
-        }).addTo(worldMap);
-
-        entry = { marker: marker, circle: circle };
-        layers.set(id, entry);
-      } else {
-        entry.marker.setLatLng(latLng);
-        entry.circle.setLatLng(latLng);
-        entry.circle.setRadius(radius);
-        entry.marker.setTooltipContent(
-          position.name + " (" + Math.round(position.alt_km) + " km)",
-        );
-      }
-    }
-
-    function selectedIds() {
-      return Array.from(
-        document.querySelectorAll(".map-satellite-checkbox:checked"),
-      ).map((checkbox) => checkbox.value);
-    }
-
-    let refreshTimer = null;
-
-    async function refreshPositions() {
-      const ids = selectedIds();
-
-      Array.from(layers.keys()).forEach((id) => {
-        if (ids.indexOf(id) === -1) {
-          removeSatelliteLayer(id);
-        }
-      });
-
-      if (ids.length === 0) {
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          "/api/satellites/positions?indices=" + encodeURIComponent(ids.join(",")),
-        );
-        if (!response.ok) return;
-        const data = await response.json();
-        (data.positions || []).forEach(upsertSatelliteLayer);
-        if (currentTrackData) renderTrack();
-      } catch (error) {
-        console.error("Fehler beim Laden der Satellitenpositionen", error);
-      }
-    }
-
-    function scheduleRefresh() {
-      refreshPositions();
-      if (refreshTimer) return;
-      refreshTimer = window.setInterval(refreshPositions, 5000);
-    }
-
-    const SELECTION_STORAGE_KEY = "orbithub-map-selected-ids";
-
-    function saveSelection() {
-      try {
-        window.localStorage.setItem(
-          SELECTION_STORAGE_KEY,
-          JSON.stringify(selectedIds()),
-        );
-      } catch (error) {
-        /* localStorage evtl. nicht verfügbar, keine weitere Aktion nötig */
-      }
-    }
-
-    function restoreSelection() {
-      let saved = [];
-      try {
-        saved = JSON.parse(
-          window.localStorage.getItem(SELECTION_STORAGE_KEY) || "[]",
-        );
-      } catch (error) {
-        saved = [];
-      }
-      if (!Array.isArray(saved) || saved.length === 0) return;
-
-      const savedSet = new Set(saved.map(String));
-      document
-        .querySelectorAll(".map-satellite-checkbox")
-        .forEach((checkbox) => {
-          if (savedSet.has(checkbox.value)) {
-            checkbox.checked = true;
-          }
-        });
-    }
-
-    document.querySelectorAll(".map-satellite-checkbox").forEach((checkbox) => {
-      checkbox.addEventListener("change", () => {
-        saveSelection();
-        scheduleRefresh();
-        updateTrackOptions();
-        if (window.OrbitFavorites && checkbox.dataset.noradId) {
-          if (checkbox.checked) {
-            window.OrbitFavorites.add(checkbox.dataset.noradId);
-          } else {
-            window.OrbitFavorites.remove(checkbox.dataset.noradId);
-          }
-        }
-      });
-    });
-
-    if (PRESELECT_INDICES && PRESELECT_INDICES.length > 0) {
-      const preselectSet = new Set(PRESELECT_INDICES.map(String));
-      document.querySelectorAll(".map-satellite-checkbox").forEach((checkbox) => {
-        checkbox.checked = preselectSet.has(checkbox.value);
-      });
-      saveSelection();
-      updateTrackOptions();
-      scheduleRefresh();
-    } else {
-      restoreSelection();
-      updateTrackOptions();
-      if (selectedIds().length > 0) {
-        scheduleRefresh();
-      }
-    }
-
-    const searchInput = document.getElementById("map-satellite-search");
-    const tableBody = document.querySelector("#map-satellite-table tbody");
-    const rows = tableBody ? Array.from(tableBody.querySelectorAll("tr")) : [];
-    const emptyState = document.getElementById("map-satellite-empty");
-
-      function applyFilter() {
-    const query = (searchInput.value || "").trim().toLowerCase();
-    let visible = 0;
-    rows.forEach((row) => {
-      const matches =
-        !!query &&
-        (row.dataset.name.indexOf(query) !== -1 ||
-          row.dataset.norad.indexOf(query) !== -1);
-      const checkbox = row.querySelector(".map-satellite-checkbox");
-      const show = matches || (checkbox ? checkbox.checked : false);
-      row.hidden = !show;
-      if (show) visible += 1;
-    });
-    if (emptyState) {
-      emptyState.hidden = visible !== 0;
-      emptyState.textContent = query
-        ? "Keine Satelliten für diese Suche gefunden."
-        : "Tippe einen Namen oder eine NORAD-ID ein, um Satelliten zu finden.";
-    }
-  }
-
-    if (searchInput) {
-      searchInput.addEventListener("input", applyFilter);
-    }
-
-  applyFilter();
-
-    const fullscreenBtn = document.getElementById(
-      "map-fullscreen-btn",
-    );
-    const mapCard = document.getElementById("map-card");
-
-    function isFullscreenActive() {
-      return Boolean(document.fullscreenElement);
-    }
-
-    function updateFullscreenLabel() {
-      if (!fullscreenBtn) return;
-      const active =
-        isFullscreenActive() ||
-        mapCard.classList.contains("map-card-fullscreen-fallback");
-      fullscreenBtn.textContent = active ? "Vollbild beenden" : "Vollbild";
-    }
-
-    if (fullscreenBtn && mapCard) {
-      fullscreenBtn.addEventListener("click", () => {
-        if (isFullscreenActive()) {
-          if (document.exitFullscreen) {
-            document.exitFullscreen();
-          }
-          return;
-        }
-
-        const inFallback = mapCard.classList.contains(
-          "map-card-fullscreen-fallback",
-        );
-
-        if (inFallback) {
-          mapCard.classList.remove("map-card-fullscreen-fallback");
-          updateFullscreenLabel();
-          window.setTimeout(() => {
-            const orbithubMapFitBounds = worldMap.getBounds();
-            worldMap.invalidateSize();
-            worldMap.fitBounds(orbithubMapFitBounds);
-          }, 50);
-          window.setTimeout(() => {
-            const orbithubMapFitBounds = worldMap.getBounds();
-            worldMap.invalidateSize();
-            worldMap.fitBounds(orbithubMapFitBounds);
-          }, 350);
-          return;
-        }
-
-        function useFallback() {
-          mapCard.classList.add("map-card-fullscreen-fallback");
-          updateFullscreenLabel();
-          window.setTimeout(() => {
-            const orbithubMapFitBounds = worldMap.getBounds();
-            worldMap.invalidateSize();
-            worldMap.fitBounds(orbithubMapFitBounds);
-          }, 50);
-          window.setTimeout(() => {
-            const orbithubMapFitBounds = worldMap.getBounds();
-            worldMap.invalidateSize();
-            worldMap.fitBounds(orbithubMapFitBounds);
-          }, 350);
-        }
-
-        if (mapCard.requestFullscreen) {
-          mapCard.requestFullscreen().catch(useFallback);
-        } else {
-          useFallback();
-        }
-      });
-
-      document.addEventListener("fullscreenchange", () => {
-        updateFullscreenLabel();
-        window.setTimeout(() => {
-          const orbithubMapFitBounds = worldMap.getBounds();
-          worldMap.invalidateSize();
-          worldMap.fitBounds(orbithubMapFitBounds);
-        }, 100);
-        window.setTimeout(() => {
-          const orbithubMapFitBounds = worldMap.getBounds();
-          worldMap.invalidateSize();
-          worldMap.fitBounds(orbithubMapFitBounds);
-        }, 400);
-      });
-    }
-
-  const detachBtn = document.getElementById("map-detach-btn");
-  let popoutWindow = null;
-  let mapCardHome = null;
-
-  function copyStylesInto(targetDocument) {
-    document
-      .querySelectorAll('link[rel="stylesheet"], style')
-      .forEach((node) => {
-        targetDocument.head.appendChild(node.cloneNode(true));
-      });
-  }
-
-  function refreshMapSize() {
-    window.setTimeout(() => {
-      const orbithubMapFitBounds = worldMap.getBounds();
-      worldMap.invalidateSize();
-      worldMap.fitBounds(orbithubMapFitBounds);
-    }, 50);
-    window.setTimeout(() => {
-      const orbithubMapFitBounds = worldMap.getBounds();
-      worldMap.invalidateSize();
-      worldMap.fitBounds(orbithubMapFitBounds);
-    }, 350);
-  }
-
-  function reattachMap() {
-    if (!popoutWindow) return;
-    const win = popoutWindow;
-    popoutWindow = null;
-    if (mapCardHome && mapCardHome.parentNode) {
-      mapCardHome.parentNode.insertBefore(mapCard, mapCardHome);
-      mapCardHome.remove();
-    }
-    mapCardHome = null;
-    try {
-      win.close();
-    } catch (error) {
-      /* Fenster war bereits geschlossen */
-    }
-    if (detachBtn) detachBtn.textContent = "Karte lösen";
-    refreshMapSize();
-  }
-
-  async function detachMap() {
-    if (popoutWindow || !mapCard) return;
-
-    mapCardHome = document.createComment("map-card-home");
-    mapCard.parentNode.insertBefore(mapCardHome, mapCard);
-
-    let win = null;
-    if (window.documentPictureInPicture) {
-      try {
-        win = await window.documentPictureInPicture.requestWindow({
-          width: 680,
-          height: 860,
-        });
-      } catch (error) {
-        win = null;
-      }
-    }
-    if (!win) {
-      win = window.open(
-        "",
-        "orbithub-map-popout",
-        "width=680,height=860,resizable=yes",
-      );
-    }
-    if (!win) {
-      mapCardHome.remove();
-      mapCardHome = null;
-      alert(
-        "Fenster konnte nicht geöffnet werden. Bitte Popups für diese Seite erlauben.",
-      );
-      return;
-    }
-
-    win.document.title = "OrbitHub – Karte";
-    win.document.body.style.margin = "0";
-    win.document.body.style.background = "#0b1220";
-    copyStylesInto(win.document);
-    win.document.body.appendChild(mapCard);
-    popoutWindow = win;
-    if (detachBtn) detachBtn.textContent = "Karte anheften";
-
-    win.addEventListener("pagehide", reattachMap);
-    if (!window.documentPictureInPicture) {
-      const closeCheck = window.setInterval(() => {
-        if (!popoutWindow || popoutWindow.closed) {
-          window.clearInterval(closeCheck);
-          if (popoutWindow) reattachMap();
-        }
-      }, 500);
-    }
-
-    refreshMapSize();
-  }
-
-  if (detachBtn && mapCard) {
-    detachBtn.addEventListener("click", () => {
-      if (popoutWindow) {
-        reattachMap();
-      } else {
-        detachMap();
-      }
-    });
-  }
-
-      })();
+(function () {
+const mapContainer = document.getElementById("world-map");
+if (!mapContainer || typeof L === "undefined") {
+return;
+}
+
+const PRESELECT_INDICES = {{ preselect_indices|tojson }};
+
+const obsLat = Number(mapContainer.dataset.observerLat);
+const obsLon = Number(mapContainer.dataset.observerLon);
+const obsName = mapContainer.dataset.observerName || "{{ t('map.default_location_label') }}";
+
+const WORLD_BOUNDS = [
+[-85, -180],
+[85, 180],
+];
+
+const worldMap = L.map(mapContainer, {
+worldCopyJump: false,
+maxBounds: WORLD_BOUNDS,
+maxBoundsViscosity: 1.0,
+minZoom: 2,
+zoomSnap: 0,
+zoomDelta: 1,
+}).setView([obsLat, obsLon], 2);
+
+if (window.ResizeObserver) {
+const mapResizeObserver = new ResizeObserver(() => {
+worldMap.invalidateSize();
+});
+mapResizeObserver.observe(mapContainer);
+}
+
+const baseLayers = {
+"{{ t('map.layer_voyager') }}": L.tileLayer(
+"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+{
+attribution: "{{ t('map.attribution_carto_voyager') }}",
+subdomains: "abcd",
+maxZoom: 19,
+noWrap: true,
+bounds: WORLD_BOUNDS,
+},
+),
+"{{ t('map.layer_osm') }}": L.tileLayer(
+"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+{
+attribution: "{{ t('map.attribution_osm_plain') }}",
+subdomains: "abc",
+maxZoom: 19,
+noWrap: true,
+bounds: WORLD_BOUNDS,
+},
+),
+"{{ t('map.layer_satellite') }}": L.tileLayer(
+"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+{
+attribution: "{{ t('map.attribution_esri_full') }}",
+maxZoom: 19,
+noWrap: true,
+bounds: WORLD_BOUNDS,
+},
+),
+"{{ t('map.layer_topo') }}": L.tileLayer(
+"https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+{
+attribution: "{{ t('map.attribution_opentopo_full') }}",
+subdomains: "abc",
+maxZoom: 17,
+noWrap: true,
+bounds: WORLD_BOUNDS,
+},
+),
+};
+
+baseLayers["{{ t('map.layer_satellite') }}"].addTo(worldMap);
+L.control.layers(baseLayers, null, { position: "topright" }).addTo(worldMap);
+
+const mapLoadingOverlay = document.getElementById("map-loading-overlay");
+let mapLoadingHidden = false;
+function markMapLoaded() {
+if (mapLoadingHidden) return;
+mapLoadingHidden = true;
+if (mapLoadingOverlay) {
+mapLoadingOverlay.classList.add("is-hidden");
+}
+}
+baseLayers["{{ t('map.layer_satellite') }}"].once("load", markMapLoaded);
+window.setTimeout(markMapLoaded, 6000);
+
+L.circleMarker([obsLat, obsLon], {
+radius: 7,
+color: "#f2c14e",
+fillColor: "#f2c14e",
+fillOpacity: 0.9,
+weight: 2,
+})
+.addTo(worldMap)
+.bindTooltip(obsName);
+
+function footprintRadiusMeters(altitudeKm) {
+const earthRadiusKm = 6371;
+const ratio = earthRadiusKm / (earthRadiusKm + altitudeKm);
+const clamped = Math.min(1, Math.max(-1, ratio));
+const centralAngle = Math.acos(clamped);
+return earthRadiusKm * centralAngle * 1000;
+}
+
+function distanceMeters(lat1, lon1, lat2, lon2) {
+const earthRadiusKm = 6371;
+const toRad = (deg) => (deg * Math.PI) / 180;
+const dLat = toRad(lat2 - lat1);
+const dLon = toRad(lon2 - lon1);
+const a =
+Math.sin(dLat / 2) ** 2 +
+Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+return earthRadiusKm * c * 1000;
+}
+
+const layers = new Map();
+
+const satelliteDivIcon = L.divIcon({
+className: "satellite-icon-marker",
+html:
+'<svg viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg">' +
+'<g stroke="#ffffff" stroke-width="1" stroke-linejoin="round" stroke-linecap="round">' +
+'<line x1="12" y1="9.3" x2="12" y2="5.4"></line>' +
+'<circle cx="12" cy="4.6" r="1" fill="#ffd166"></circle>' +
+'<line x1="7.6" y1="12" x2="9.3" y2="12"></line>' +
+'<line x1="14.7" y1="12" x2="16.4" y2="12"></line>' +
+'<rect x="2.4" y="9" width="5.2" height="6" rx="0.6" fill="#0ea5c4"></rect>' +
+'<rect x="16.4" y="9" width="5.2" height="6" rx="0.6" fill="#0ea5c4"></rect>' +
+'<rect x="9.3" y="9.3" width="5.4" height="5.4" rx="1" fill="#0b3d5c"></rect>' +
+"</g>" +
+"</svg>",
+iconSize: [22, 22],
+iconAnchor: [11, 11],
+});
+
+const trackLayerGroup = L.layerGroup().addTo(worldMap);
+const trackToggle = document.getElementById("map-track-toggle");
+const trackLegend = document.getElementById("map-track-legend");
+const TRACK_COLORS = ["#4ec9f0", "#ffd166", "#c792ea", "#7ee787", "#ff8fab", "#f2c14e", "#89ddff", "#ff6b6b"];
+let currentTrackData = new Map();
+let trackRefreshTimer = null;
+
+function splitTrackSegments(points) {
+const segments = [];
+let current = [];
+for (let index = 0; index < points.length; index += 1) {
+const point = points[index];
+if (current.length > 0) {
+const previous = current[current.length - 1];
+if (Math.abs(point.lon_deg - previous.lon_deg) > 180) {
+segments.push(current);
+current = [];
+}
+}
+current.push(point);
+}
+if (current.length > 0) {
+segments.push(current);
+}
+return segments;
+}
+
+function trackColorFor(id) {
+const ids = Array.from(currentTrackData.keys());
+const index = ids.indexOf(id);
+return TRACK_COLORS[(index >= 0 ? index : 0) % TRACK_COLORS.length];
+}
+
+function renderTrack() {
+trackLayerGroup.clearLayers();
+if (trackLegend) {
+trackLegend.innerHTML = "";
+}
+if (!currentTrackData || currentTrackData.size === 0) return;
+
+const now = Date.now();
+
+currentTrackData.forEach((points, id) => {
+if (!points || points.length === 0) return;
+const color = trackColorFor(id);
+const past = points.filter((point) => point.time <= now);
+const future = points.filter((point) => point.time >= now);
+
+if (past.length > 1) {
+splitTrackSegments(past).forEach((segment) => {
+L.polyline(
+segment.map((point) => [point.lat_deg, point.lon_deg]),
+{
+color: color,
+weight: 2,
+opacity: 0.6,
+dashArray: "1, 6",
+className: "satellite-track-past",
+},
+).addTo(trackLayerGroup);
+});
+}
+
+if (future.length > 1) {
+splitTrackSegments(future).forEach((segment) => {
+L.polyline(
+segment.map((point) => [point.lat_deg, point.lon_deg]),
+{
+color: color,
+weight: 2.5,
+opacity: 0.9,
+className: "satellite-track-future",
+},
+).addTo(trackLayerGroup);
+});
+}
+
+if (trackLegend) {
+const entry = document.createElement("span");
+entry.className = "map-track-legend-item";
+const checkbox = document.querySelector(
+'.map-satellite-checkbox[value="' + id + '"]',
+);
+const name = (checkbox && checkbox.dataset.name) || id;
+entry.innerHTML =
+'<span class="map-track-legend-dot" style="background:' +
+color +
+'"></span>' +
+name;
+trackLegend.appendChild(entry);
+}
+});
+}
+
+async function fetchTrack() {
+if (!trackToggle || !trackToggle.checked) return;
+const ids = selectedIds();
+if (ids.length === 0) {
+currentTrackData = new Map();
+renderTrack();
+return;
+}
+try {
+const results = await Promise.all(
+ids.map((id) =>
+fetch(
+"/api/satellites/track?index=" +
+encodeURIComponent(id) +
+"&minutes_back=15&minutes_forward=45",
+)
+.then((response) => (response.ok ? response.json() : null))
+.then((data) => ({ id: id, track: data ? data.track || [] : [] }))
+.catch(() => ({ id: id, track: [] })),
+),
+);
+const nextTrackData = new Map();
+results.forEach((result) => {
+nextTrackData.set(
+result.id,
+result.track.map((point) => ({
+lat_deg: point.lat_deg,
+lon_deg: point.lon_deg,
+time: new Date(point.timestamp).getTime(),
+})),
+);
+});
+currentTrackData = nextTrackData;
+renderTrack();
+} catch (error) {
+/* Netzwerkfehler ignorieren, naechster Versuch folgt */
+}
+}
+
+function stopTrack() {
+currentTrackData = new Map();
+trackLayerGroup.clearLayers();
+if (trackLegend) {
+trackLegend.innerHTML = "";
+}
+if (trackRefreshTimer) {
+window.clearInterval(trackRefreshTimer);
+trackRefreshTimer = null;
+}
+}
+
+function startTrack() {
+fetchTrack();
+if (trackRefreshTimer) window.clearInterval(trackRefreshTimer);
+trackRefreshTimer = window.setInterval(fetchTrack, 30000);
+}
+
+const TRACK_MAX_SATELLITES = 20;
+const trackLimitHint = document.getElementById("map-track-limit-hint");
+
+function updateTrackOptions() {
+if (!trackToggle) return;
+const count = selectedIds().length;
+const overLimit = count > TRACK_MAX_SATELLITES;
+trackToggle.disabled = overLimit;
+if (trackLimitHint) {
+trackLimitHint.hidden = !overLimit;
+}
+if (overLimit && trackToggle.checked) {
+trackToggle.checked = false;
+}
+if (trackToggle.checked && count > 0 && !overLimit) {
+startTrack();
+} else {
+stopTrack();
+}
+}
+
+if (trackToggle) {
+trackToggle.addEventListener("change", () => {
+updateTrackOptions();
+});
+}
+
+function removeSatelliteLayer(id) {
+const entry = layers.get(id);
+if (!entry) return;
+worldMap.removeLayer(entry.marker);
+worldMap.removeLayer(entry.circle);
+layers.delete(id);
+}
+
+function upsertSatelliteLayer(position) {
+const id = String(position.id);
+const latLng = [position.lat_deg, position.lon_deg];
+const radius = footprintRadiusMeters(position.alt_km);
+
+const visible =
+distanceMeters(obsLat, obsLon, position.lat_deg, position.lon_deg) <= radius;
+if (!visible) {
+removeSatelliteLayer(id);
+return;
+}
+
+let entry = layers.get(id);
+if (!entry) {
+const marker = L.marker(latLng, { icon: satelliteDivIcon })
+.addTo(worldMap)
+.bindTooltip(
+position.name + " (" + Math.round(position.alt_km) + " km)",
+{
+permanent: true,
+direction: "top",
+offset: [0, -8],
+className: "satellite-label",
+},
+);
+
+const circle = L.circle(latLng, {
+radius: radius,
+color: "#4ec9f0",
+weight: 1,
+fillColor: "#4ec9f0",
+fillOpacity: 0.08,
+className: "satellite-footprint",
+}).addTo(worldMap);
+
+entry = { marker: marker, circle: circle };
+layers.set(id, entry);
+} else {
+entry.marker.setLatLng(latLng);
+entry.circle.setLatLng(latLng);
+entry.circle.setRadius(radius);
+entry.marker.setTooltipContent(
+position.name + " (" + Math.round(position.alt_km) + " km)",
+);
+}
+}
+
+function selectedIds() {
+return Array.from(
+document.querySelectorAll(".map-satellite-checkbox:checked"),
+).map((checkbox) => checkbox.value);
+}
+
+let refreshTimer = null;
+
+async function refreshPositions() {
+const ids = selectedIds();
+
+Array.from(layers.keys()).forEach((id) => {
+if (ids.indexOf(id) === -1) {
+removeSatelliteLayer(id);
+}
+});
+
+if (ids.length === 0) {
+return;
+}
+
+try {
+const response = await fetch(
+"/api/satellites/positions?indices=" + encodeURIComponent(ids.join(",")),
+);
+if (!response.ok) return;
+const data = await response.json();
+(data.positions || []).forEach(upsertSatelliteLayer);
+if (currentTrackData) renderTrack();
+} catch (error) {
+console.error("{{ t('map.positions_load_error') }}", error);
+}
+}
+
+function scheduleRefresh() {
+refreshPositions();
+if (refreshTimer) return;
+refreshTimer = window.setInterval(refreshPositions, 5000);
+}
+
+const SELECTION_STORAGE_KEY = "orbithub-map-selected-ids";
+
+function saveSelection() {
+try {
+window.localStorage.setItem(
+SELECTION_STORAGE_KEY,
+JSON.stringify(selectedIds()),
+);
+} catch (error) {
+/* localStorage evtl. nicht verfuegbar, keine weitere Aktion noetig */
+}
+}
+
+function restoreSelection() {
+let saved = [];
+try {
+saved = JSON.parse(
+window.localStorage.getItem(SELECTION_STORAGE_KEY) || "[]",
+);
+} catch (error) {
+saved = [];
+}
+if (!Array.isArray(saved) || saved.length === 0) return;
+
+const savedSet = new Set(saved.map(String));
+document
+.querySelectorAll(".map-satellite-checkbox")
+.forEach((checkbox) => {
+if (savedSet.has(checkbox.value)) {
+checkbox.checked = true;
+}
+});
+}
+
+document.querySelectorAll(".map-satellite-checkbox").forEach((checkbox) => {
+checkbox.addEventListener("change", () => {
+saveSelection();
+scheduleRefresh();
+updateTrackOptions();
+if (window.OrbitFavorites && checkbox.dataset.noradId) {
+if (checkbox.checked) {
+window.OrbitFavorites.add(checkbox.dataset.noradId);
+} else {
+window.OrbitFavorites.remove(checkbox.dataset.noradId);
+}
+}
+});
+});
+
+if (PRESELECT_INDICES && PRESELECT_INDICES.length > 0) {
+const preselectSet = new Set(PRESELECT_INDICES.map(String));
+document.querySelectorAll(".map-satellite-checkbox").forEach((checkbox) => {
+checkbox.checked = preselectSet.has(checkbox.value);
+});
+saveSelection();
+updateTrackOptions();
+scheduleRefresh();
+} else {
+restoreSelection();
+updateTrackOptions();
+if (selectedIds().length > 0) {
+scheduleRefresh();
+}
+}
+
+const searchInput = document.getElementById("map-satellite-search");
+const tableBody = document.querySelector("#map-satellite-table tbody");
+const rows = tableBody ? Array.from(tableBody.querySelectorAll("tr")) : [];
+const emptyState = document.getElementById("map-satellite-empty");
+
+function applyFilter() {
+const query = (searchInput.value || "").trim().toLowerCase();
+let visible = 0;
+rows.forEach((row) => {
+const matches =
+!!query &&
+(row.dataset.name.indexOf(query) !== -1 ||
+row.dataset.norad.indexOf(query) !== -1);
+const checkbox = row.querySelector(".map-satellite-checkbox");
+const show = matches || (checkbox ? checkbox.checked : false);
+row.hidden = !show;
+if (show) visible += 1;
+});
+if (emptyState) {
+emptyState.hidden = visible !== 0;
+emptyState.textContent = query
+? "{{ t('satellites.no_search_results') }}"
+: "{{ t('map.search_hint_empty') }}";
+}
+}
+
+if (searchInput) {
+searchInput.addEventListener("input", applyFilter);
+}
+
+applyFilter();
+
+const fullscreenBtn = document.getElementById(
+"map-fullscreen-btn",
+);
+const mapCard = document.getElementById("map-card");
+
+function isFullscreenActive() {
+return Boolean(document.fullscreenElement);
+}
+
+function updateFullscreenLabel() {
+if (!fullscreenBtn) return;
+const active =
+isFullscreenActive() ||
+mapCard.classList.contains("map-card-fullscreen-fallback");
+fullscreenBtn.textContent = active ? "{{ t('map.fullscreen_exit_button') }}" : "{{ t('map.fullscreen_button') }}";
+}
+
+if (fullscreenBtn && mapCard) {
+fullscreenBtn.addEventListener("click", () => {
+if (isFullscreenActive()) {
+if (document.exitFullscreen) {
+document.exitFullscreen();
+}
+return;
+}
+
+const inFallback = mapCard.classList.contains(
+"map-card-fullscreen-fallback",
+);
+
+if (inFallback) {
+mapCard.classList.remove("map-card-fullscreen-fallback");
+updateFullscreenLabel();
+window.setTimeout(() => {
+const orbithubMapFitBounds = worldMap.getBounds();
+worldMap.invalidateSize();
+worldMap.fitBounds(orbithubMapFitBounds);
+}, 50);
+window.setTimeout(() => {
+const orbithubMapFitBounds = worldMap.getBounds();
+worldMap.invalidateSize();
+worldMap.fitBounds(orbithubMapFitBounds);
+}, 350);
+return;
+}
+
+function useFallback() {
+mapCard.classList.add("map-card-fullscreen-fallback");
+updateFullscreenLabel();
+window.setTimeout(() => {
+const orbithubMapFitBounds = worldMap.getBounds();
+worldMap.invalidateSize();
+worldMap.fitBounds(orbithubMapFitBounds);
+}, 50);
+window.setTimeout(() => {
+const orbithubMapFitBounds = worldMap.getBounds();
+worldMap.invalidateSize();
+worldMap.fitBounds(orbithubMapFitBounds);
+}, 350);
+}
+
+if (mapCard.requestFullscreen) {
+mapCard.requestFullscreen().catch(useFallback);
+} else {
+useFallback();
+}
+});
+
+document.addEventListener("fullscreenchange", () => {
+updateFullscreenLabel();
+window.setTimeout(() => {
+const orbithubMapFitBounds = worldMap.getBounds();
+worldMap.invalidateSize();
+worldMap.fitBounds(orbithubMapFitBounds);
+}, 100);
+window.setTimeout(() => {
+const orbithubMapFitBounds = worldMap.getBounds();
+worldMap.invalidateSize();
+worldMap.fitBounds(orbithubMapFitBounds);
+}, 400);
+});
+}
+
+const detachBtn = document.getElementById("map-detach-btn");
+let popoutWindow = null;
+let mapCardHome = null;
+
+function copyStylesInto(targetDocument) {
+document
+.querySelectorAll('link[rel="stylesheet"], style')
+.forEach((node) => {
+targetDocument.head.appendChild(node.cloneNode(true));
+});
+}
+
+function refreshMapSize() {
+window.setTimeout(() => {
+const orbithubMapFitBounds = worldMap.getBounds();
+worldMap.invalidateSize();
+worldMap.fitBounds(orbithubMapFitBounds);
+}, 50);
+window.setTimeout(() => {
+const orbithubMapFitBounds = worldMap.getBounds();
+worldMap.invalidateSize();
+worldMap.fitBounds(orbithubMapFitBounds);
+}, 350);
+}
+
+function reattachMap() {
+if (!popoutWindow) return;
+const win = popoutWindow;
+popoutWindow = null;
+if (mapCardHome && mapCardHome.parentNode) {
+mapCardHome.parentNode.insertBefore(mapCard, mapCardHome);
+mapCardHome.remove();
+}
+mapCardHome = null;
+try {
+win.close();
+} catch (error) {
+/* Fenster war bereits geschlossen */
+}
+if (detachBtn) detachBtn.textContent = "{{ t('map.detach_button') }}";
+refreshMapSize();
+}
+
+async function detachMap() {
+if (popoutWindow || !mapCard) return;
+
+mapCardHome = document.createComment("map-card-home");
+mapCard.parentNode.insertBefore(mapCardHome, mapCard);
+
+let win = null;
+if (window.documentPictureInPicture) {
+try {
+win = await window.documentPictureInPicture.requestWindow({
+width: 680,
+height: 860,
+});
+} catch (error) {
+win = null;
+}
+}
+if (!win) {
+win = window.open(
+"",
+"orbithub-map-popout",
+"width=680,height=860,resizable=yes",
+);
+}
+if (!win) {
+mapCardHome.remove();
+mapCardHome = null;
+alert(
+"{{ t('map.popup_blocked_alert') }}",
+);
+return;
+}
+
+win.document.title = "OrbitHub – {{ t('nav.map') }}";
+win.document.body.style.margin = "0";
+win.document.body.style.background = "#0b1220";
+copyStylesInto(win.document);
+win.document.body.appendChild(mapCard);
+popoutWindow = win;
+if (detachBtn) detachBtn.textContent = "{{ t('map.attach_button') }}";
+
+win.addEventListener("pagehide", reattachMap);
+if (!window.documentPictureInPicture) {
+const closeCheck = window.setInterval(() => {
+if (!popoutWindow || popoutWindow.closed) {
+window.clearInterval(closeCheck);
+if (popoutWindow) reattachMap();
+}
+}, 500);
+}
+
+refreshMapSize();
+}
+
+if (detachBtn && mapCard) {
+detachBtn.addEventListener("click", () => {
+if (popoutWindow) {
+reattachMap();
+} else {
+detachMap();
+}
+});
+}
+
+})();
 </script>
 
 <script>
-  (function () {
-    var mapWatchlistStatus = document.getElementById(
-      "map-watchlist-source-status"
-    );
-    function showMapWatchlistStatus(message, state) {
-      if (!mapWatchlistStatus) {
-        return;
-      }
-      mapWatchlistStatus.textContent = message;
-      mapWatchlistStatus.className = (
-        "dataset-update-status " + (state || "")
-      ).trim();
-    }
-    document
-      .querySelectorAll(".watchlist-source-switch [data-watchlist-selection]")
-      .forEach(function (button) {
-        button.addEventListener("click", function () {
-          var selection = button.getAttribute("data-watchlist-selection");
-          var label = (button.textContent || "").trim();
-          document
-            .querySelectorAll(
-              ".watchlist-source-switch [data-watchlist-selection]"
-            )
-            .forEach(function (other) {
-              other.disabled = true;
-            });
-          showMapWatchlistStatus(
-            "Wechsle zu " + label + " \u2026",
-            "is-running"
-          );
-          fetch("/api/watchlist/select", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ selection: selection }),
-          })
-            .then(function () {
-              window.setTimeout(function () {
-                window.location.reload();
-              }, 600);
-            })
-            .catch(function () {
-              window.setTimeout(function () {
-                window.location.reload();
-              }, 600);
-            });
-        });
-      });
-  })();
+(function () {
+var mapWatchlistStatus = document.getElementById(
+"map-watchlist-source-status"
+);
+function showMapWatchlistStatus(message, state) {
+if (!mapWatchlistStatus) {
+return;
+}
+mapWatchlistStatus.textContent = message;
+mapWatchlistStatus.className = (
+"dataset-update-status " + (state || "")
+).trim();
+}
+document
+.querySelectorAll(".watchlist-source-switch [data-watchlist-selection]")
+.forEach(function (button) {
+button.addEventListener("click", function () {
+var selection = button.getAttribute("data-watchlist-selection");
+var label = (button.textContent || "").trim();
+document
+.querySelectorAll(
+".watchlist-source-switch [data-watchlist-selection]"
+)
+.forEach(function (other) {
+other.disabled = true;
+});
+showMapWatchlistStatus(
+"{{ t('map.switching_to_prefix') }} " + label + " …",
+"is-running"
+);
+fetch("/api/watchlist/select", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ selection: selection }),
+})
+.then(function () {
+window.setTimeout(function () {
+window.location.reload();
+}, 600);
+})
+.catch(function () {
+window.setTimeout(function () {
+window.location.reload();
+}, 600);
+});
+});
+});
+})();
 </script>
 {% endblock %}
