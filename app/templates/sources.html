@@ -1,985 +1,958 @@
 {% extends "base.html" %}
 
 {% block title %}
-  OrbitHub · Daten & Quellen
+OrbitHub &middot; {{ t('nav.sources') }}
 {% endblock %}
 
 {% block nav_sources %}active{% endblock %}
 
 {% block page_heading %}
-  Daten & Quellen
+{{ t('nav.sources') }}
 {% endblock %}
 
 {% block content %}
 
 <section class="mission-hero sources-hero">
-  <div>
-    <div class="eyebrow">TLE-QUELLENMANAGER</div>
+<div>
+<div class="eyebrow">{{ t('sources.eyebrow') }}</div>
 
-    <h2>Bahndaten kontrollieren</h2>
+<h2>{{ t('sources.heading') }}</h2>
 
-    <p>
-      Bevorzugte TLE-Quelle auswählen,
-      Erreichbarkeit testen und Daten manuell
-      aktualisieren.
-    </p>
-  </div>
+<p>
+{{ t('sources.intro') }}
+</p>
+</div>
 
-  <div class="hero-online">
-    <span class="hero-online-dot"></span>
+<div class="hero-online">
+<span class="hero-online-dot"></span>
 
-    <div>
-      <strong>{{ active_source }}</strong>
-      <small>aktuell verwendete Quelle</small>
-    </div>
-  </div>
+<div>
+<strong>{{ active_source }}</strong>
+<small>{{ t('sources.active_source_label') }}</small>
+</div>
+</div>
 </section>
 
 <section class="source-summary">
 
-  <article class="source-summary-card">
-    <span>Bevorzugte Quelle</span>
+<article class="source-summary-card">
+<span>{{ t('sources.preferred_label') }}</span>
 
-    <strong id="preferred-source-summary">
-      {% for source in sources %}
-        {% if source.id == preferred_source_id %}
-          {{ source.name }}
-        {% endif %}
-      {% endfor %}
-    </strong>
-  </article>
+<strong id="preferred-source-summary">
+{% for source in sources %}
+{% if source.id == preferred_source_id %}
+{{ source.name }}
+{% endif %}
+{% endfor %}
+</strong>
+</article>
 
-  <article class="source-summary-card">
-    <span>Verwendete Quelle</span>
-    <strong>{{ active_source }}</strong>
-  </article>
+<article class="source-summary-card">
+<span>{{ t('sources.used_label') }}</span>
+<strong>{{ active_source }}</strong>
+</article>
 
-  <article class="source-summary-card">
-    <span>Fallback verwendet</span>
+<article class="source-summary-card">
+<span>{{ t('sources.fallback_used_label') }}</span>
 
-    <strong>
-      {% if fallback_used %}
-        Ja
-      {% else %}
-        Nein
-      {% endif %}
-    </strong>
-    {% if fallback_used and fallback_reason %}
-    <p class="source-fallback-reason">{{ fallback_reason }}</p>
-    {% endif %}
-  </article>
+<strong>
+{% if fallback_used %}
+{{ t('value.yes') }}
+{% else %}
+{{ t('value.no') }}
+{% endif %}
+</strong>
+{% if fallback_used and fallback_reason %}
+<p class="source-fallback-reason">{{ fallback_reason }}</p>
+{% endif %}
+</article>
 
 </section>
 
 <section class="add-source-panel">
-  <div class="add-source-panel-header">
-    <div>
-      <div class="label">EIGENE DATENQUELLE</div>
-      <h3>Neue TLE-Quelle hinzufügen</h3>
-      <p>
-        OrbitHub prüft die Adresse und speichert
-        sie nur, wenn gültige Bahndaten gefunden
-        werden.
-      </p>
-    </div>
+<div class="add-source-panel-header">
+<div>
+<div class="label">{{ t('sources.custom_source_eyebrow') }}</div>
+<h3>{{ t('sources.add_new_heading') }}</h3>
+<p>
+{{ t('sources.add_new_desc') }}
+</p>
+</div>
 
-    <button
-      class="source-action-button primary"
-      id="toggle-add-source"
-      type="button"
-      aria-expanded="false"
-      aria-controls="add-source-form"
-    >
-      + Quelle hinzufügen
-    </button>
-  </div>
+<button
+class="source-action-button primary"
+id="toggle-add-source"
+type="button"
+aria-expanded="false"
+aria-controls="add-source-form"
+>
+{{ t('sources.add_source_button') }}
+</button>
+</div>
 
-  <form
-    class="add-source-form"
-    id="add-source-form"
-    data-pause-auto-refresh
-    hidden
-  >
-    <div class="source-form-grid">
-      <label>
-        <span>Name</span>
-        <input
-          id="new-source-name"
-          name="name"
-          type="text"
-          maxlength="80"
-          placeholder="z. B. AMSAT"
-          required
-        >
-      </label>
+<form
+class="add-source-form"
+id="add-source-form"
+data-pause-auto-refresh
+hidden
+>
+<div class="source-form-grid">
+<label>
+<span>{{ t('sources.field_name') }}</span>
+<input
+id="new-source-name"
+name="name"
+type="text"
+maxlength="80"
+placeholder="{{ t('sources.name_placeholder') }}"
+required
+>
+</label>
 
-      <label>
-        <span>Datenformat</span>
-        <select
-          id="new-source-type"
-          name="type"
-        >
-          <option value="tle">
-            Klassisches TLE
-          </option>
+<label>
+<span>{{ t('sources.field_type') }}</span>
+<select
+id="new-source-type"
+name="type"
+>
+<option value="tle">
+{{ t('sources.type_classic_tle') }}
+</option>
 
-          <option value="satnogs_json">
-            SatNOGS JSON
-          </option>
-        </select>
-      </label>
+<option value="satnogs_json">
+SatNOGS JSON
+</option>
+</select>
+</label>
 
-      <label class="source-form-wide">
-        <span>Quellenadresse</span>
-        <input
-          id="new-source-url"
-          name="url"
-          type="url"
-          placeholder="https://example.org/satellites.tle"
-          required
-        >
-      </label>
+<label class="source-form-wide">
+<span>{{ t('sources.field_url') }}</span>
+<input
+id="new-source-url"
+name="url"
+type="url"
+placeholder="https://example.org/satellites.tle"
+required
+>
+</label>
 
-      <label class="source-form-wide">
-        <span>Beschreibung</span>
-        <input
-          id="new-source-description"
-          name="description"
-          type="text"
-          maxlength="180"
-          placeholder="Optionale Beschreibung"
-        >
-      </label>
-    </div>
+<label class="source-form-wide">
+<span>{{ t('sources.field_description') }}</span>
+<input
+id="new-source-description"
+name="description"
+type="text"
+maxlength="180"
+placeholder="{{ t('sources.description_placeholder') }}"
+>
+</label>
+</div>
 
-    <div
-      class="source-form-status"
-      id="add-source-status"
-      role="status"
-      aria-live="polite"
-    ></div>
+<div
+class="source-form-status"
+id="add-source-status"
+role="status"
+aria-live="polite"
+></div>
 
-    <div class="source-form-actions">
-      <button
-        class="source-action-button secondary"
-        id="cancel-add-source"
-        type="button"
-      >
-        Abbrechen
-      </button>
+<div class="source-form-actions">
+<button
+class="source-action-button secondary"
+id="cancel-add-source"
+type="button"
+>
+{{ t('sources.cancel_button') }}
+</button>
 
-      <button
-        class="source-action-button primary"
-        id="save-add-source"
-        type="submit"
-      >
-        Quelle prüfen und speichern
-      </button>
-    </div>
-  </form>
+<button
+class="source-action-button primary"
+id="save-add-source"
+type="submit"
+>
+{{ t('sources.save_new_button') }}
+</button>
+</div>
+</form>
 </section>
 
 <section
-  class="add-source-panel"
-  id="edit-source-panel"
-  hidden
+class="add-source-panel"
+id="edit-source-panel"
+hidden
 >
-  <div class="add-source-panel-header">
-    <div>
-      <div class="label">EIGENE DATENQUELLE</div>
-      <h3>Bestehende TLE-Quelle bearbeiten</h3>
-      <p>
-        Die geänderte Adresse wird vor dem
-        Speichern erneut geprüft.
-      </p>
-    </div>
-  </div>
+<div class="add-source-panel-header">
+<div>
+<div class="label">{{ t('sources.custom_source_eyebrow') }}</div>
+<h3>{{ t('sources.edit_heading') }}</h3>
+<p>
+{{ t('sources.edit_desc') }}
+</p>
+</div>
+</div>
 
-  <form
-    class="add-source-form"
-    id="edit-source-form"
-    data-pause-auto-refresh
-  >
-    <input
-      id="edit-source-id"
-      name="source_id"
-      type="hidden"
-    >
+<form
+class="add-source-form"
+id="edit-source-form"
+data-pause-auto-refresh
+>
+<input
+id="edit-source-id"
+name="source_id"
+type="hidden"
+>
 
-    <div class="source-form-grid">
-      <label>
-        <span>Name</span>
-        <input
-          id="edit-source-name"
-          name="name"
-          type="text"
-          maxlength="80"
-          required
-        >
-      </label>
+<div class="source-form-grid">
+<label>
+<span>{{ t('sources.field_name') }}</span>
+<input
+id="edit-source-name"
+name="name"
+type="text"
+maxlength="80"
+required
+>
+</label>
 
-      <label>
-        <span>Datenformat</span>
-        <select
-          id="edit-source-type"
-          name="type"
-        >
-          <option value="tle">
-            Klassisches TLE
-          </option>
+<label>
+<span>{{ t('sources.field_type') }}</span>
+<select
+id="edit-source-type"
+name="type"
+>
+<option value="tle">
+{{ t('sources.type_classic_tle') }}
+</option>
 
-          <option value="satnogs_json">
-            SatNOGS JSON
-          </option>
-        </select>
-      </label>
+<option value="satnogs_json">
+SatNOGS JSON
+</option>
+</select>
+</label>
 
-      <label class="source-form-wide">
-        <span>Quellenadresse</span>
-        <input
-          id="edit-source-url"
-          name="url"
-          type="url"
-          required
-        >
-      </label>
+<label class="source-form-wide">
+<span>{{ t('sources.field_url') }}</span>
+<input
+id="edit-source-url"
+name="url"
+type="url"
+required
+>
+</label>
 
-      <label class="source-form-wide">
-        <span>Beschreibung</span>
-        <input
-          id="edit-source-description"
-          name="description"
-          type="text"
-          maxlength="180"
-        >
-      </label>
-    </div>
+<label class="source-form-wide">
+<span>{{ t('sources.field_description') }}</span>
+<input
+id="edit-source-description"
+name="description"
+type="text"
+maxlength="180"
+>
+</label>
+</div>
 
-    <div
-      class="source-form-status"
-      id="edit-source-status"
-      role="status"
-      aria-live="polite"
-    ></div>
+<div
+class="source-form-status"
+id="edit-source-status"
+role="status"
+aria-live="polite"
+></div>
 
-    <div class="source-form-actions">
-      <button
-        class="source-action-button secondary"
-        id="cancel-edit-source"
-        type="button"
-      >
-        Abbrechen
-      </button>
+<div class="source-form-actions">
+<button
+class="source-action-button secondary"
+id="cancel-edit-source"
+type="button"
+>
+{{ t('sources.cancel_button') }}
+</button>
 
-      <button
-        class="source-action-button primary"
-        id="save-edit-source"
-        type="submit"
-      >
-        Änderungen prüfen und speichern
-      </button>
-    </div>
-  </form>
+<button
+class="source-action-button primary"
+id="save-edit-source"
+type="submit"
+>
+{{ t('sources.save_edit_button') }}
+</button>
+</div>
+</form>
 </section>
 <section class="add-source-panel">
-  <div class="add-source-panel-header">
-    <div>
-      <div class="label">SPACE-TRACK.ORG</div>
-      <h3>Zugangsdaten für Space-Track</h3>
-    </div>
-  </div>
+<div class="add-source-panel-header">
+<div>
+<div class="label">SPACE-TRACK.ORG</div>
+<h3>{{ t('sources.spacetrack_heading') }}</h3>
+</div>
+</div>
 
-  <p class="source-fallback-reason">
-    {% if spacetrack_has_credentials %}
-      Zugangsdaten sind hinterlegt. Space-Track kann als Quelle
-      getestet und ausgewählt werden.
-    {% else %}
-      Space-Track.org erfordert eine kostenlose Registrierung.
-      Benutzername und Passwort werden nur lokal auf diesem
-      Raspberry Pi gespeichert (nicht in Git) und ausschließlich
-      für die Anmeldung bei Space-Track verwendet.
-    {% endif %}
-  </p>
+<p class="source-fallback-reason">
+{% if spacetrack_has_credentials %}
+{{ t('sources.spacetrack_has_creds') }}
+{% else %}
+{{ t('sources.spacetrack_no_creds') }}
+{% endif %}
+</p>
 
-  {% if spacetrack_status == "saved" %}
-  <p class="source-fallback-reason">Zugangsdaten gespeichert.</p>
-  {% elif spacetrack_status == "deleted" %}
-  <p class="source-fallback-reason">Zugangsdaten entfernt.</p>
-  {% elif spacetrack_status == "error" %}
-  <p class="source-fallback-reason">
-    Bitte Benutzername und Passwort ausfüllen.
-  </p>
-  {% endif %}
+{% if spacetrack_status == "saved" %}
+<p class="source-fallback-reason">{{ t('sources.spacetrack_saved') }}</p>
+{% elif spacetrack_status == "deleted" %}
+<p class="source-fallback-reason">{{ t('sources.spacetrack_deleted') }}</p>
+{% elif spacetrack_status == "error" %}
+<p class="source-fallback-reason">
+{{ t('sources.spacetrack_error') }}
+</p>
+{% endif %}
 
-  <form method="post" action="/api/sources/spacetrack/credentials">
-    <div class="source-form-grid">
-      <label>
-        <span>Benutzername</span>
-        <input
-          name="identity"
-          type="text"
-          autocomplete="username"
-          placeholder="name@example.org"
-          required
-        >
-      </label>
+<form method="post" action="/api/sources/spacetrack/credentials">
+<div class="source-form-grid">
+<label>
+<span>{{ t('sources.field_username') }}</span>
+<input
+name="identity"
+type="text"
+autocomplete="username"
+placeholder="name@example.org"
+required
+>
+</label>
 
-      <label>
-        <span>Passwort</span>
-        <input
-          name="password"
-          type="password"
-          autocomplete="current-password"
-          placeholder="••••••••"
-          required
-        >
-      </label>
-    </div>
+<label>
+<span>{{ t('sources.field_password') }}</span>
+<input
+name="password"
+type="password"
+autocomplete="current-password"
+placeholder="••••••••"
+required
+>
+</label>
+</div>
 
-    <button type="submit" class="source-action-button">
-      Speichern
-    </button>
-  </form>
+<button type="submit" class="source-action-button">
+{{ t('sources.save_button') }}
+</button>
+</form>
 
-  {% if spacetrack_has_credentials %}
-  <form
-    method="post"
-    action="/api/sources/spacetrack/credentials/delete"
-  >
-    <button type="submit" class="source-action-button">
-      Zugangsdaten entfernen
-    </button>
-  </form>
-  {% endif %}
+{% if spacetrack_has_credentials %}
+<form
+method="post"
+action="/api/sources/spacetrack/credentials/delete"
+>
+<button type="submit" class="source-action-button">
+{{ t('sources.remove_credentials_button') }}
+</button>
+</form>
+{% endif %}
 </section>
 
 <section class="source-manager-grid">
 
-  {% for source in sources %}
+{% for source in sources %}
 
-  <article
-    class="tle-source-card
-    {% if source.id == preferred_source_id %}
-      preferred
-    {% endif %}
-    {% if source.id == active_source_id %}
-      active-source
-    {% endif %}"
-    data-source-id="{{ source.id }}"
-  >
-    <div class="tle-source-card-header">
-      <div>
-        <div class="label">
-          TLE-DATENQUELLE
-        </div>
+<article
+class="tle-source-card
+{% if source.id == preferred_source_id %}
+preferred
+{% endif %}
+{% if source.id == active_source_id %}
+active-source
+{% endif %}"
+data-source-id="{{ source.id }}"
+>
+<div class="tle-source-card-header">
+<div>
+<div class="label">
+{{ t('sources.card_label') }}
+</div>
 
-        <h3>{{ source.name }}</h3>
-      </div>
+<h3>{{ source.name }}</h3>
+</div>
 
-      <div class="source-card-badges">
-        {% if source.id == preferred_source_id %}
-          <span class="source-badge preferred-badge">
-            BEVORZUGT
-          </span>
-        {% endif %}
+<div class="source-card-badges">
+{% if source.id == preferred_source_id %}
+<span class="source-badge preferred-badge">
+{{ t('sources.badge_preferred') }}
+</span>
+{% endif %}
 
-        {% if source.id == active_source_id %}
-          <span class="source-badge active-badge">
-            AKTIV
-          </span>
-        {% endif %}
-      </div>
-    </div>
+{% if source.id == active_source_id %}
+<span class="source-badge active-badge">
+{{ t('sources.badge_active') }}
+</span>
+{% endif %}
+</div>
+</div>
 
-    <p>{{ source.description }}</p>
+<p>{{ source.description }}</p>
 
-    <dl class="source-details">
-      <div>
-        <dt>Typ</dt>
-        <dd>
-          {% if source.type == "satnogs_json" %}
-            SatNOGS JSON
-          {% elif source.type == "spacetrack" %}
-            Space-Track (Anmeldung)
-          {% else %}
-            Klassisches TLE
-          {% endif %}
-        </dd>
-      </div>
+<dl class="source-details">
+<div>
+<dt>{{ t('sources.type_label') }}</dt>
+<dd>
+{% if source.type == "satnogs_json" %}
+SatNOGS JSON
+{% elif source.type == "spacetrack" %}
+{{ t('sources.type_spacetrack') }}
+{% else %}
+{{ t('sources.type_classic_tle') }}
+{% endif %}
+</dd>
+</div>
 
-      <div>
-        <dt>Kennung</dt>
-        <dd>{{ source.id }}</dd>
-      </div>
-    </dl>
+<div>
+<dt>{{ t('sources.id_label') }}</dt>
+<dd>{{ source.id }}</dd>
+</div>
+</dl>
 
-    <div
-      class="source-test-result"
-      id="source-result-{{ source.id }}"
-      aria-live="polite"
-    ></div>
+<div
+class="source-test-result"
+id="source-result-{{ source.id }}"
+aria-live="polite"
+></div>
 
-    <div class="source-card-actions">
-      <button
-        class="source-action-button secondary"
-        type="button"
-        data-action="test"
-        data-source-id="{{ source.id }}"
-      >
-        Quelle testen
-      </button>
+<div class="source-card-actions">
+<button
+class="source-action-button secondary"
+type="button"
+data-action="test"
+data-source-id="{{ source.id }}"
+>
+{{ t('sources.test_button') }}
+</button>
 
-      <button
-        class="source-action-button primary"
-        type="button"
-        data-action="select"
-        data-source-id="{{ source.id }}"
-        {% if source.id == preferred_source_id %}
-          disabled
-        {% endif %}
-      >
-        Als bevorzugt wählen
-      </button>
+<button
+class="source-action-button primary"
+type="button"
+data-action="select"
+data-source-id="{{ source.id }}"
+{% if source.id == preferred_source_id %}
+disabled
+{% endif %}
+>
+{{ t('sources.select_preferred_button') }}
+</button>
 
-      {% if source.custom %}
-        <button
-          class="source-action-button secondary"
-          type="button"
-          data-action="edit"
-          data-source-id="{{ source.id }}"
-          data-source-name="{{ source.name }}"
-          data-source-type="{{ source.type }}"
-          data-source-url="{{ source.url }}"
-          data-source-description="{{ source.description }}"
-        >
-          Quelle bearbeiten
-        </button>
+{% if source.custom %}
+<button
+class="source-action-button secondary"
+type="button"
+data-action="edit"
+data-source-id="{{ source.id }}"
+data-source-name="{{ source.name }}"
+data-source-type="{{ source.type }}"
+data-source-url="{{ source.url }}"
+data-source-description="{{ source.description }}"
+>
+{{ t('sources.edit_button') }}
+</button>
 
-        <button
-          class="source-action-button danger"
-          type="button"
-          data-action="delete"
-          data-source-id="{{ source.id }}"
-          data-source-name="{{ source.name }}"
-        >
-          Quelle löschen
-        </button>
-      {% endif %}
-    </div>
-  </article>
+<button
+class="source-action-button danger"
+type="button"
+data-action="delete"
+data-source-id="{{ source.id }}"
+data-source-name="{{ source.name }}"
+>
+{{ t('sources.delete_button') }}
+</button>
+{% endif %}
+</div>
+</article>
 
-  {% endfor %}
+{% endfor %}
 
 </section>
 
 <section class="source-update-panel">
-  <div>
-    <div class="label">
-      DATENSÄTZE
-    </div>
+<div>
+<div class="label">
+{{ t('new_satellites.datasets_label') }}
+</div>
 
-    <h3>Aktive TLE-Datei aktualisieren</h3>
+<h3>{{ t('sources.update_active_heading') }}</h3>
 
-    <p>
-      OrbitHub versucht zuerst die bevorzugte
-      Quelle. Ist sie nicht erreichbar, wird
-      automatisch eine Ersatzquelle verwendet.
-    </p>
-  </div>
+<p>
+{{ t('sources.update_active_desc') }}
+</p>
+</div>
 
-  <button
-    class="update-dataset-button"
-    id="source-update-button"
-    type="button"
-  >
-    <span class="update-button-icon">↻</span>
-    Jetzt aktualisieren
-  </button>
+<button
+class="update-dataset-button"
+id="source-update-button"
+type="button"
+>
+<span class="update-button-icon">↻</span>
+{{ t('new_satellites.update_now_button') }}
+</button>
 </section>
 
 <div
-  class="dataset-update-status"
-  id="source-global-status"
-  role="status"
-  aria-live="polite"
+class="dataset-update-status"
+id="source-global-status"
+role="status"
+aria-live="polite"
 ></div>
 
 <script>
 (() => {
-  const globalStatus = document.getElementById(
-    "source-global-status"
-  );
-
-  function showGlobalStatus(message, state = "") {
-    globalStatus.textContent = message;
-    globalStatus.className =
-      `dataset-update-status ${state}`.trim();
-  }
-
-  async function postJson(url, payload = {}) {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    let data = {};
-
-    try {
-      data = await response.json();
-    } catch {
-      data = {};
-    }
-
-    if (!response.ok) {
-      throw new Error(
-        data.detail || `HTTP ${response.status}`
-      );
-    }
-
-    return data;
-  }
-
-  document.querySelectorAll(
-    '[data-action="test"]'
-  ).forEach((button) => {
-    button.addEventListener("click", async () => {
-      const sourceId = button.dataset.sourceId;
-
-      const result = document.getElementById(
-        `source-result-${sourceId}`
-      );
-
-      button.disabled = true;
-      result.className =
-        "source-test-result running";
-
-      result.textContent =
-        "Verbindung wird geprüft …";
-
-      try {
-        const data = await postJson(
-          "/api/sources/test",
-          {source_id: sourceId}
-        );
-
-        result.className =
-          "source-test-result success";
-
-        result.textContent =
-          `${data.records.toLocaleString("de-DE")} ` +
-          `Datensätze · ` +
-          `${(data.duration_ms / 1000).toFixed(1)} Sek.`;
-      } catch (error) {
-        result.className =
-          "source-test-result error";
-
-        result.textContent =
-          `Fehler: ${error.message}`;
-      } finally {
-        button.disabled = false;
-      }
-    });
-  });
-
-  document.querySelectorAll(
-    '[data-action="select"]'
-  ).forEach((button) => {
-    button.addEventListener("click", async () => {
-      const sourceId = button.dataset.sourceId;
-
-      button.disabled = true;
-
-      showGlobalStatus(
-        "Bevorzugte Quelle wird gespeichert …",
-        "is-running"
-      );
-
-      try {
-        const data = await postJson(
-          "/api/sources/select",
-          {source_id: sourceId}
-        );
-
-        showGlobalStatus(
-          `${data.preferred_source} wurde als ` +
-          `bevorzugte Quelle gespeichert.`,
-          "is-success"
-        );
-
-        window.setTimeout(() => {
-          window.location.reload();
-        }, 700);
-      } catch (error) {
-        showGlobalStatus(
-          `Fehler: ${error.message}`,
-          "is-error"
-        );
-
-        button.disabled = false;
-      }
-    });
-  });
-
-  const editSourcePanel = document.getElementById(
-    "edit-source-panel"
-  );
-
-  const editSourceForm = document.getElementById(
-    "edit-source-form"
-  );
-
-  const editSourceStatus = document.getElementById(
-    "edit-source-status"
-  );
-
-  const editSourceSubmit = document.getElementById(
-    "save-edit-source"
-  );
-
-  const editSourceCancel = document.getElementById(
-    "cancel-edit-source"
-  );
-
-  function closeEditSourceForm() {
-    editSourceForm.reset();
-    editSourcePanel.hidden = true;
-
-    editSourceStatus.textContent = "";
-    editSourceStatus.className =
-      "source-form-status";
-  }
-
-  document.querySelectorAll(
-    '[data-action="edit"]'
-  ).forEach((button) => {
-    button.addEventListener("click", () => {
-      document.getElementById(
-        "edit-source-id"
-      ).value = button.dataset.sourceId || "";
-
-      document.getElementById(
-        "edit-source-name"
-      ).value = button.dataset.sourceName || "";
-
-      document.getElementById(
-        "edit-source-type"
-      ).value = button.dataset.sourceType || "tle";
-
-      document.getElementById(
-        "edit-source-url"
-      ).value = button.dataset.sourceUrl || "";
-
-      document.getElementById(
-        "edit-source-description"
-      ).value =
-        button.dataset.sourceDescription || "";
-
-      editSourceStatus.textContent = "";
-      editSourceStatus.className =
-        "source-form-status";
-
-      editSourcePanel.hidden = false;
-
-      editSourcePanel.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-
-      document.getElementById(
-        "edit-source-name"
-      ).focus();
-    });
-  });
-
-  editSourceCancel.addEventListener(
-    "click",
-    closeEditSourceForm
-  );
-
-  editSourceForm.addEventListener(
-    "submit",
-    async (event) => {
-      event.preventDefault();
-
-      editSourceSubmit.disabled = true;
-
-      editSourceStatus.className =
-        "source-form-status running";
-
-      editSourceStatus.textContent =
-        "Geänderte Quelle wird geprüft …";
-
-      const payload = {
-        source_id: document.getElementById(
-          "edit-source-id"
-        ).value.trim(),
-
-        name: document.getElementById(
-          "edit-source-name"
-        ).value.trim(),
-
-        type: document.getElementById(
-          "edit-source-type"
-        ).value,
-
-        url: document.getElementById(
-          "edit-source-url"
-        ).value.trim(),
-
-        description: document.getElementById(
-          "edit-source-description"
-        ).value.trim()
-      };
-
-      try {
-        const data = await postJson(
-          "/api/sources/update",
-          payload
-        );
-
-        editSourceStatus.className =
-          "source-form-status success";
-
-        editSourceStatus.textContent =
-          `${data.records.toLocaleString("de-DE")} ` +
-          `Datensätze geprüft. Änderungen gespeichert.`;
-
-        window.setTimeout(() => {
-          window.location.reload();
-        }, 900);
-      } catch (error) {
-        editSourceStatus.className =
-          "source-form-status error";
-
-        editSourceStatus.textContent =
-          `Fehler: ${error.message}`;
-
-        editSourceSubmit.disabled = false;
-      }
-    }
-  );
-
-  document.querySelectorAll(
-    '[data-action="delete"]'
-  ).forEach((button) => {
-    button.addEventListener("click", async () => {
-      const sourceId = button.dataset.sourceId;
-      const sourceName =
-        button.dataset.sourceName || sourceId;
-
-      const confirmed = window.confirm(
-        `Soll die eigene Quelle "${sourceName}" ` +
-        `wirklich entfernt werden?`
-      );
-
-      if (!confirmed) {
-        return;
-      }
-
-      button.disabled = true;
-
-      showGlobalStatus(
-        `${sourceName} wird entfernt ...`,
-        "is-running"
-      );
-
-      try {
-        const data = await postJson(
-          "/api/sources/delete",
-          {source_id: sourceId}
-        );
-
-        showGlobalStatus(
-          `${data.source_name} wurde entfernt.`,
-          "is-success"
-        );
-
-        window.setTimeout(() => {
-          window.location.reload();
-        }, 700);
-      } catch (error) {
-        showGlobalStatus(
-          `Fehler: ${error.message}`,
-          "is-error"
-        );
-
-        button.disabled = false;
-      }
-    });
-  });
-
-  const addSourceToggle = document.getElementById(
-    "toggle-add-source"
-  );
-
-  const addSourceForm = document.getElementById(
-    "add-source-form"
-  );
-
-  const addSourceCancel = document.getElementById(
-    "cancel-add-source"
-  );
-
-  const addSourceStatus = document.getElementById(
-    "add-source-status"
-  );
-
-  const addSourceSubmit = document.getElementById(
-    "save-add-source"
-  );
-
-  function setAddSourceFormVisible(visible) {
-    addSourceForm.hidden = !visible;
-
-    addSourceToggle.setAttribute(
-      "aria-expanded",
-      String(visible)
-    );
-
-    addSourceToggle.textContent = visible
-      ? "Formular schließen"
-      : "+ Quelle hinzufügen";
-
-    if (visible) {
-      document.getElementById(
-        "new-source-name"
-      ).focus();
-    }
-  }
-
-  addSourceToggle.addEventListener(
-    "click",
-    () => {
-      setAddSourceFormVisible(
-        addSourceForm.hidden
-      );
-    }
-  );
-
-  addSourceCancel.addEventListener(
-    "click",
-    () => {
-      addSourceForm.reset();
-      addSourceStatus.textContent = "";
-      addSourceStatus.className =
-        "source-form-status";
-
-      setAddSourceFormVisible(false);
-    }
-  );
-
-  addSourceForm.addEventListener(
-    "submit",
-    async (event) => {
-      event.preventDefault();
-
-      addSourceSubmit.disabled = true;
-
-      addSourceStatus.className =
-        "source-form-status running";
-
-      addSourceStatus.textContent =
-        "Quelle wird geprüft …";
-
-      const payload = {
-        name: document.getElementById(
-          "new-source-name"
-        ).value.trim(),
-
-        type: document.getElementById(
-          "new-source-type"
-        ).value,
-
-        url: document.getElementById(
-          "new-source-url"
-        ).value.trim(),
-
-        description: document.getElementById(
-          "new-source-description"
-        ).value.trim()
-      };
-
-      try {
-        const data = await postJson(
-          "/api/sources/add",
-          payload
-        );
-
-        addSourceStatus.className =
-          "source-form-status success";
-
-        addSourceStatus.textContent =
-          `${data.source.name} gespeichert · ` +
-          `${data.records.toLocaleString("de-DE")} ` +
-          `Datensätze gefunden.`;
-
-        window.setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } catch (error) {
-        addSourceStatus.className =
-          "source-form-status error";
-
-        addSourceStatus.textContent =
-          `Fehler: ${error.message}`;
-
-        addSourceSubmit.disabled = false;
-      }
-    }
-  );
-
-  const updateButton = document.getElementById(
-    "source-update-button"
-  );
-
-  updateButton.addEventListener(
-    "click",
-    async () => {
-      updateButton.disabled = true;
-      updateButton.classList.add("is-updating");
-
-      showGlobalStatus(
-        "TLE-Datensätze werden aktualisiert …",
-        "is-running"
-      );
-
-      try {
-        const data = await postJson(
-          "/api/sources/refresh"
-        );
-
-        if (!data.ok) {
-          throw new Error(
-            data.error || "Aktualisierung fehlgeschlagen."
-          );
-        }
-
-        showGlobalStatus(
-          `${data.records.toLocaleString("de-DE")} ` +
-          `Datensätze von ${data.source} geladen.`,
-          "is-success"
-        );
-
-        window.setTimeout(() => {
-          window.location.reload();
-        }, 900);
-      } catch (error) {
-        showGlobalStatus(
-          `Fehler: ${error.message}`,
-          "is-error"
-        );
-      } finally {
-        updateButton.disabled = false;
-        updateButton.classList.remove(
-          "is-updating"
-        );
-      }
-    }
-  );
+const numberLocale = "{{ lang() }}" === "de" ? "de-DE" : "en-US";
+
+const globalStatus = document.getElementById(
+"source-global-status"
+);
+
+function showGlobalStatus(message, state = "") {
+globalStatus.textContent = message;
+globalStatus.className =
+`dataset-update-status ${state}`.trim();
+}
+
+async function postJson(url, payload = {}) {
+const response = await fetch(url, {
+method: "POST",
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify(payload)
+});
+
+let data = {};
+
+try {
+data = await response.json();
+} catch {
+data = {};
+}
+
+if (!response.ok) {
+throw new Error(
+data.detail || `HTTP ${response.status}`
+);
+}
+
+return data;
+}
+
+document.querySelectorAll(
+'[data-action="test"]'
+).forEach((button) => {
+button.addEventListener("click", async () => {
+const sourceId = button.dataset.sourceId;
+
+const result = document.getElementById(
+`source-result-${sourceId}`
+);
+
+button.disabled = true;
+result.className =
+"source-test-result running";
+
+result.textContent =
+"{{ t('sources.testing_connection') }}";
+
+try {
+const data = await postJson(
+"/api/sources/test",
+{source_id: sourceId}
+);
+
+result.className =
+"source-test-result success";
+
+result.textContent = "{{ t('sources.test_result_template') }}"
+.replace("{count}", data.records.toLocaleString(numberLocale))
+.replace("{seconds}", (data.duration_ms / 1000).toFixed(1));
+} catch (error) {
+result.className =
+"source-test-result error";
+
+result.textContent =
+"{{ t('new_satellites.error_prefix') }}" + error.message;
+} finally {
+button.disabled = false;
+}
+});
+});
+
+document.querySelectorAll(
+'[data-action="select"]'
+).forEach((button) => {
+button.addEventListener("click", async () => {
+const sourceId = button.dataset.sourceId;
+
+button.disabled = true;
+
+showGlobalStatus(
+"{{ t('sources.saving_preferred') }}",
+"is-running"
+);
+
+try {
+const data = await postJson(
+"/api/sources/select",
+{source_id: sourceId}
+);
+
+showGlobalStatus(
+"{{ t('sources.preferred_saved_template') }}".replace("{name}", data.preferred_source),
+"is-success"
+);
+
+window.setTimeout(() => {
+window.location.reload();
+}, 700);
+} catch (error) {
+showGlobalStatus(
+"{{ t('new_satellites.error_prefix') }}" + error.message,
+"is-error"
+);
+
+button.disabled = false;
+}
+});
+});
+
+const editSourcePanel = document.getElementById(
+"edit-source-panel"
+);
+
+const editSourceForm = document.getElementById(
+"edit-source-form"
+);
+
+const editSourceStatus = document.getElementById(
+"edit-source-status"
+);
+
+const editSourceSubmit = document.getElementById(
+"save-edit-source"
+);
+
+const editSourceCancel = document.getElementById(
+"cancel-edit-source"
+);
+
+function closeEditSourceForm() {
+editSourceForm.reset();
+editSourcePanel.hidden = true;
+
+editSourceStatus.textContent = "";
+editSourceStatus.className =
+"source-form-status";
+}
+
+document.querySelectorAll(
+'[data-action="edit"]'
+).forEach((button) => {
+button.addEventListener("click", () => {
+document.getElementById(
+"edit-source-id"
+).value = button.dataset.sourceId || "";
+
+document.getElementById(
+"edit-source-name"
+).value = button.dataset.sourceName || "";
+
+document.getElementById(
+"edit-source-type"
+).value = button.dataset.sourceType || "tle";
+
+document.getElementById(
+"edit-source-url"
+).value = button.dataset.sourceUrl || "";
+
+document.getElementById(
+"edit-source-description"
+).value =
+button.dataset.sourceDescription || "";
+
+editSourceStatus.textContent = "";
+editSourceStatus.className =
+"source-form-status";
+
+editSourcePanel.hidden = false;
+
+editSourcePanel.scrollIntoView({
+behavior: "smooth",
+block: "start"
+});
+
+document.getElementById(
+"edit-source-name"
+).focus();
+});
+});
+
+editSourceCancel.addEventListener(
+"click",
+closeEditSourceForm
+);
+
+editSourceForm.addEventListener(
+"submit",
+async (event) => {
+event.preventDefault();
+
+editSourceSubmit.disabled = true;
+
+editSourceStatus.className =
+"source-form-status running";
+
+editSourceStatus.textContent =
+"{{ t('sources.checking_changed_source') }}";
+
+const payload = {
+source_id: document.getElementById(
+"edit-source-id"
+).value.trim(),
+
+name: document.getElementById(
+"edit-source-name"
+).value.trim(),
+
+type: document.getElementById(
+"edit-source-type"
+).value,
+
+url: document.getElementById(
+"edit-source-url"
+).value.trim(),
+
+description: document.getElementById(
+"edit-source-description"
+).value.trim()
+};
+
+try {
+const data = await postJson(
+"/api/sources/update",
+payload
+);
+
+editSourceStatus.className =
+"source-form-status success";
+
+editSourceStatus.textContent =
+"{{ t('sources.records_checked_saved_template') }}".replace("{count}", data.records.toLocaleString(numberLocale));
+
+window.setTimeout(() => {
+window.location.reload();
+}, 900);
+} catch (error) {
+editSourceStatus.className =
+"source-form-status error";
+
+editSourceStatus.textContent =
+"{{ t('new_satellites.error_prefix') }}" + error.message;
+
+editSourceSubmit.disabled = false;
+}
+}
+);
+
+document.querySelectorAll(
+'[data-action="delete"]'
+).forEach((button) => {
+button.addEventListener("click", async () => {
+const sourceId = button.dataset.sourceId;
+const sourceName =
+button.dataset.sourceName || sourceId;
+
+const confirmed = window.confirm(
+"{{ t('sources.confirm_delete_template') }}".replace("{name}", sourceName)
+);
+
+if (!confirmed) {
+return;
+}
+
+button.disabled = true;
+
+showGlobalStatus(
+"{{ t('sources.removing_template') }}".replace("{name}", sourceName),
+"is-running"
+);
+
+try {
+const data = await postJson(
+"/api/sources/delete",
+{source_id: sourceId}
+);
+
+showGlobalStatus(
+"{{ t('sources.removed_template') }}".replace("{name}", data.source_name),
+"is-success"
+);
+
+window.setTimeout(() => {
+window.location.reload();
+}, 700);
+} catch (error) {
+showGlobalStatus(
+"{{ t('new_satellites.error_prefix') }}" + error.message,
+"is-error"
+);
+
+button.disabled = false;
+}
+});
+});
+
+const addSourceToggle = document.getElementById(
+"toggle-add-source"
+);
+
+const addSourceForm = document.getElementById(
+"add-source-form"
+);
+
+const addSourceCancel = document.getElementById(
+"cancel-add-source"
+);
+
+const addSourceStatus = document.getElementById(
+"add-source-status"
+);
+
+const addSourceSubmit = document.getElementById(
+"save-add-source"
+);
+
+function setAddSourceFormVisible(visible) {
+addSourceForm.hidden = !visible;
+
+addSourceToggle.setAttribute(
+"aria-expanded",
+String(visible)
+);
+
+addSourceToggle.textContent = visible
+? "{{ t('sources.close_form_button') }}"
+: "{{ t('sources.add_source_button') }}";
+
+if (visible) {
+document.getElementById(
+"new-source-name"
+).focus();
+}
+}
+
+addSourceToggle.addEventListener(
+"click",
+() => {
+setAddSourceFormVisible(
+addSourceForm.hidden
+);
+}
+);
+
+addSourceCancel.addEventListener(
+"click",
+() => {
+addSourceForm.reset();
+addSourceStatus.textContent = "";
+addSourceStatus.className =
+"source-form-status";
+
+setAddSourceFormVisible(false);
+}
+);
+
+addSourceSubmit.addEventListener(
+"click",
+async () => {
+const name = document.getElementById(
+"new-source-name"
+).value.trim();
+const type = document.getElementById(
+"new-source-type"
+).value;
+const url = document.getElementById(
+"new-source-url"
+).value.trim();
+const description = document.getElementById(
+"new-source-description"
+).value.trim();
+
+if (!name || !url) {
+addSourceStatus.textContent =
+"{{ t('sources.name_url_required') }}";
+addSourceStatus.className =
+"source-form-status is-error";
+return;
+}
+
+addSourceSubmit.disabled = true;
+addSourceStatus.textContent =
+"{{ t('sources.checking_new_source') }}";
+addSourceStatus.className =
+"source-form-status is-running";
+
+try {
+const data = await postJson(
+"/api/sources/add",
+{name, type, url, description}
+);
+
+addSourceStatus.textContent =
+"{{ t('sources.saved_found_template') }}"
+.replace("{count}", data.record_count)
+.replace("{name}", name);
+addSourceStatus.className =
+"source-form-status is-success";
+
+window.setTimeout(() => {
+window.location.reload();
+}, 700);
+} catch (error) {
+addSourceStatus.textContent =
+"{{ t('new_satellites.error_prefix') }}" + error.message;
+addSourceStatus.className =
+"source-form-status is-error";
+addSourceSubmit.disabled = false;
+}
+}
+);
+
+const updateButton = document.getElementById(
+"update-active-dataset"
+);
+
+if (updateButton) {
+updateButton.addEventListener(
+"click",
+async () => {
+updateButton.disabled = true;
+
+showGlobalStatus(
+"{{ t('sources.updating_dataset') }}",
+"is-running"
+);
+
+try {
+const data = await postJson(
+"/api/sources/update-active",
+{}
+);
+
+showGlobalStatus(
+"{{ t('sources.records_loaded_template') }}"
+.replace("{count}", data.record_count)
+.replace("{source}", data.source_name),
+"is-success"
+);
+} catch (error) {
+showGlobalStatus(
+"{{ t('new_satellites.error_prefix') }}" +
+(error.message || "{{ t('new_satellites.update_failed_default') }}"),
+"is-error"
+);
+} finally {
+updateButton.disabled = false;
+}
+}
+);
+}
 })();
 </script>
-
 {% endblock %}

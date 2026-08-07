@@ -121,6 +121,23 @@ from app.services.favorites_store import (
     remove_favorite,
 )
 from app.services.satellite_packages import PACKAGE_LABELS, load_package_norad_ids
+
+_SOURCE_DESCRIPTION_KEYS = {
+    "satnogs": "source.satnogs_description",
+    "celestrak": "source.celestrak_description",
+    "celestrak-www": "source.celestrak_www_description",
+    "spacetrack": "source.spacetrack_description",
+}
+
+
+def _localize_source(source: dict) -> dict:
+    key = _SOURCE_DESCRIPTION_KEYS.get(source.get("id", ""))
+    if not key:
+        return source
+    localized = dict(source)
+    localized["description"] = translate_text(key)
+    return localized
+
 from app.services.watchlist_selection import (
     load_watchlist_selection,
     save_watchlist_selection,
@@ -1617,7 +1634,7 @@ async def sources_page(request: Request):
             ),
             "records": status["records"],
             "sources": [
-                source
+                _localize_source(source)
                 for source in get_all_sources()
                 if source["id"] != "celestrak-www"
             ],
@@ -1628,7 +1645,7 @@ async def sources_page(request: Request):
                 status["source_id"]
             ),
             "active_source": (
-                status["source"] or "Keine"
+                status["source"] or translate_text("sources.none_label")
             ),
             "fallback_used": (
                 status["fallback_used"]
