@@ -1,25 +1,23 @@
 {% extends "base.html" %}
 
-{% block title %}Downloads – {{ app_name }}{% endblock %}
+{% block title %}{{ t('nav.downloads') }} – {{ app_name }}{% endblock %}
 
 {% block nav_downloads %}active{% endblock %}
 
 {% block page_heading %}
-  Downloads
+{{ t('nav.downloads') }}
 {% endblock %}
 
 {% block content %}
 
 <section class="mission-hero">
   <div>
-    <div class="eyebrow">TLE-EXPORT</div>
+    <div class="eyebrow">{{ t('downloads.eyebrow') }}</div>
 
-    <h2>Satelliten als TLE-Datei exportieren</h2>
+    <h2>{{ t('downloads.hero_heading') }}</h2>
 
     <p>
-      Lade alle oder ausgewählte Satelliten als fertige TLE-Datei herunter.
-      Wähle das gewünschte Format und nutze den Link unten, um die Daten
-      auch automatisch in externe Satellitenprogramme zu laden.
+      {{ t('downloads.hero_intro') }}
     </p>
   </div>
 
@@ -28,20 +26,20 @@
 
     <div>
       <strong id="download-selected-count">0</strong>
-      <small>von {{ satellite_count }} ausgewählt</small>
+      <small>{{ t('downloads.selected_of_template').replace('{count}', satellite_count|string) }}</small>
     </div>
   </div>
 </section>
 
 <section class="source-summary satellite-summary-grid">
   <article class="source-summary-card satellite-search-card">
-    <span>Suche</span>
+    <span>{{ t('satellites.search_label') }}</span>
 
     <input
       id="download-search-input"
       class="satellite-search-input"
       type="search"
-      placeholder="Name oder NORAD-ID ..."
+      placeholder="{{ t('satellites.search_placeholder') }}"
       autocomplete="off"
     >
   </article>
@@ -53,43 +51,43 @@
       <label class="download-format-option">
         <input type="radio" name="tle-format" value="neu" checked>
         <span>
-          <strong>Neues Format</strong>
-          <small>3-Zeilen</small>
+          <strong>{{ t('downloads.format_new') }}</strong>
+          <small>{{ t('downloads.format_new_desc') }}</small>
         </span>
       </label>
       <label class="download-format-option">
         <input type="radio" name="tle-format" value="alt">
         <span>
-          <strong>Altes Format</strong>
-          <small>2-Zeilen</small>
+          <strong>{{ t('downloads.format_old') }}</strong>
+          <small>{{ t('downloads.format_old_desc') }}</small>
         </span>
       </label>
       <label class="download-format-option">
         <input type="radio" name="tle-format" value="csv">
         <span>
-          <strong>CSV-Format</strong>
-          <small>Tabelle</small>
+          <strong>{{ t('downloads.format_csv') }}</strong>
+          <small>{{ t('downloads.format_table_desc') }}</small>
         </span>
       </label>
       <label class="download-format-option">
         <input type="radio" name="tle-format" value="xml">
         <span>
-          <strong>XML-Format</strong>
-          <small>Strukturiert</small>
+          <strong>{{ t('downloads.format_xml') }}</strong>
+          <small>{{ t('downloads.format_structured_desc') }}</small>
         </span>
       </label>
       <label class="download-format-option">
         <input type="radio" name="tle-format" value="json">
         <span>
-          <strong>JSON-Format</strong>
-          <small>Strukturiert</small>
+          <strong>{{ t('downloads.format_json') }}</strong>
+          <small>{{ t('downloads.format_structured_desc') }}</small>
         </span>
       </label>
     </div>
   </article>
 
   <article class="source-summary-card">
-    <span>Auswahl</span>
+    <span>{{ t('downloads.selection_label') }}</span>
 
     <div class="download-select-actions">
       <button
@@ -97,14 +95,14 @@
         class="source-action-button secondary"
         id="download-select-all"
       >
-        Alle auswählen
+        {{ t('downloads.select_all') }}
       </button>
       <button
         type="button"
         class="source-action-button secondary"
         id="download-select-none"
       >
-        Auswahl aufheben
+        {{ t('downloads.deselect_all') }}
       </button>
     </div>
   </article>
@@ -119,21 +117,21 @@
       class="source-action-button"
       id="download-selected-button"
     >
-      Auswahl herunterladen
+      {{ t('downloads.download_selection') }}
     </button>
     <button
       type="button"
       class="source-action-button secondary"
       id="download-all-button"
     >
-      Alle herunterladen
+      {{ t('downloads.download_all') }}
     </button>
   </div>
 
   <div class="download-links">
     <div class="download-link-block">
       <label class="download-link-label" for="download-link-neu">
-        Fester Link - Neues Format (3-Zeilen)
+{{ t('downloads.fixed_link_new') }}
       </label>
       <div class="download-link-row">
         <input type="text" id="download-link-neu" readonly>
@@ -142,14 +140,14 @@
           class="source-action-button secondary"
           data-copy-target="download-link-neu"
         >
-          Kopieren
+          {{ t('downloads.copy_button') }}
         </button>
       </div>
     </div>
 
     <div class="download-link-block">
       <label class="download-link-label" for="download-link-alt">
-        Fester Link - Altes Format (2-Zeilen)
+{{ t('downloads.fixed_link_old') }}
       </label>
       <div class="download-link-row">
         <input type="text" id="download-link-alt" readonly>
@@ -158,7 +156,7 @@
           class="source-action-button secondary"
           data-copy-target="download-link-alt"
         >
-          Kopieren
+          {{ t('downloads.copy_button') }}
         </button>
       </div>
     </div>
@@ -166,7 +164,7 @@
 
     <div class="download-link-block">
     <label class="download-link-label" for="download-link-csv">
-      Fester Link – CSV-Format
+{{ t('downloads.fixed_link_csv') }}
     </label>
     <div class="download-link-row">
       <input type="text" id="download-link-csv" readonly>
@@ -175,14 +173,14 @@
         class="source-action-button secondary"
         data-copy-target="download-link-csv"
       >
-        Kopieren
+        {{ t('downloads.copy_button') }}
       </button>
     </div>
   </div>
 
     <div class="download-link-block">
     <label class="download-link-label" for="download-link-xml">
-      Fester Link – XML-Format
+{{ t('downloads.fixed_link_xml') }}
     </label>
     <div class="download-link-row">
       <input type="text" id="download-link-xml" readonly>
@@ -191,14 +189,14 @@
         class="source-action-button secondary"
         data-copy-target="download-link-xml"
       >
-        Kopieren
+        {{ t('downloads.copy_button') }}
       </button>
     </div>
   </div>
 
     <div class="download-link-block">
     <label class="download-link-label" for="download-link-json">
-      Fester Link – JSON-Format
+{{ t('downloads.fixed_link_json') }}
     </label>
     <div class="download-link-row">
       <input type="text" id="download-link-json" readonly>
@@ -207,15 +205,13 @@
         class="source-action-button secondary"
         data-copy-target="download-link-json"
       >
-        Kopieren
+        {{ t('downloads.copy_button') }}
       </button>
     </div>
   </div>
 
 <p class="download-link-hint">
-    Diese Links liefern immer den aktuellen Datenstand mit der aktuellen
-    Auswahl - ideal zum automatischen Laden in externen
-    Satellitenprogrammen. Ohne Auswahl liefern die Links alle Satelliten.
+    {{ t('downloads.link_hint') }}
   </p>
 </section>
 
@@ -224,15 +220,15 @@
     <thead>
       <tr>
         <th class="download-checkbox-col"></th>
-        <th>Name</th>
-        <th>NORAD-ID</th>
+        <th>{{ t('satellites.col_name') }}</th>
+        <th>{{ t('satellites.col_norad') }}</th>
       </tr>
     </thead>
 
     <tbody>
       {% if satellite_count == 0 %}
       <tr>
-        <td colspan="3">Keine TLE-Daten verfügbar.</td>
+        <td colspan="3">{{ t('downloads.no_tle_data') }}</td>
       </tr>
       {% endif %}
     </tbody>
@@ -243,7 +239,7 @@
     id="download-empty-state"
     hidden
   >
-    Keine Satelliten für diese Suche gefunden.
+    {{ t('downloads.no_results') }}
   </p>
 </section>
 
@@ -360,7 +356,7 @@
         tableBody.innerHTML = "";
         setEmptyState(
           true,
-          `${totalCount} Satelliten verfügbar – Name oder NORAD-ID eingeben, um zu suchen.`
+          "{{ t('downloads.search_prompt_template') }}".replace("{count}", totalCount)
         );
         return;
       }
@@ -378,7 +374,7 @@
           return;
         }
         tableBody.innerHTML = "";
-        setEmptyState(true, "Suche fehlgeschlagen. Bitte erneut versuchen.");
+        setEmptyState(true, "{{ t('downloads.search_failed') }}");
         return;
       }
 
@@ -389,11 +385,11 @@
       renderRows(data.results);
 
       if (data.results.length === 0) {
-        setEmptyState(true, "Keine Satelliten für diese Suche gefunden.");
+        setEmptyState(true, "{{ t('downloads.no_results') }}");
       } else if (data.truncated) {
         setEmptyState(
           true,
-          `Zeige ${data.results.length} von ${data.total} Treffern – Suche verfeinern für mehr.`
+          "{{ t('downloads.results_truncated_template') }}".replace("{shown}", data.results.length).replace("{total}", data.total)
         );
       } else {
         setEmptyState(false);
@@ -462,10 +458,10 @@
           }
         }
         if (copied) {
-          showStatus("Link wurde in die Zwischenablage kopiert.", "is-success");
+          showStatus("{{ t('downloads.copy_success') }}", "is-success");
         } else {
           target.select();
-          showStatus("Bitte den Link manuell kopieren.", "is-error");
+          showStatus("{{ t('downloads.copy_manual') }}", "is-error");
         }
       });
     });
