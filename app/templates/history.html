@@ -1,27 +1,27 @@
 {% extends "base.html" %}
 
-{% block title %}OrbitHub - Historie{% endblock %}
+{% block title %}{{ t('nav.history') }} — {{ app_name }}{% endblock %}
 
 {% block nav_history %}active{% endblock %}
 
-{% block page_heading %}Historie{% endblock %}
+{% block page_heading %}{{ t('nav.history') }}{% endblock %}
 
 {% block content %}
 
 <section class="mission-hero sources-hero">
   <div>
-    <div class="eyebrow">VERLAUF & PROTOKOLL</div>
-    <h2>Änderungshistorie</h2>
+    <div class="eyebrow">{{ t('history.eyebrow') }}</div>
+    <h2>{{ t('history.heading') }}</h2>
     <p>
-      Automatisches Protokoll aller Änderungen an OrbitHub, jeweils mit Datum.
+      {{ t('history.intro') }}
     </p>
   </div>
 </section>
 
 <div class="add-source-panel history-panel">
   <div class="add-source-panel-header">
-    <span class="label">PROTOKOLL</span>
-    <span class="history-count">{{ total_entries }} Einträge</span>
+    <span class="label">{{ t('history.label') }}</span>
+    <span class="history-count">{{ total_entries }} {{ t('history.entries_suffix') }}</span>
   </div>
 
   {% if days %}
@@ -41,7 +41,7 @@
       {% endfor %}
     </div>
   {% else %}
-    <p class="history-empty">Noch keine Einträge vorhanden.</p>
+    <p class="history-empty">{{ t('history.empty') }}</p>
   {% endif %}
 </div>
 

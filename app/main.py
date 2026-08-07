@@ -2379,11 +2379,18 @@ _GERMAN_MONTHS = [
     "Juli", "August", "September", "Oktober", "November", "Dezember",
 ]
 
+_ENGLISH_MONTHS = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+]
+
 
 def format_history_date(date_str: str) -> str:
     """Formatiert YYYY-MM-DD als deutsches Datum, z. B. 25. Juli 2026."""
     try:
         year, month, day = date_str.split("-")
+        if get_current_lang() == "en":
+            return f"{_ENGLISH_MONTHS[int(month) - 1]} {int(day)}, {year}"
         return f"{int(day)}. {_GERMAN_MONTHS[int(month) - 1]} {year}"
     except (ValueError, IndexError):
         return date_str
