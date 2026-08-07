@@ -363,6 +363,15 @@ const jsLocale = "{{ lang() }}" === "de" ? "de-DE" : "en-US";
               x: {
                 type: "time",
                 time: { unit: tleDays > 7 ? "day" : "hour" },
+                ticks: {
+                  callback: function (value) {
+                    const tickDate = new Date(value);
+                    if (tleDays > 7) {
+                      return tickDate.toLocaleDateString(jsLocale, { day: "2-digit", month: "2-digit" });
+                    }
+                    return tickDate.toLocaleTimeString(jsLocale, { hour: "2-digit", minute: "2-digit" });
+                  },
+                },
                 grid: { color: chartColors.grid },
               },
               y: {
