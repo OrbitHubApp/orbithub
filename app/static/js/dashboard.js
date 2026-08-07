@@ -363,7 +363,7 @@ window.OrbitFavorites = {
 
       if (label) {
         label.textContent =
-          "Datensätze werden geladen …";
+        window.OrbitI18n.t.datasetLoading;
       }
 
       if (icon) {
@@ -371,8 +371,8 @@ window.OrbitFavorites = {
       }
 
       setStatus(
-        "OrbitHub lädt aktuelle TLE-Daten von der Quelle. " +
-        "Dies kann etwa ein bis zwei Minuten dauern.",
+      window.OrbitI18n.t.datasetRunning,
+
         "is-running"
       );
 
@@ -399,20 +399,20 @@ window.OrbitFavorites = {
         if (!response.ok) {
           const detail =
             result?.detail ||
-            `HTTP-Fehler ${response.status}`;
+            `${window.OrbitI18n.t.httpErrorPrefix}${response.status}`;
 
           throw new Error(detail);
         }
 
         setStatus(
-          "Aktualisierung erfolgreich abgeschlossen. " +
-          "Das Dashboard wird neu geladen.",
+          window.OrbitI18n.t.datasetSuccess,
+
           "is-success"
         );
 
         if (label) {
           label.textContent =
-            "Aktualisierung abgeschlossen";
+            window.OrbitI18n.t.datasetDone;
         }
 
         window.setTimeout(() => {
@@ -425,7 +425,7 @@ window.OrbitFavorites = {
         );
 
         setStatus(
-          `Aktualisierung fehlgeschlagen: ${
+          `${window.OrbitI18n.t.datasetFailedPrefix}${
             error.message
           }`,
           "is-error"
@@ -433,7 +433,7 @@ window.OrbitFavorites = {
 
         if (label) {
           label.textContent =
-            "Erneut aktualisieren";
+            window.OrbitI18n.t.datasetRetry;
         }
 
         updateButton.disabled = false;
@@ -474,10 +474,10 @@ window.OrbitFavorites = {
       )?.value;
 
       timezoneElement.textContent = zone
-        ? `Ortszeit (${zone})`
-        : "Ortszeit";
+        ? window.OrbitI18n.t.localTimeZonePattern.replace("{zone}", zone)
+        : window.OrbitI18n.t.localTime;
     } catch {
-      timezoneElement.textContent = "Ortszeit";
+      timezoneElement.textContent = window.OrbitI18n.t.localTime;
     }
   }
 
@@ -539,30 +539,30 @@ window.OrbitFavorites = {
     );
 
     if (seconds < 60) {
-      return "vor weniger als 1 Min.";
+      return window.OrbitI18n.t.justNow;
     }
 
     const minutes = Math.floor(seconds / 60);
 
     if (minutes < 60) {
       return minutes === 1
-        ? "vor 1 Min."
-        : `vor ${minutes} Min.`;
+        ? window.OrbitI18n.t.minOne
+        : window.OrbitI18n.t.minN.replace("{n}", minutes);
     }
 
     const hours = Math.floor(minutes / 60);
 
     if (hours < 24) {
       return hours === 1
-        ? "vor 1 Std."
-        : `vor ${hours} Std.`;
+        ? window.OrbitI18n.t.hourOne
+        : window.OrbitI18n.t.hourN.replace("{n}", hours);
     }
 
     const days = Math.floor(hours / 24);
 
     return days === 1
-      ? "vor 1 Tag"
-      : `vor ${days} Tagen`;
+      ? window.OrbitI18n.t.dayOne
+      : window.OrbitI18n.t.dayN.replace("{n}", days);
   }
 
   function updateRelativeTime() {
@@ -572,7 +572,7 @@ window.OrbitFavorites = {
 
     if (!timestamp) {
       relativeElement.textContent =
-        "Zeitabstand nicht verfügbar";
+          window.OrbitI18n.t.timeGapUnavailable;
       return;
     }
 
@@ -1291,7 +1291,7 @@ window.OrbitFavorites = {
       .then(function (data) {
         if (!data || !data.ok) {
           setResult(
-            (data && data.error) || "Pruefung nicht moeglich.",
+            (data && data.error) || window.OrbitI18n.t.checkFailed,
             null,
             "is-error"
           );
@@ -1300,7 +1300,7 @@ window.OrbitFavorites = {
 
         if (data.update_available) {
           var label =
-            "Update verfuegbar: v" +
+            window.OrbitI18n.t.availablePrefix +
             data.current_version +
             " → v" +
             data.latest_version +
@@ -1310,11 +1310,11 @@ window.OrbitFavorites = {
             data.update_command,
             "is-available",
             "/update",
-            "Anleitung ansehen â"
+        window.OrbitI18n.t.viewInstructions
           );
         } else {
           setResult(
-            "Du hast die aktuellste Version (v" +
+            window.OrbitI18n.t.upToDatePrefix +
               data.current_version +
               (data.current_codename ? " – " + data.current_codename : "") +
               ").",
@@ -1325,7 +1325,7 @@ window.OrbitFavorites = {
       })
       .catch(function () {
         setResult(
-          "Pruefung nicht moeglich - keine Verbindung zu GitHub.",
+        window.OrbitI18n.t.checkFailedOffline,
           null,
           "is-error"
         );
@@ -1353,23 +1353,23 @@ window.OrbitFavorites = {
       statusEl.className = "";
       if (!data || !data.ok) {
         statusEl.textContent =
-          (data && data.error) || "Pruefung nicht moeglich.";
+          (data && data.error) || window.OrbitI18n.t.checkFailed;
         statusEl.classList.add("is-error");
         return;
       }
 
       if (data.update_available) {
         statusEl.textContent =
-          "Neue Version verfuegbar: v" +
+          window.OrbitI18n.t.newVersionPrefix +
           data.current_version +
           " → v" +
           data.latest_version +
           (data.latest_codename ? " (" + data.latest_codename + ")" : "") +
-          ". Folge den Schritten unten, um zu aktualisieren.";
+          window.OrbitI18n.t.followSteps;
         statusEl.classList.add("is-available");
       } else {
         statusEl.textContent =
-          "Du hast bereits die aktuellste Version (v" +
+          window.OrbitI18n.t.alreadyUpToDatePrefix +
           data.current_version +
           (data.current_codename ? " – " + data.current_codename : "") +
           ").";
@@ -1378,7 +1378,7 @@ window.OrbitFavorites = {
     })
     .catch(function () {
       statusEl.textContent =
-        "Pruefung nicht moeglich - keine Verbindung zu GitHub.";
+    window.OrbitI18n.t.checkFailedOffline;
       statusEl.classList.add("is-error");
     });
 

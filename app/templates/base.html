@@ -147,8 +147,8 @@
 </a>
 
 <div class="sidebar-lang-switch" role="group" aria-label="{{ t('lang.switch_aria') }}">
-<a href="/set-lang/de?next={{ request.url.path | urlencode }}" class="lang-switch-option{{ ' is-active' if lang() == 'de' else '' }}">DE</a>
-<a href="/set-lang/en?next={{ request.url.path | urlencode }}" class="lang-switch-option{{ ' is-active' if lang() == 'en' else '' }}">EN</a>
+<a href="/set-lang/de?next={{ request.url.path | urlencode }}" data-lang="de" title="Deutsch" class="lang-switch-option{{ ' is-active' if lang() == 'de' else '' }}"><span class="lang-flag" aria-hidden="true">🇩🇪</span>DE</a>
+<a href="/set-lang/en?next={{ request.url.path | urlencode }}" data-lang="en" title="English" class="lang-switch-option{{ ' is-active' if lang() == 'en' else '' }}"><span class="lang-flag" aria-hidden="true">🇺🇸</span>EN</a>
 </div>
 
 </nav>
@@ -257,6 +257,39 @@
 
 </div>
 
+<script>
+window.OrbitI18n = {
+  lang: "{{ lang() }}",
+  t: {
+    justNow: "{{ t('relative.just_now') }}",
+    minOne: "{{ t('relative.min_one') }}",
+    minN: "{{ t('relative.min_n') }}",
+    hourOne: "{{ t('relative.hour_one') }}",
+    hourN: "{{ t('relative.hour_n') }}",
+    dayOne: "{{ t('relative.day_one') }}",
+    dayN: "{{ t('relative.day_n') }}",
+    timeGapUnavailable: "{{ t('relative.unavailable') }}",
+    localTimeZonePattern: "{{ t('header.local_time_zone') }}",
+    localTime: "{{ t('header.local_time') }}",
+    datasetLoading: "{{ t('update.dataset_loading') }}",
+    datasetRunning: "{{ t('update.dataset_running') }}",
+    datasetSuccess: "{{ t('update.dataset_success') }}",
+    datasetDone: "{{ t('update.dataset_done') }}",
+    datasetRetry: "{{ t('update.dataset_retry') }}",
+    datasetFailedPrefix: "{{ t('update.dataset_failed_prefix') }}",
+    httpErrorPrefix: "{{ t('update.http_error_prefix') }}",
+    checkFailed: "{{ t('update.check_failed') }}",
+    checkFailedOffline: "{{ t('update.check_failed_offline') }}",
+    availablePrefix: "{{ t('update.available_prefix') }}",
+    newVersionPrefix: "{{ t('update.new_version_prefix') }}",
+    viewInstructions: "{{ t('update.view_instructions') }}",
+    followSteps: "{{ t('update.follow_steps') }}",
+    upToDatePrefix: "{{ t('update.up_to_date_prefix') }}",
+    alreadyUpToDatePrefix: "{{ t('update.already_up_to_date_prefix') }}"
+  }
+};
+</script>
+
 <script src="{{ url_for('static', path='js/dashboard.js') }}?v={{ version }}"></script>
 
 <script>
@@ -294,6 +327,27 @@ overlay.classList.add("is-active");
 });
 
 window.addEventListener("pageshow", hideOverlay);
+})();
+</script>
+
+<script>
+(function () {
+  document.querySelectorAll(".lang-switch-option").forEach(function (link) {
+    link.addEventListener("click", function () {
+      try { sessionStorage.setItem("orbitLangSwitched", "1"); } catch (e) {}
+    });
+  });
+  var switcher = document.querySelector(".sidebar-lang-switch");
+  if (!switcher) { return; }
+  var justSwitched = false;
+  try { justSwitched = sessionStorage.getItem("orbitLangSwitched") === "1"; } catch (e) {}
+  if (justSwitched) {
+    switcher.classList.add("lang-switch-flash");
+    try { sessionStorage.removeItem("orbitLangSwitched"); } catch (e) {}
+    window.setTimeout(function () {
+      switcher.classList.remove("lang-switch-flash");
+    }, 1200);
+  }
 })();
 </script>
 

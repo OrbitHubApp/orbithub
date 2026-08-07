@@ -873,7 +873,7 @@ def format_time_value(value: datetime, fmt: str) -> str:
 
 
 def time_zone_label() -> str:
-    return "GMT" if _time_display_pref() == "utc" else "Ortszeit"
+    return "GMT" if _time_display_pref() == "utc" else translate_text("header.local_time")
 
 
 templates.env.filters["fmt_time"] = format_time_value
@@ -897,7 +897,7 @@ def format_update_time() -> str:
     updated_utc = status["updated_utc"]
 
     if not updated_utc:
-        return "Noch nie"
+        return translate_text("status.never")
 
     updated_datetime = datetime.fromisoformat(
         updated_utc
@@ -920,17 +920,17 @@ def format_duration() -> str:
 
     if minutes > 0:
         return (
-            f"{minutes} Min. "
-            f"{remaining_seconds:.1f} Sek."
+            f"{minutes} {translate_text("unit.min")} "
+            f"{remaining_seconds:.1f} {translate_text("unit.sec")}"
         )
 
-    return f"{remaining_seconds:.1f} Sek."
+    return f"{remaining_seconds:.1f} {translate_text("unit.sec")}"
 
 
 def format_tle_file_time() -> str:
     """Format the modification time of the current TLE dataset file."""
     if not TLE_FILE.exists():
-        return "Noch nie"
+        return translate_text("status.never")
 
     mtime = datetime.fromtimestamp(
         TLE_FILE.stat().st_mtime,
@@ -976,31 +976,31 @@ async def index(request: Request):
         "refresh_seconds": DASHBOARD_REFRESH_SECONDS,
         "tinygs_stations": tinygs_stations,
         "state": (
-            "ONLINE"
+            translate_text("state.online")
             if status["ok"]
-            else "FEHLER"
+            else translate_text("state.error")
         ),
         "state_class": (
             "ok"
             if status["ok"]
             else "error"
         ),
-        "source": status["source"] or "Keine",
+        "source": status["source"] or translate_text("value.none"),
         "preferred_source": (
-            status["preferred_source"] or "Keine"
+            status["preferred_source"] or translate_text("value.none")
         ),
         "fallback_used": (
-            "Ja"
+            translate_text("value.yes")
             if status["fallback_used"]
-            else "Nein"
+            else translate_text("value.no")
         ),
         "previous_source": (
-            status["previous_source"] or "Keine"
+            status["previous_source"] or translate_text("value.none")
         ),
         "source_changed": (
-            "Ja"
+            translate_text("value.yes")
             if status["source_changed"]
-            else "Nein"
+            else translate_text("value.no")
         ),
         "records": status["records"],
         "file_size_kib": (
@@ -1024,7 +1024,7 @@ async def index(request: Request):
         "updated_text": format_update_time(),
         "duration_text": format_duration(),
         "error_text": (
-            status["error"] or "Kein Fehler"
+            status["error"] or translate_text("status.no_error")
         ),
     }
 

@@ -1,264 +1,263 @@
 {% extends "base.html" %}
 
 {% block title %}
-  OrbitHub · Übersicht
+OrbitHub · {{ t('nav.dashboard') }}
 {% endblock %}
 
 {% block nav_dashboard %}active{% endblock %}
 
 {% block page_heading %}
-  Übersicht
+{{ t('nav.dashboard') }}
 {% endblock %}
 
 {% block content %}
 
 <section class="mission-hero">
 
-  <div>
-    <div class="eyebrow">SYSTEMSTATUS</div>
+<div>
+<div class="eyebrow">{{ t('dashboard.eyebrow') }}</div>
 
-    <h2>TLE-Datendienst</h2>
+<h2>{{ t('dashboard.tle_title') }}</h2>
 
-    <p>
-      Automatische Bereitstellung aktueller
-      Satellitenbahndaten für Amateurfunkanwendungen.
-    </p>
-  </div>
+<p>
+{{ t('dashboard.tle_desc') }}
+</p>
+</div>
 
-  <div class="hero-online">
-    <span class="hero-online-dot"></span>
+<div class="hero-online">
+<span class="hero-online-dot"></span>
 
-    <div>
-      <strong>{{ state }}</strong>
-      <small>Alle Systeme nominal</small>
-    </div>
-  </div>
+<div>
+<strong>{{ state }}</strong>
+<small>{{ t('dashboard.all_nominal') }}</small>
+</div>
+</div>
 
-  <div class="hero-orbit-art" aria-hidden="true">
-    <div class="orbit-ring orbit-ring-one"></div>
-    <div class="orbit-ring orbit-ring-two"></div>
-    <div class="orbit-satellite">◈</div>
-  </div>
+<div class="hero-orbit-art" aria-hidden="true">
+<div class="orbit-ring orbit-ring-one"></div>
+<div class="orbit-ring orbit-ring-two"></div>
+<div class="orbit-satellite">◈</div>
+</div>
 
 </section>
 
 <section class="mission-grid">
 
-  {% for station in tinygs_stations %}
-  <article class="mission-card source-card">
-    <div>
-      <div class="label">TinyGS</div>
-      <div class="value compact">{{ station.station_name }}</div>
-      <a class="tinygs-station-link" href="{{ station.page_url }}" target="_blank" rel="noopener">
-        Zur Station &rarr;
-      </a>
-    </div>
+{% for station in tinygs_stations %}
+<article class="mission-card source-card">
+<div>
+<div class="label">TinyGS</div>
+<div class="value compact">{{ station.station_name }}</div>
+<a class="tinygs-station-link" href="{{ station.page_url }}" target="_blank" rel="noopener">
+{{ t('dashboard.station_link') }} &rarr;
+</a>
+</div>
 
-    <div class="metric-icon">&#128225;</div>
-  </article>
-  {% endfor %}
+<div class="metric-icon">&#128225;</div>
+</article>
+{% endfor %}
 
-  <article class="mission-card source-card">
-    <div>
-      <div class="label">Aktive Quelle</div>
-      <div class="value">{{ source }}</div>
-      <div class="card-note">Satellitenbahndaten</div>
-      <span class="live-badge">● LIVE</span>
-    </div>
+<article class="mission-card source-card">
+<div>
+<div class="label">{{ t('dashboard.active_source') }}</div>
+<div class="value">{{ source }}</div>
+<div class="card-note">{{ t('dashboard.orbit_data') }}</div>
+<span class="live-badge">● LIVE</span>
+</div>
 
-    <div class="metric-icon">⌁</div>
-  </article>
+<div class="metric-icon">⁁</div>
+</article>
 
-  <article class="mission-card">
-    <div>
-      <div class="label">Datensätze</div>
+<article class="mission-card">
+<div>
+<div class="label">{{ t('dashboard.records') }}</div>
 
-      <div class="value metric">
-        {{ records|fmt_number }}
-      </div>
+<div class="value metric">
+{{ records|fmt_number }}
+</div>
 
-      <div class="card-note">
-        Satelliten insgesamt
-      </div>
-    </div>
+<div class="card-note">
+{{ t('dashboard.records_total') }}
+</div>
+</div>
 
-    <div class="metric-icon">▥</div>
-  </article>
+<div class="metric-icon">▥</div>
+</article>
 
-  <article class="mission-card">
-    <div>
-      <div class="label">Dateigröße</div>
+<article class="mission-card">
+<div>
+<div class="label">{{ t('dashboard.file_size') }}</div>
 
-      <div class="value">
-        {{ file_size_kib|fmt_number(1) }} KiB
-      </div>
+<div class="value">
+{{ file_size_kib|fmt_number(1) }} KiB
+</div>
 
-      <div class="card-note">
-        {{ file_size_bytes|fmt_number }} Bytes
-      </div>
-    </div>
+<div class="card-note">
+{{ file_size_bytes|fmt_number }} Bytes
+</div>
+</div>
 
-    <div class="metric-icon">▤</div>
-  </article>
+<div class="metric-icon">▤</div>
+</article>
 
-  <article
-    class="mission-card update-card"
-    data-update-utc="{{ updated_text }}"
-    id="last-update-card"
-  >
-    <div>
-      <div class="label">Letzte Aktualisierung</div>
+<article
+class="mission-card update-card"
+data-update-utc="{{ updated_text }}"
+id="last-update-card"
+>
+<div>
+<div class="label">{{ t('dashboard.last_update') }}</div>
 
-      <div class="value compact update-timestamp">
-        {{ updated_text }}
-      </div>
+<div class="value compact update-timestamp">
+{{ updated_text }}
+</div>
 
-      <div class="update-time-zone">
-        UTC
-      </div>
+<div class="update-time-zone">
+UTC
+</div>
 
-      <div
-        class="update-relative-time"
-        id="last-update-relative"
-      >
-        wird berechnet …
-      </div>
-    </div>
+<div
+class="update-relative-time"
+id="last-update-relative"
+>
+{{ t('dashboard.calculating') }}
+</div>
+</div>
 
-    <div class="metric-icon">◷</div>
-  </article>
+<div class="metric-icon">◷</div>
+</article>
 
-  <article class="mission-card">
-    <div>
-      <div class="label">Bevorzugte Quelle</div>
-      <div class="value">{{ preferred_source }}</div>
-      <div class="card-note">
-        Benutzerkonfiguration
-      </div>
-    </div>
+<article class="mission-card">
+<div>
+<div class="label">{{ t('dashboard.preferred_source') }}</div>
+<div class="value">{{ preferred_source }}</div>
+<div class="card-note">
+{{ t('dashboard.user_config') }}
+</div>
+</div>
 
-    <div class="metric-icon">★</div>
-  </article>
+<div class="metric-icon">★</div>
+</article>
 
-  <article class="mission-card">
-    <div>
-      <div class="label">Fallback verwendet</div>
-      <div class="value">{{ fallback_used }}</div>
-      <div class="card-note">
-        Ersatzquelle bei Ausfall
-      </div>
-    </div>
+<article class="mission-card">
+<div>
+<div class="label">{{ t('dashboard.fallback_used') }}</div>
+<div class="value">{{ fallback_used }}</div>
+<div class="card-note">
+{{ t('dashboard.fallback_note') }}
+</div>
+</div>
 
-    <div class="metric-icon">⇆</div>
-  </article>
+<div class="metric-icon">⇆</div>
+</article>
 
-  <article class="mission-card">
-    <div>
-      <div class="label">Aktualisierungsdauer</div>
-      <div class="value">{{ duration_text }}</div>
-    </div>
+<article class="mission-card">
+<div>
+<div class="label">{{ t('dashboard.update_duration') }}</div>
+<div class="value">{{ duration_text }}</div>
+</div>
 
-    <div class="metric-icon">◴</div>
-  </article>
+<div class="metric-icon">◴</div>
+</article>
 
-  <article class="mission-card error-card">
-    <div>
-      <div class="label">Letzter Fehler</div>
-      <div class="value">{{ error_text }}</div>
-    </div>
+<article class="mission-card error-card">
+<div>
+<div class="label">{{ t('dashboard.last_error') }}</div>
+<div class="value">{{ error_text }}</div>
+</div>
 
-    <div class="metric-icon">✓</div>
-  </article>
+<div class="metric-icon">✓</div>
+</article>
 
-  <article class="mission-card change-card positive">
-    <div>
-      <div class="label">Neue Satelliten</div>
-      <div class="value metric">{{ new_satellites }}</div>
-      <div class="card-note">seit letztem Update</div>
-    </div>
+<article class="mission-card change-card positive">
+<div>
+<div class="label">{{ t('dashboard.new_satellites') }}</div>
+<div class="value metric">{{ new_satellites }}</div>
+<div class="card-note">{{ t('dashboard.since_last_update') }}</div>
+</div>
 
-    <div class="metric-icon">＋</div>
-  </article>
+<div class="metric-icon">＋</div>
+</article>
 
-  <article class="mission-card change-card updated">
-    <div>
-      <div class="label">Aktualisierte Satelliten</div>
-      <div class="value metric">{{ updated_satellites }}</div>
-      <div class="card-note">seit letztem Update</div>
-    </div>
+<article class="mission-card change-card updated">
+<div>
+<div class="label">{{ t('dashboard.updated_satellites') }}</div>
+<div class="value metric">{{ updated_satellites }}</div>
+<div class="card-note">{{ t('dashboard.since_last_update') }}</div>
+</div>
 
-    <div class="metric-icon">↻</div>
-  </article>
+<div class="metric-icon">↻</div>
+</article>
 
-  <article class="mission-card change-card removed">
-    <div>
-      <div class="label">Entfernte Satelliten</div>
-      <div class="value metric">{{ removed_satellites }}</div>
-      <div class="card-note">seit letztem Update</div>
-    </div>
+<article class="mission-card change-card removed">
+<div>
+<div class="label">{{ t('dashboard.removed_satellites') }}</div>
+<div class="value metric">{{ removed_satellites }}</div>
+<div class="card-note">{{ t('dashboard.since_last_update') }}</div>
+</div>
 
-    <div class="metric-icon">−</div>
-  </article>
+<div class="metric-icon">−</div>
+</article>
 
-  <article class="mission-card change-card unchanged">
-    <div>
-      <div class="label">Unveränderte Satelliten</div>
-      <div class="value metric">{{ unchanged_satellites }}</div>
-      <div class="card-note">seit letztem Update</div>
-    </div>
+<article class="mission-card change-card unchanged">
+<div>
+<div class="label">{{ t('dashboard.unchanged_satellites') }}</div>
+<div class="value metric">{{ unchanged_satellites }}</div>
+<div class="card-note">{{ t('dashboard.since_last_update') }}</div>
+</div>
 
-    <div class="metric-icon">＝</div>
-  </article>
+<div class="metric-icon">＝</div>
+</article>
 
 </section>
 
-<nav class="mission-services" aria-label="OrbitHub Dienste">
+<nav class="mission-services" aria-label="{{ t('dashboard.services_aria') }}">
 <button
-    class="update-dataset-button"
-    id="update-dataset-button"
-    type="button"
-  >
-    <span class="update-button-icon">↻</span>
+class="update-dataset-button"
+id="update-dataset-button"
+type="button"
+>
+<span class="update-button-icon">↻</span>
 
-    <span class="update-button-label">
-      Datensätze aktualisieren
-    </span>
-  </button>
+<span class="update-button-label">
+{{ t('dashboard.update_dataset') }}
+</span>
+</button>
 
 <a href="http://orbithubapp.de" target="_blank" rel="noopener">
-    <span>🌐</span>
-    Webseite
-  </a>
+<span>🌐</span>
+{{ t('dashboard.website') }}
+</a>
 
 <a href="https://github.com/OrbitHubApp/orbithub" target="_blank" rel="noopener">
-    <span>&lt;/&gt;</span>
-    GitHub
-  </a>
+<span>&lt;/&gt;</span>
+GitHub
+</a>
 
 <a href="/info">
-    <span>✉</span>
-    Info &amp; Kontakt
-  </a>
+<span>✉</span>
+{{ t('dashboard.info_contact') }}
+</a>
 
 <a href="https://ko-fi.com/orbithub" target="_blank" rel="noopener">
-    <span>☕</span>
-    Ko-fi
-  </a>
+<span>☕</span>
+Ko-fi
+</a>
 </nav>
 
 <div
-  class="dataset-update-status"
-  id="dataset-update-status"
-  role="status"
-  aria-live="polite"
+class="dataset-update-status"
+id="dataset-update-status"
+role="status"
+aria-live="polite"
 ></div>
 
 <div class="refresh-panel">
-  Nächster automatischer Reload in
-  <strong id="refresh-countdown">
-    {{ refresh_seconds }}
-  </strong>
-  Sek.
+{{ t('dashboard.refresh_prefix') }}
+<strong id="refresh-countdown">
+{{ refresh_seconds }}
+</strong>
+{{ t('unit.sec') }}
 </div>
 
 {% endblock %}
