@@ -1,222 +1,221 @@
 {% extends "base.html" %}
 
 {% block title %}
-  OrbitHub &middot; Satelliten
+OrbitHub &middot; {{ t('nav.satellites') }}
 {% endblock %}
 
 {% block nav_satellites %}active{% endblock %}
 
 {% block page_heading %}
-  Satelliten
+{{ t('nav.satellites') }}
 {% endblock %}
 
 {% block content %}
 
 <section class="mission-hero">
-  <div>
-    <div class="eyebrow">SATELLITENKATALOG</div>
+<div>
+<div class="eyebrow">{{ t('satellites.eyebrow') }}</div>
 
-    <h2>Alle geladenen Satelliten</h2>
+<h2>{{ t('satellites.heading') }}</h2>
 
-    <p>
-      Vollständige Liste aller Satelliten aus der
-      aktuell geladenen TLE-Datei. Name oder
-      NORAD-ID durchsuchen und direkt zu den
-      nächsten Überflügen springen.
-    </p>
-  </div>
+<p>
+{{ t('satellites.intro') }}
+</p>
+</div>
 
-  <div class="hero-online">
-    <span class="hero-online-dot"></span>
+<div class="hero-online">
+<span class="hero-online-dot"></span>
 
-    <div>
-      <strong>{{ satellites|length }}</strong>
-      <small>Satelliten geladen</small>
-    </div>
-  </div>
+<div>
+<strong>{{ satellites|length }}</strong>
+<small>{{ t('satellites.loaded_label') }}</small>
+</div>
+</div>
 </section>
 
 <section class="source-summary satellite-summary-grid">
-  <article class="source-summary-card satellite-search-card">
-    <span>Suche</span>
+<article class="source-summary-card satellite-search-card">
+<span>{{ t('satellites.search_label') }}</span>
 
-    <input
-      id="satellite-search-input"
-      class="satellite-search-input"
-      type="search"
-      placeholder="Name oder NORAD-ID ..."
-      autocomplete="off"
-    >
-  </article>
+<input
+id="satellite-search-input"
+class="satellite-search-input"
+type="search"
+placeholder="{{ t('satellites.search_placeholder') }}"
+autocomplete="off"
+>
+</article>
 
-  <article class="source-summary-card satellite-sort-card">
-    <span>Sortierung</span>
+<article class="source-summary-card satellite-sort-card">
+<span>{{ t('satellites.sort_label') }}</span>
 
-    <select
-      id="satellite-sort-select"
-      class="satellite-search-input"
-    >
-      <option value="name">Name (A-Z)</option>
-      <option value="norad">NORAD-ID</option>
-    </select>
-  </article>
+<select
+id="satellite-sort-select"
+class="satellite-search-input"
+>
+<option value="name">{{ t('satellites.sort_name') }}</option>
+<option value="norad">{{ t('satellites.sort_norad') }}</option>
+</select>
+</article>
 
-  <article class="source-summary-card">
-    <span>Angezeigt</span>
-    <strong id="satellite-visible-count">{{ satellites|length }}</strong>
-  </article>
+<article class="source-summary-card">
+<span>{{ t('satellites.shown_label') }}</span>
+<strong id="satellite-visible-count">{{ satellites|length }}</strong>
+</article>
 
-  <article class="source-summary-card">
-    <span>Gesamt</span>
-    <strong>{{ satellites|length }}</strong>
-  </article>
+<article class="source-summary-card">
+<span>{{ t('satellites.total_label') }}</span>
+<strong>{{ satellites|length }}</strong>
+</article>
 </section>
 
 <section>
-  {% if satellites %}
-    <div class="table-scroll">
-      <table class="mission-table" id="satellite-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>NORAD-ID</th>
-            <th>Aktion</th>
-          </tr>
-        </thead>
+{% if satellites %}
+<div class="table-scroll">
+<table class="mission-table" id="satellite-table">
+<thead>
+<tr>
+<th>{{ t('satellites.col_name') }}</th>
+<th>{{ t('satellites.col_norad') }}</th>
+<th>{{ t('satellites.col_action') }}</th>
+</tr>
+</thead>
 
-        <tbody>
-          {% for satellite in satellites %}
-            <tr
-              data-name="{{ satellite.name|display_name|lower }}"
-              data-norad="{{ satellite.norad_id|lower }}"
-            >
-              <td>{{ satellite.name|display_name }}</td>
-              <td>{{ satellite.norad_id }}</td>
-              <td>
-                <a
-                  class="source-action-button secondary"
-                  href="/passes?satellite={{ satellite.norad_id }}"
-                >
-                  Überflüge anzeigen
-                </a>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+<tbody>
+{% for satellite in satellites %}
+<tr
+data-name="{{ satellite.name|display_name|lower }}"
+data-norad="{{ satellite.norad_id|lower }}"
+>
+<td>{{ satellite.name|display_name }}</td>
+<td>{{ satellite.norad_id }}</td>
+<td>
+<a
+class="source-action-button secondary"
+href="/passes?satellite={{ satellite.norad_id }}"
+>
+{{ t('satellites.view_passes') }}
+</a>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
 
-    <p
-      class="satellite-empty-block"
-      id="satellite-empty-state"
-      hidden
-    >
-      Keine Satelliten für diese Suche gefunden.
-    </p>
-  {% else %}
-    <div class="satellite-empty-block">
-      <strong>Keine TLE-Daten verfügbar</strong>
-      <p>Es wurden noch keine Satellitendaten geladen.</p>
-    </div>
-  {% endif %}
+<p
+class="satellite-empty-block"
+id="satellite-empty-state"
+hidden
+>
+{{ t('satellites.no_search_results') }}
+</p>
+{% else %}
+<div class="satellite-empty-block">
+<strong>{{ t('satellites.no_tle_title') }}</strong>
+<p>{{ t('satellites.no_tle_desc') }}</p>
+</div>
+{% endif %}
 </section>
 
 <script>
 (() => {
-  const searchInput = document.getElementById(
-    "satellite-search-input"
-  );
+const searchInput = document.getElementById(
+"satellite-search-input"
+);
 
-  const rows = Array.from(
-    document.querySelectorAll(
-      "#satellite-table tbody tr"
-    )
-  );
+const rows = Array.from(
+document.querySelectorAll(
+"#satellite-table tbody tr"
+)
+);
 
-  const visibleCountEl = document.getElementById(
-    "satellite-visible-count"
-  );
+const visibleCountEl = document.getElementById(
+"satellite-visible-count"
+);
 
-  const emptyState = document.getElementById(
-    "satellite-empty-state"
-  );
+const emptyState = document.getElementById(
+"satellite-empty-state"
+);
 
-  if (!searchInput) {
-    return;
-  }
+if (!searchInput) {
+return;
+}
 
-  function applyFilter() {
-    const query = searchInput.value
-      .trim()
-      .toLowerCase();
+function applyFilter() {
+const query = searchInput.value
+.trim()
+.toLowerCase();
 
-    let visible = 0;
+let visible = 0;
 
-    rows.forEach((row) => {
-      const matches =
-        !query ||
-        row.dataset.name.includes(query) ||
-        row.dataset.norad.includes(query);
+rows.forEach((row) => {
+const matches =
+!query ||
+row.dataset.name.includes(query) ||
+row.dataset.norad.includes(query);
 
-      row.hidden = !matches;
+row.hidden = !matches;
 
-      if (matches) {
-        visible += 1;
-      }
-    });
+if (matches) {
+visible += 1;
+}
+});
 
-    if (visibleCountEl) {
-      visibleCountEl.textContent = visible;
-    }
+if (visibleCountEl) {
+visibleCountEl.textContent = visible;
+}
 
-    if (emptyState) {
-      emptyState.hidden = visible !== 0;
-    }
-  }
+if (emptyState) {
+emptyState.hidden = visible !== 0;
+}
+}
 
-  searchInput.addEventListener(
-    "input",
-    applyFilter
-  );
+searchInput.addEventListener(
+"input",
+applyFilter
+);
 
-  const sortSelect = document.getElementById(
-    "satellite-sort-select"
-  );
+const sortSelect = document.getElementById(
+"satellite-sort-select"
+);
 
-  const tableBody = document.querySelector(
-    "#satellite-table tbody"
-  );
+const tableBody = document.querySelector(
+"#satellite-table tbody"
+);
 
-  function sortRows(criterion) {
-    if (!tableBody) {
-      return;
-    }
+function sortRows(criterion) {
+if (!tableBody) {
+return;
+}
 
-    const sorted = [...rows].sort((a, b) => {
-      if (criterion === "norad") {
-        return a.dataset.norad.localeCompare(
-          b.dataset.norad,
-          "de",
-          {numeric: true}
-        );
-      }
+const pageLang = document.documentElement.lang || "de";
 
-      return a.dataset.name.localeCompare(
-        b.dataset.name,
-        "de"
-      );
-    });
+const sorted = [...rows].sort((a, b) => {
+if (criterion === "norad") {
+return a.dataset.norad.localeCompare(
+b.dataset.norad,
+pageLang,
+{numeric: true}
+);
+}
 
-    sorted.forEach((row) => {
-      tableBody.appendChild(row);
-    });
-  }
+return a.dataset.name.localeCompare(
+b.dataset.name,
+pageLang
+);
+});
 
-  if (sortSelect) {
-    sortSelect.addEventListener("change", () => {
-      sortRows(sortSelect.value);
-    });
-  }
+sorted.forEach((row) => {
+tableBody.appendChild(row);
+});
+}
+
+if (sortSelect) {
+sortSelect.addEventListener("change", () => {
+sortRows(sortSelect.value);
+});
+}
 })();
 </script>
 
