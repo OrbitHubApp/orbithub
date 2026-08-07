@@ -1,729 +1,726 @@
 {% extends "base.html" %}
 
-{% block title %}Überflüge – OrbitHub{% endblock %}
+{% block title %}
+OrbitHub &middot; {{ t('nav.passes') }}
+{% endblock %}
 
 {% block head %}
 <link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-  crossorigin=""
+rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+crossorigin=""
 >
 <script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-  crossorigin=""
+src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+crossorigin=""
 ></script>
 {% endblock %}
 
 {% block nav_passes %}active{% endblock %}
 
-{% block page_heading %}Überflüge{% endblock %}
+{% block page_heading %}
+{{ t('nav.passes') }}
+{% endblock %}
 
 {% block content %}
 <section class="mission-hero">
-  <div>
-    <div class="eyebrow">ÜBERFLUGVORHERSAGE</div>
-    <h2>Wann kommt der nächste Satellit vorbei?</h2>
-    <p>
-      Berechnet Sichtbarkeitsfenster für deinen Standort: Aufgang, Kulmination und Untergang inklusive Polarplot für den nächsten Überflug.
-    </p>
-  </div>
+<div>
+<div class="eyebrow">{{ t('passes.hero_eyebrow') }}</div>
+<h2>{{ t('passes.hero_heading') }}</h2>
+<p>
+{{ t('passes.hero_intro') }}
+</p>
+</div>
 </section>
 
 <section class="source-summary-card visibility-bright-panel">
-  <span>Favoriten – Status der nächsten Sichtbarkeit</span>
-  <div id="favorites-panel-body">
-    {% include "_favorites_panel.html" %}
-  </div>
+<span>{{ t('passes.favorites_panel_label') }}</span>
+<div id="favorites-panel-body">
+{% include "_favorites_panel.html" %}
+</div>
 </section>
 
 {% if passes %}
-  <div
-    class="pass-countdown-panel"
-    id="pass-countdown"
-    data-rise-utc="{{ passes[0].rise_time.isoformat() }}"
-    data-set-utc="{{ passes[0].set_time.isoformat() }}"
-  >
-    <span class="pass-countdown-dot"></span>
+<div
+class="pass-countdown-panel"
+id="pass-countdown"
+data-rise-utc="{{ passes[0].rise_time.isoformat() }}"
+data-set-utc="{{ passes[0].set_time.isoformat() }}"
+>
+<span class="pass-countdown-dot"></span>
 
-    <div class="pass-countdown-text">
-      <strong id="pass-countdown-label">Nächster Überflug in</strong>
-      <span id="pass-countdown-value" class="pass-countdown-value">--:--:--</span>
-    </div>
+<div class="pass-countdown-text">
+<strong id="pass-countdown-label">{{ t('passes.countdown_label') }}</strong>
+<span id="pass-countdown-value" class="pass-countdown-value">--:--:--</span>
+</div>
 
-    <div class="pass-countdown-sat">
-      {{ selected_satellite.name|display_name }}
-    </div>
-  </div>
+<div class="pass-countdown-sat">
+{{ selected_satellite.name|display_name }}
+</div>
+</div>
 {% endif %}
-
 
 <section class="passes-top-grid">
 
-  <div class="passes-left-column">
+<div class="passes-left-column">
 
-    <div class="add-source-panel">
-      <div class="label">PASS PREDICTION</div>
-      <h3>Nächste Satellitenüberflüge</h3>
-      <p>
-        Berechnet für {{ observer_name }}
-        · Locator {{ observer_locator }}
-        · Mindesthöhe {{ minimum_elevation }}°
-        · Zeitraum {{ hours }} Stunden
-      </p>
+<div class="add-source-panel">
+<div class="label">PASS PREDICTION</div>
+<h3>{{ t('passes.form_heading') }}</h3>
+<p>
+{{ t('passes.calculated_for') }} {{ observer_name }}
+· Locator {{ observer_locator }}
+· {{ t('passes.min_elevation_label') }} {{ minimum_elevation }}°
+· {{ t('passes.period_label') }} {{ hours }} {{ t('passes.hours_suffix') }}
+</p>
 
-      <form
-        class="add-source-form passes-form"
-        method="get"
-        action="/passes"
-      >
-        <div class="source-form-grid passes-form-grid">
-        <label>
-          <span>Satellit</span>
+<form
+class="add-source-form passes-form"
+method="get"
+action="/passes"
+>
+<div class="source-form-grid passes-form-grid">
+<label>
+<span>{{ t('passes.satellite_label') }}</span>
 
-          <div class="satellite-combobox-wrap">
-            <input
-              type="text"
-              id="passes-satellite-combo-input"
-              class="satellite-search-input"
-              placeholder="Suche nach Name oder NORAD-ID..."
-              autocomplete="off"
-              value="{% if selected_satellite %}{{ selected_satellite.name|display_name }} NORAD {{ selected_satellite.norad_id }}{% endif %}"
-            />
-            <button
-              type="button"
-              id="passes-satellite-combo-clear"
-              class="satellite-combo-clear-button"
-              aria-label="Auswahl zurücksetzen"
-              title="Auswahl zurücksetzen"
-              hidden
-            >&times;</button>
-            <ul
-              id="passes-satellite-combo-list"
-              class="satellite-combo-list"
-              role="listbox"
-              hidden
-            ></ul>
-          </div>
-          <select
-            name="satellite"
-            id="passes-satellite-select"
-            style="display: none;"
-          >
-            {% for satellite in satellites %}
-              <option
-                value="{{ satellite.norad_id }}"
-                {% if selected_satellite and satellite.norad_id == selected_satellite.norad_id %}
-                  selected
-                {% endif %}
-              >
-                {{ satellite.name|display_name }}
-                NORAD {{ satellite.norad_id }}
-              </option>
-            {% endfor %}
-          </select>
-        </label>
+<div class="satellite-combobox-wrap">
+<input
+type="text"
+id="passes-satellite-combo-input"
+class="satellite-search-input"
+placeholder="{{ t('passes.combo_search_placeholder') }}"
+autocomplete="off"
+value="{% if selected_satellite %}{{ selected_satellite.name|display_name }} NORAD {{ selected_satellite.norad_id }}{% endif %}"
+/>
+<button
+type="button"
+id="passes-satellite-combo-clear"
+class="satellite-combo-clear-button"
+aria-label="{{ t('passes.reset_selection_label') }}"
+title="{{ t('passes.reset_selection_label') }}"
+hidden
+>&times;</button>
+<ul
+id="passes-satellite-combo-list"
+class="satellite-combo-list"
+role="listbox"
+hidden
+></ul>
+</div>
+<select
+name="satellite"
+id="passes-satellite-select"
+style="display: none;"
+>
+{% for satellite in satellites %}
+<option
+value="{{ satellite.norad_id }}"
+{% if selected_satellite and satellite.norad_id == selected_satellite.norad_id %}
+selected
+{% endif %}
+>
+{{ satellite.name|display_name }}
+NORAD {{ satellite.norad_id }}
+</option>
+{% endfor %}
+</select>
+</label>
 
-          <label>
-            <span>Zeitraum</span>
+<label>
+<span>{{ t('passes.period_label') }}</span>
 
-            <select name="hours">
-              <option value="24" {% if hours == 24 %}selected{% endif %}>
-                24 Stunden
-              </option>
+<select name="hours">
+<option value="24" {% if hours == 24 %}selected{% endif %}>
+24 {{ t('passes.hours_suffix') }}
+</option>
 
-              <option value="48" {% if hours == 48 %}selected{% endif %}>
-                48 Stunden
-              </option>
+<option value="48" {% if hours == 48 %}selected{% endif %}>
+48 {{ t('passes.hours_suffix') }}
+</option>
 
-              <option value="72" {% if hours == 72 %}selected{% endif %}>
-                72 Stunden
-              </option>
-            </select>
-          </label>
+<option value="72" {% if hours == 72 %}selected{% endif %}>
+72 {{ t('passes.hours_suffix') }}
+</option>
+</select>
+</label>
 
-          <label>
-            <span>Mindesthöhe</span>
+<label>
+<span>{{ t('passes.min_elevation_label') }}</span>
 
-            <select name="minimum_elevation">
-              {% for elevation in [0, 5, 10, 20, 30, 40] %}
-                <option
-                  value="{{ elevation }}"
-                  {% if minimum_elevation == elevation %}
-                    selected
-                  {% endif %}
-                >
-                  {{ elevation }}°
-                </option>
-              {% endfor %}
-            </select>
-          </label>
-        </div>
+<select name="minimum_elevation">
+{% for elevation in [0, 5, 10, 20, 30, 40] %}
+<option
+value="{{ elevation }}"
+{% if minimum_elevation == elevation %}
+selected
+{% endif %}
+>
+{{ elevation }}&deg;
+</option>
+{% endfor %}
+</select>
+</label>
+</div>
 
-        <div class="source-form-actions">
-          <button
-          class="source-action-button primary"
-          type="submit"
-          id="passes-submit-button"
-        >
-          <span class="button-spinner" aria-hidden="true"></span>
-          <span class="button-label">Überflüge berechnen</span>
-        </button>
+<div class="source-form-actions">
+<button
+class="source-action-button primary"
+type="submit"
+id="passes-submit-button"
+>
+<span class="button-spinner" aria-hidden="true"></span>
+<span class="button-label">{{ t('passes.calculate_button') }}</span>
+</button>
 
-          <a
-          class="source-action-button secondary"
-          href="/passes/export.txt?satellite={{ selected_satellite.norad_id if selected_satellite else '' }}&hours={{ hours }}&minimum_elevation={{ minimum_elevation }}"
-          id="passes-export-link"
-        >
-          <span class="button-spinner" aria-hidden="true"></span>
-          <span class="button-label">Als TXT exportieren</span>
-        </a>
-        </div>
-      </form>
-    </div>
+<a
+class="source-action-button secondary"
+href="/passes/export.txt?satellite={{ selected_satellite.norad_id if selected_satellite else '' }}&hours={{ hours }}&minimum_elevation={{ minimum_elevation }}"
+id="passes-export-link"
+>
+<span class="button-spinner" aria-hidden="true"></span>
+<span class="button-label">{{ t('passes.export_txt_button') }}</span>
+</a>
+</div>
+</form>
+</div>
 
-    {% if passes %}
-      <div class="add-source-panel">
-        <span class="label">ÜBERFLUGDATEN</span>
-        <h3>{{ selected_satellite.name|display_name }}</h3>
+{% if passes %}
+<div class="add-source-panel">
+<span class="label">{{ t('passes.data_label') }}</span>
+<h3>{{ selected_satellite.name|display_name }}</h3>
 
-        <dl class="pass-summary-list">
-          <div>
-            <dt>Aufgang</dt>
-            <dd id="summary-rise">{{ passes[0].rise_time | fmt_time("%H:%M:%S") }}</dd>
-          </div>
+<dl class="pass-summary-list">
+<div>
+<dt>{{ t('passes.rise_label') }}</dt>
+<dd id="summary-rise">{{ passes[0].rise_time | fmt_time("%H:%M:%S") }}</dd>
+</div>
 
-          <div>
-            <dt>Maximum</dt>
-            <dd id="summary-max">{{ passes[0].culmination_time | fmt_time("%H:%M:%S") }}</dd>
-          </div>
+<div>
+<dt>Maximum</dt>
+<dd id="summary-max">{{ passes[0].culmination_time | fmt_time("%H:%M:%S") }}</dd>
+</div>
 
-          <div>
-            <dt>Untergang</dt>
-            <dd id="summary-set">{{ passes[0].set_time | fmt_time("%H:%M:%S") }}</dd>
-          </div>
+<div>
+<dt>{{ t('passes.set_label') }}</dt>
+<dd id="summary-set">{{ passes[0].set_time | fmt_time("%H:%M:%S") }}</dd>
+</div>
 
-          <div>
-            <dt>Maximale Höhe</dt>
-            <dd id="summary-elevation">{{ "%.1f"|format(passes[0].max_elevation_deg) }}°</dd>
-          </div>
+<div>
+<dt>{{ t('passes.max_elevation_label') }}</dt>
+<dd id="summary-elevation">{{ "%.1f"|format(passes[0].max_elevation_deg) }}&deg;</dd>
+</div>
 
-          <div>
-            <dt>Azimut Aufgang</dt>
-            <dd id="summary-azimuth-rise">{{ "%.1f"|format(passes[0].rise_azimuth_deg) }}°</dd>
-          </div>
+<div>
+<dt>{{ t('passes.azimuth_rise_label') }}</dt>
+<dd id="summary-azimuth-rise">{{ "%.1f"|format(passes[0].rise_azimuth_deg) }}&deg;</dd>
+</div>
 
-          <div>
-            <dt>Azimut Untergang</dt>
-            <dd id="summary-azimuth-set">{{ "%.1f"|format(passes[0].set_azimuth_deg) }}°</dd>
-          </div>
+<div>
+<dt>{{ t('passes.azimuth_set_label') }}</dt>
+<dd id="summary-azimuth-set">{{ "%.1f"|format(passes[0].set_azimuth_deg) }}&deg;</dd>
+</div>
 
-          <div>
-            <dt>Dauer</dt>
-            <dd id="summary-duration">
-              {{ passes[0].duration_seconds // 60 }} Min.
-              {{ passes[0].duration_seconds % 60 }} Sek.
-            </dd>
-          </div>
-        </dl>
-      </div>
-    {% else %}
-      <div class="add-source-panel">
-        <span class="label">SATELLIT</span>
+<div>
+<dt>{{ t('passes.duration_label') }}</dt>
+<dd id="summary-duration">
+{{ passes[0].duration_seconds // 60 }} {{ t('passes.min_short') }}
+{{ passes[0].duration_seconds % 60 }} {{ t('passes.sec_short') }}
+</dd>
+</div>
+</dl>
+</div>
+{% else %}
+<div class="add-source-panel">
+<span class="label">{{ t('passes.satellite_section_label') }}</span>
 
-        {% if selected_satellite %}
-          <h3>{{ selected_satellite.name|display_name }}</h3>
-          <p>NORAD {{ selected_satellite.norad_id }}</p>
-        {% else %}
-          <h3>Keine TLE-Daten verfügbar</h3>
-        {% endif %}
-      </div>
-    {% endif %}
+{% if selected_satellite %}
+<h3>{{ selected_satellite.name|display_name }}</h3>
+<p>NORAD {{ selected_satellite.norad_id }}</p>
+{% else %}
+<h3>{{ t('satellites.no_tle_title') }}</h3>
+{% endif %}
+</div>
+{% endif %}
 
-  </div>
+</div>
 
-  <div class="passes-right-column add-source-panel">
-    <div class="label">NEXT PASS</div>
-    <h3>Polarplot des nächsten Überflugs</h3>
+<div class="passes-right-column add-source-panel">
+<div class="label">NEXT PASS</div>
+<h3>{{ t('passes.polarplot_heading') }}</h3>
 
-    {% if passes %}
-      <p id="next-pass-summary">
-        {{ passes[0].rise_time | fmt_time("%d.%m.%Y %H:%M:%S") }}
-        bis
-        {{ passes[0].set_time | fmt_time("%H:%M:%S") }}
-        · Maximum {{ "%.1f"|format(passes[0].max_elevation_deg) }}°
-      </p>
+{% if passes %}
+<p id="next-pass-summary">
+{{ passes[0].rise_time | fmt_time("%d.%m.%Y %H:%M:%S") }}
+{{ t('passes.until_label') }}
+{{ passes[0].set_time | fmt_time("%H:%M:%S") }}
+· Maximum {{ "%.1f"|format(passes[0].max_elevation_deg) }}&deg;
+</p>
 
-      <div class="polarplot-card">
-        <svg
-          class="polarplot"
-          viewBox="0 0 200 200"
-          role="img"
-          aria-label="Polarplot des nächsten Satellitenüberflugs"
-        >
-          <circle class="polarplot-horizon" cx="100" cy="100" r="90" />
-          <circle class="polarplot-ring" cx="100" cy="100" r="60" />
-          <circle class="polarplot-ring" cx="100" cy="100" r="30" />
+<div class="polarplot-card">
+<svg
+class="polarplot"
+viewBox="0 0 200 200"
+role="img"
+aria-label="{{ t('passes.polarplot_aria') }}"
+>
+<circle class="polarplot-horizon" cx="100" cy="100" r="90" />
+<circle class="polarplot-ring" cx="100" cy="100" r="60" />
+<circle class="polarplot-ring" cx="100" cy="100" r="30" />
 
-          <line class="polarplot-axis" x1="100" y1="10" x2="100" y2="190" />
-          <line class="polarplot-axis" x1="10" y1="100" x2="190" y2="100" />
+<line class="polarplot-axis" x1="100" y1="10" x2="100" y2="190" />
+<line class="polarplot-axis" x1="10" y1="100" x2="190" y2="100" />
 
-          {% for segment in horizon_shadow_segments %}
-        <path class="polarplot-shadow" d="{{ segment.d }}" />
-        {% endfor %}
+{% for segment in horizon_shadow_segments %}
+<path class="polarplot-shadow" d="{{ segment.d }}" />
+{% endfor %}
 
-        <text class="polarplot-direction" x="100" y="7">N</text>
-          <text class="polarplot-direction" x="193" y="104">O</text>
-          <text class="polarplot-direction" x="100" y="199">S</text>
-          <text class="polarplot-direction" x="7" y="104">W</text>
+<text class="polarplot-direction" x="100" y="7">N</text>
+<text class="polarplot-direction" x="193" y="104">{{ t('passes.compass_east') }}</text>
+<text class="polarplot-direction" x="100" y="199">S</text>
+<text class="polarplot-direction" x="7" y="104">W</text>
 
-          <text class="polarplot-elevation" x="104" y="42">60°</text>
-          <text class="polarplot-elevation" x="104" y="72">30°</text>
-          <text class="polarplot-elevation" x="104" y="103">90°</text>
+<text class="polarplot-elevation" x="104" y="42">60&deg;</text>
+<text class="polarplot-elevation" x="104" y="72">30&deg;</text>
+<text class="polarplot-elevation" x="104" y="103">90&deg;</text>
 
-          <polyline
-            id="polarplot-track" class="polarplot-track"
-            points="{% for point in passes[0].track_points %}{{ point.polar_x }},{{ point.polar_y }} {% endfor %}"
-          />
+<polyline
+id="polarplot-track" class="polarplot-track"
+points="{% for point in passes[0].track_points %}{{ point.polar_x }},{{ point.polar_y }} {% endfor %}"
+/>
 
-          <circle
-            id="polarplot-rise" class="polarplot-rise"
-            cx="{{ passes[0].track_points[0].polar_x }}"
-            cy="{{ passes[0].track_points[0].polar_y }}"
-            r="4"
-          />
+<circle
+id="polarplot-rise" class="polarplot-rise"
+cx="{{ passes[0].track_points[0].polar_x }}"
+cy="{{ passes[0].track_points[0].polar_y }}"
+r="4"
+/>
 
-          <circle
-            id="polarplot-set" class="polarplot-set"
-            cx="{{ passes[0].track_points[-1].polar_x }}"
-            cy="{{ passes[0].track_points[-1].polar_y }}"
-            r="4"
-          />
+<circle
+id="polarplot-set" class="polarplot-set"
+cx="{{ passes[0].track_points[-1].polar_x }}"
+cy="{{ passes[0].track_points[-1].polar_y }}"
+r="4"
+/>
 
-          <text
-            id="polarplot-aos-label" class="polarplot-marker-label"
-            x="{{ passes[0].track_points[0].polar_x }}"
-            y="{{ passes[0].track_points[0].polar_y - 7 }}"
-          >
-            AOS
-          </text>
+<text
+id="polarplot-aos-label" class="polarplot-marker-label"
+x="{{ passes[0].track_points[0].polar_x }}"
+y="{{ passes[0].track_points[0].polar_y - 7 }}"
+>
+AOS
+</text>
 
-          <text
-            id="polarplot-los-label" class="polarplot-marker-label"
-            x="{{ passes[0].track_points[-1].polar_x }}"
-            y="{{ passes[0].track_points[-1].polar_y - 7 }}"
-          >
-            LOS
-          </text>
-        </svg>
-      </div>
+<text
+id="polarplot-los-label" class="polarplot-marker-label"
+x="{{ passes[0].track_points[-1].polar_x }}"
+y="{{ passes[0].track_points[-1].polar_y - 7 }}"
+>
+LOS
+</text>
+</svg>
+</div>
 
-      <div class="map-card">
-        <div
-          id="ground-map"
-          class="ground-map"
-          data-observer-lat="{{ observer_latitude_deg }}"
-          data-observer-lon="{{ observer_longitude_deg }}"
-          data-observer-name="{{ observer_name }} ({{ observer_locator }})"
-        ></div>
-      </div>
-    {% else %}
-      <div class="satellite-empty-block">
-        <strong>Keine Überflüge gefunden</strong>
-        <p>
-          Im gewählten Zeitraum wurde kein Überflug oberhalb
-          von {{ minimum_elevation }}° berechnet.
-        </p>
-      </div>
-    {% endif %}
-  </div>
+<div class="map-card">
+<div
+id="ground-map"
+class="ground-map"
+data-observer-lat="{{ observer_latitude_deg }}"
+data-observer-lon="{{ observer_longitude_deg }}"
+data-observer-name="{{ observer_name }} ({{ observer_locator }})"
+></div>
+</div>
+{% else %}
+<div class="satellite-empty-block">
+<strong>{{ t('passes.no_passes_found_title') }}</strong>
+<p>
+{{ t('passes.no_passes_desc_prefix') }}{{ minimum_elevation }}{{ t('passes.no_passes_desc_suffix') }}
+</p>
+</div>
+{% endif %}
+</div>
 
 </section>
 
 <section class="add-source-panel">
-  <div class="label">PASSES</div>
-  <h3>Überflugliste</h3>
+<div class="label">PASSES</div>
+<h3>{{ t('passes.list_heading') }}</h3>
 
-  {% if passes %}
-    <div class="table-scroll">
-      <table class="mission-table">
-        <thead>
-          <tr>
-            <th>Datum</th>
-            <th>Aufgang</th>
-            <th>Maximum</th>
-            <th>Untergang</th>
-            <th>Max. Höhe</th>
-            <th>Azimut Aufgang</th>
-            <th>Azimut Untergang</th>
-            <th>Dauer</th>
-          </tr>
-        </thead>
+{% if passes %}
+<div class="table-scroll">
+<table class="mission-table">
+<thead>
+<tr>
+<th>{{ t('passes.col_date') }}</th>
+<th>{{ t('passes.rise_label') }}</th>
+<th>Maximum</th>
+<th>{{ t('passes.set_label') }}</th>
+<th>{{ t('passes.col_max_elevation') }}</th>
+<th>{{ t('passes.azimuth_rise_label') }}</th>
+<th>{{ t('passes.azimuth_set_label') }}</th>
+<th>{{ t('passes.duration_label') }}</th>
+</tr>
+</thead>
 
-        <tbody>
-          {% for pass in passes %}
-            <tr class="pass-row{% if loop.first %} active{% endif %}" data-pass-index="{{ loop.index0 }}">
-              <td class="pass-date">
-                {{ pass.rise_time | fmt_time("%d.%m.") }}
-              </td>
+<tbody>
+{% for pass in passes %}
+<tr class="pass-row{% if loop.first %} active{% endif %}" data-pass-index="{{ loop.index0 }}">
+<td class="pass-date">
+{{ pass.rise_time | fmt_time("%d.%m.") }}
+</td>
 
-              <td>
-                {{ pass.rise_time | fmt_time("%H:%M:%S") }}
-              </td>
+<td>
+{{ pass.rise_time | fmt_time("%H:%M:%S") }}
+</td>
 
-              <td>
-                {{ pass.culmination_time | fmt_time("%H:%M:%S") }}
-              </td>
+<td>
+{{ pass.culmination_time | fmt_time("%H:%M:%S") }}
+</td>
 
-              <td>
-                {{ pass.set_time | fmt_time("%H:%M:%S") }}
-              </td>
+<td>
+{{ pass.set_time | fmt_time("%H:%M:%S") }}
+</td>
 
-              <td>
-                <strong>{{ "%.1f"|format(pass.max_elevation_deg) }}°</strong>
-              </td>
+<td>
+<strong>{{ "%.1f"|format(pass.max_elevation_deg) }}&deg;</strong>
+</td>
 
-              <td>
-                {{ "%.1f"|format(pass.rise_azimuth_deg) }}°
-              </td>
+<td>
+{{ "%.1f"|format(pass.rise_azimuth_deg) }}&deg;
+</td>
 
-              <td>
-                {{ "%.1f"|format(pass.set_azimuth_deg) }}°
-              </td>
+<td>
+{{ "%.1f"|format(pass.set_azimuth_deg) }}&deg;
+</td>
 
-              <td>
-                {{ pass.duration_seconds // 60 }} Min.
-                {{ pass.duration_seconds % 60 }} Sek.
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <div class="satellite-empty-block">
-      <strong>Keine Überflüge gefunden</strong>
-      <p>
-        Im gewählten Zeitraum wurde kein Überflug oberhalb
-        von {{ minimum_elevation }}° berechnet.
-      </p>
-    </div>
-  {% endif %}
+<td>
+{{ pass.duration_seconds // 60 }} {{ t('passes.min_short') }}
+{{ pass.duration_seconds % 60 }} {{ t('passes.sec_short') }}
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% else %}
+<div class="satellite-empty-block">
+<strong>{{ t('passes.no_passes_found_title') }}</strong>
+<p>
+{{ t('passes.no_passes_desc_prefix') }}{{ minimum_elevation }}{{ t('passes.no_passes_desc_suffix') }}
+</p>
+</div>
+{% endif %}
 </section>
 
 {% if passes %}
 <script id="passes-data" type="application/json">
 [
 {% for pass in passes %}
-  {
-    "rise_iso": "{{ pass.rise_time.isoformat() }}",
-    "culmination_iso": "{{ pass.culmination_time.isoformat() }}",
-    "set_iso": "{{ pass.set_time.isoformat() }}",
-    "max_elevation_deg": {{ pass.max_elevation_deg }},
-    "rise_azimuth_deg": {{ pass.rise_azimuth_deg }},
-    "set_azimuth_deg": {{ pass.set_azimuth_deg }},
-    "duration_seconds": {{ pass.duration_seconds }},
-    "track_points": [{% for point in pass.track_points %}{"x": {{ point.polar_x }}, "y": {{ point.polar_y }}, "lat": {{ point.lat_deg }}, "lon": {{ point.lon_deg }}, "alt_km": {{ point.alt_km }}, "el": {{ point.elevation_deg }}}{% if not loop.last %}, {% endif %}{% endfor %}]
-  }{% if not loop.last %},{% endif %}
+{
+"rise_iso": "{{ pass.rise_time.isoformat() }}",
+"culmination_iso": "{{ pass.culmination_time.isoformat() }}",
+"set_iso": "{{ pass.set_time.isoformat() }}",
+"max_elevation_deg": {{ pass.max_elevation_deg }},
+"rise_azimuth_deg": {{ pass.rise_azimuth_deg }},
+"set_azimuth_deg": {{ pass.set_azimuth_deg }},
+"duration_seconds": {{ pass.duration_seconds }},
+"track_points": [{% for point in pass.track_points %}{"x": {{ point.polar_x }}, "y": {{ point.polar_y }}, "lat": {{ point.lat_deg }}, "lon": {{ point.lon_deg }}, "alt_km": {{ point.alt_km }}, "el": {{ point.elevation_deg }}}{% if not loop.last %}, {% endif %}{% endfor %}]
+}{% if not loop.last %},{% endif %}
 {% endfor %}
 ]
 </script>
 {% endif %}
 
 <section class="passes-top-grid watchlist-section">
-  <div class="passes-left-column">
-    <div class="add-source-panel watchlist-panel">
-      <span class="label">MERKLISTE</span>
-      <h3>{% if watchlist_selection == "favorites" %}Meine Satelliten{% else %}{{ active_package_label }}{% endif %}</h3>
-      <p>
-        Satelliten aus dem Katalog hinzufügen, um ihre Überflüge
-        gesammelt zu sehen. Die Liste kann jederzeit geändert werden.
-      </p>
+<div class="passes-left-column">
+<div class="add-source-panel watchlist-panel">
+<span class="label">{{ t('passes.watchlist_label') }}</span>
+<h3>{% if watchlist_selection == "favorites" %}{{ t('passes.my_satellites') }}{% else %}{{ active_package_label }}{% endif %}</h3>
+<p>
+{{ t('passes.watchlist_intro') }}
+</p>
 
-      <div class="watchlist-source-switch" role="group" aria-label="Satellitenquelle">
-        <button
-          type="button"
-          class="source-action-button {% if watchlist_selection == 'favorites' %}toggle-active{% else %}secondary{% endif %}"
-          data-watchlist-selection="favorites"
-          data-watchlist-count="{{ favorites_count }}"
-        >Meine Favoriten</button>
-        {% for package_id, package_label in available_packages.items() %}
-        <button
-          type="button"
-          class="source-action-button {% if watchlist_selection == 'package:' ~ package_id %}toggle-active{% else %}secondary{% endif %}"
-          data-watchlist-selection="package:{{ package_id }}"
-          data-watchlist-count="{{ package_counts.get(package_id, 0) }}"
-        >{{ package_label }}</button>
-        {% endfor %}
-      </div>
-      <a
-        class="source-action-button secondary watchlist-map-link"
-        href="/map?selection={{ watchlist_selection }}"
-      >Auf Karte anzeigen</a>
-      <div
-        class="dataset-update-status"
-        id="watchlist-source-status"
-        role="status"
-        aria-live="polite"
-      ></div>
+<div class="watchlist-source-switch" role="group" aria-label="{{ t('passes.watchlist_source_aria') }}">
+<button
+type="button"
+class="source-action-button {% if watchlist_selection == 'favorites' %}toggle-active{% else %}secondary{% endif %}"
+data-watchlist-selection="favorites"
+data-watchlist-count="{{ favorites_count }}"
+>{{ t('map.my_favorites_label') }}</button>
+{% for package_id, package_label in available_packages.items() %}
+<button
+type="button"
+class="source-action-button {% if watchlist_selection == 'package:' ~ package_id %}toggle-active{% else %}secondary{% endif %}"
+data-watchlist-selection="package:{{ package_id }}"
+data-watchlist-count="{{ package_counts.get(package_id, 0) }}"
+>{{ package_label }}</button>
+{% endfor %}
+</div>
+<a
+class="source-action-button secondary watchlist-map-link"
+href="/map?selection={{ watchlist_selection }}"
+>{{ t('passes.view_on_map') }}</a>
+<div
+class="dataset-update-status"
+id="watchlist-source-status"
+role="status"
+aria-live="polite"
+></div>
 
-      {% if watchlist_selection != "favorites" %}
-      <p class="watchlist-empty-hint">
-        {{ active_package_label }}-Paket aktiv: zeigt automatisch alle aktuell bekannten Satelliten dieser Quelle.
-        Um die Merkliste selbst zu bearbeiten, zurueck zu &quot;Meine Favoriten&quot; wechseln.
-      </p>
-      {% endif %}
+{% if watchlist_selection != "favorites" %}
+<p class="watchlist-empty-hint">
+{{ t('passes.package_active_hint_template').replace('{package}', active_package_label) }}
+</p>
+{% endif %}
 
-      {% if watchlist_selection == "favorites" %}
-      <form id="watchlist-add-form" class="add-source-form passes-form-grid">
-        <div class="source-form-grid passes-form-grid">
-      <label>
-        <span>Satellit hinzufügen</span>
+{% if watchlist_selection == "favorites" %}
+<form id="watchlist-add-form" class="add-source-form passes-form-grid">
+<div class="source-form-grid passes-form-grid">
+<label>
+<span>{{ t('passes.add_satellite_label') }}</span>
 
-        <div class="satellite-combobox-wrap">
-          <input
-            type="text"
-            id="watchlist-add-combo-input"
-            class="satellite-search-input"
-            placeholder="Suche nach Name oder NORAD-ID..."
-            autocomplete="off"
-          />
-          <button
-            type="button"
-            id="watchlist-add-combo-clear"
-            class="satellite-combo-clear-button"
-            aria-label="Auswahl zurücksetzen"
-            title="Auswahl zurücksetzen"
-            hidden
-          >&times;</button>
-          <ul
-            id="watchlist-add-combo-list"
-            class="satellite-combo-list"
-            role="listbox"
-            hidden
-          ></ul>
-        </div>
-        <select id="watchlist-add-select" style="display: none;">
-          <option value="">-- auswählen --</option>
-          {% for satellite in satellites %}
-            {% if satellite.norad_id not in watchlist_norad_ids %}
-              <option value="{{ satellite.norad_id }}">
-                {{ satellite.name|display_name }}
-                &middot; NORAD {{ satellite.norad_id }}
-              </option>
-            {% endif %}
-          {% endfor %}
-        </select>
-      </label>
+<div class="satellite-combobox-wrap">
+<input
+type="text"
+id="watchlist-add-combo-input"
+class="satellite-search-input"
+placeholder="{{ t('passes.combo_search_placeholder') }}"
+autocomplete="off"
+/>
+<button
+type="button"
+id="watchlist-add-combo-clear"
+class="satellite-combo-clear-button"
+aria-label="{{ t('passes.reset_selection_label') }}"
+title="{{ t('passes.reset_selection_label') }}"
+hidden
+>&times;</button>
+<ul
+id="watchlist-add-combo-list"
+class="satellite-combo-list"
+role="listbox"
+hidden
+></ul>
+</div>
+<select id="watchlist-add-select" style="display: none;">
+<option value="">{{ t('passes.select_placeholder') }}</option>
+{% for satellite in satellites %}
+{% if satellite.norad_id not in watchlist_norad_ids %}
+<option value="{{ satellite.norad_id }}">
+{{ satellite.name|display_name }}
+&middot; NORAD {{ satellite.norad_id }}
+</option>
+{% endif %}
+{% endfor %}
+</select>
+</label>
 
-          <div class="source-form-actions">
-            <button
-            class="source-action-button primary"
-            type="submit"
-            id="watchlist-add-button"
-          >
-            <span class="button-spinner" aria-hidden="true"></span>
-            <span class="button-label">Hinzufügen</span>
-          </button>
-          </div>
-        </div>
-      </form>
-      {% endif %}
+<div class="source-form-actions">
+<button
+class="source-action-button primary"
+type="submit"
+id="watchlist-add-button"
+>
+<span class="button-spinner" aria-hidden="true"></span>
+<span class="button-label">{{ t('passes.add_button') }}</span>
+</button>
+</div>
+</div>
+</form>
+{% endif %}
 
-      {% if watchlist_satellites %}
-        <ul class="watchlist-chips" id="watchlist-chips">
-          {% for satellite in watchlist_satellites %}
-            <li class="watchlist-chip">
-              <span>{{ satellite.name|display_name }}</span>
-              <button
-                type="button"
-                class="watchlist-chip-remove" {% if watchlist_selection != "favorites" %}hidden{% endif %}
-                data-norad-id="{{ satellite.norad_id }}"
-                aria-label="{{ satellite.name|display_name }} entfernen"
-              >&times;</button>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="watchlist-empty-hint">
-          Noch keine Satelliten in der Merkliste.
-        </p>
-      {% endif %}
-    </div>
-  </div>
+{% if watchlist_satellites %}
+<ul class="watchlist-chips" id="watchlist-chips">
+{% for satellite in watchlist_satellites %}
+<li class="watchlist-chip">
+<span>{{ satellite.name|display_name }}</span>
+<button
+type="button"
+class="watchlist-chip-remove" {% if watchlist_selection != "favorites" %}hidden{% endif %}
+data-norad-id="{{ satellite.norad_id }}"
+aria-label="{{ t('passes.remove_aria_template').replace('{name}', satellite.name|display_name) }}"
+>&times;</button>
+</li>
+{% endfor %}
+</ul>
+{% else %}
+<p class="watchlist-empty-hint">
+{{ t('passes.watchlist_empty') }}
+</p>
+{% endif %}
+</div>
+</div>
 
-  <div class="passes-right-column add-source-panel">
-    <div class="label">MEINE SATELLITEN</div>
-    <h3>Polarplot des ausgewählten Überflugs</h3>
+<div class="passes-right-column add-source-panel">
+<div class="label">{{ t('passes.my_satellites_upper') }}</div>
+<h3>{{ t('passes.watchlist_polarplot_heading') }}</h3>
 
-    <div class="polarplot-card">
-      <svg
-        class="polarplot"
-        viewBox="0 0 200 200"
-        aria-label="Polarplot des ausgewählten Überflugs (Merkliste)"
-      >
-        <circle class="polarplot-horizon" cx="100" cy="100" r="90" />
-        <circle class="polarplot-ring" cx="100" cy="100" r="60" />
-        <circle class="polarplot-ring" cx="100" cy="100" r="30" />
-        <line class="polarplot-axis" x1="100" y1="10" x2="100" y2="190" />
-        <line class="polarplot-axis" x1="10" y1="100" x2="190" y2="100" />
+<div class="polarplot-card">
+<svg
+class="polarplot"
+viewBox="0 0 200 200"
+aria-label="{{ t('passes.watchlist_polarplot_aria') }}"
+>
+<circle class="polarplot-horizon" cx="100" cy="100" r="90" />
+<circle class="polarplot-ring" cx="100" cy="100" r="60" />
+<circle class="polarplot-ring" cx="100" cy="100" r="30" />
+<line class="polarplot-axis" x1="100" y1="10" x2="100" y2="190" />
+<line class="polarplot-axis" x1="10" y1="100" x2="190" y2="100" />
 
-        <text class="polarplot-direction" x="100" y="7">N</text>
-        <text class="polarplot-direction" x="193" y="104">O</text>
-        <text class="polarplot-direction" x="100" y="199">S</text>
-        <text class="polarplot-direction" x="7" y="104">W</text>
+<text class="polarplot-direction" x="100" y="7">N</text>
+<text class="polarplot-direction" x="193" y="104">{{ t('passes.compass_east') }}</text>
+<text class="polarplot-direction" x="100" y="199">S</text>
+<text class="polarplot-direction" x="7" y="104">W</text>
 
-        <text class="polarplot-elevation" x="104" y="42">60&deg;</text>
-        <text class="polarplot-elevation" x="104" y="72">30&deg;</text>
-        <text class="polarplot-elevation" x="104" y="103">90&deg;</text>
+<text class="polarplot-elevation" x="104" y="42">60&deg;</text>
+<text class="polarplot-elevation" x="104" y="72">30&deg;</text>
+<text class="polarplot-elevation" x="104" y="103">90&deg;</text>
 
-        <polyline
-          id="watchlist-polarplot-track"
-          class="polarplot-track"
-          points="{% if watchlist_passes %}{% for point in watchlist_passes[0].track_points %}{{ point.polar_x }},{{ point.polar_y }} {% endfor %}{% endif %}"
-        />
-        <circle
-          id="watchlist-polarplot-rise"
-          class="polarplot-rise"
-          cx="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[0].polar_x }}{% else %}100{% endif %}"
-          cy="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[0].polar_y }}{% else %}100{% endif %}"
-        />
-        <circle
-          id="watchlist-polarplot-set"
-          class="polarplot-set"
-          cx="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[-1].polar_x }}{% else %}100{% endif %}"
-          cy="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[-1].polar_y }}{% else %}100{% endif %}"
-        />
-        <text
-          id="watchlist-polarplot-aos-label"
-          class="polarplot-marker-label"
-          x="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[0].polar_x }}{% else %}100{% endif %}"
-          y="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[0].polar_y - 7 }}{% else %}93{% endif %}"
-        >AOS</text>
-        <text
-          id="watchlist-polarplot-los-label"
-          class="polarplot-marker-label"
-          x="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[-1].polar_x }}{% else %}100{% endif %}"
-          y="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[-1].polar_y - 7 }}{% else %}93{% endif %}"
-        >LOS</text>
-      </svg>
-    </div>
+<polyline
+id="watchlist-polarplot-track"
+class="polarplot-track"
+points="{% if watchlist_passes %}{% for point in watchlist_passes[0].track_points %}{{ point.polar_x }},{{ point.polar_y }} {% endfor %}{% endif %}"
+/>
+<circle
+id="watchlist-polarplot-rise"
+class="polarplot-rise"
+cx="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[0].polar_x }}{% else %}100{% endif %}"
+cy="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[0].polar_y }}{% else %}100{% endif %}"
+/>
+<circle
+id="watchlist-polarplot-set"
+class="polarplot-set"
+cx="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[-1].polar_x }}{% else %}100{% endif %}"
+cy="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[-1].polar_y }}{% else %}100{% endif %}"
+/>
+<text
+id="watchlist-polarplot-aos-label"
+class="polarplot-marker-label"
+x="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[0].polar_x }}{% else %}100{% endif %}"
+y="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[0].polar_y - 7 }}{% else %}93{% endif %}"
+>AOS</text>
+<text
+id="watchlist-polarplot-los-label"
+class="polarplot-marker-label"
+x="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[-1].polar_x }}{% else %}100{% endif %}"
+y="{% if watchlist_passes %}{{ watchlist_passes[0].track_points[-1].polar_y - 7 }}{% else %}93{% endif %}"
+>LOS</text>
+</svg>
+</div>
 
-    <div id="watchlist-satellite-info" class="watchlist-satellite-info">
-      {% if watchlist_passes %}
-        <h3 id="watchlist-satellite-name">
-          {{ watchlist_passes[0].satellite_name|display_name }}
-        </h3>
-        <p>
-          NORAD
-          <span id="watchlist-satellite-norad">{{ watchlist_passes[0].satellite_norad_id }}</span>
-        </p>
-      {% else %}
-        <h3 id="watchlist-satellite-name">Keine Überflüge</h3>
-        <p>NORAD <span id="watchlist-satellite-norad"></span></p>
-      {% endif %}
-    </div>
-  </div>
+<div id="watchlist-satellite-info" class="watchlist-satellite-info">
+{% if watchlist_passes %}
+<h3 id="watchlist-satellite-name">
+{{ watchlist_passes[0].satellite_name|display_name }}
+</h3>
+<p>
+NORAD
+<span id="watchlist-satellite-norad">{{ watchlist_passes[0].satellite_norad_id }}</span>
+</p>
+{% else %}
+<h3 id="watchlist-satellite-name">{{ t('passes.no_passes_short') }}</h3>
+<p>NORAD <span id="watchlist-satellite-norad"></span></p>
+{% endif %}
+</div>
+</div>
 </section>
 
 <section class="passes-table-section">
-  <div class="add-source-panel watchlist-table-card">
-    <span class="label">MEINE SATELLITEN</span>
-    <h3>Gesammelte Überflüge ({{ hours }} Stunden)</h3>
+<div class="add-source-panel watchlist-table-card">
+<span class="label">{{ t('passes.my_satellites_upper') }}</span>
+<h3>{{ t('passes.collected_passes_template').replace('{hours}', hours|string) }}</h3>
 
-    <div class="source-form-actions watchlist-table-toolbar">
-      <a
-          class="source-action-button secondary"
-          href="/passes/export-watchlist.txt?hours={{ hours }}&amp;minimum_elevation={{ minimum_elevation }}"
-          id="watchlist-export-link"
-        >
-          <span class="button-spinner" aria-hidden="true"></span>
-          <span class="button-label">TXT-Download (Merkliste)</span>
-        </a>
-    </div>
+<div class="source-form-actions watchlist-table-toolbar">
+<a
+class="source-action-button secondary"
+href="/passes/export-watchlist.txt?hours={{ hours }}&amp;minimum_elevation={{ minimum_elevation }}"
+id="watchlist-export-link"
+>
+<span class="button-spinner" aria-hidden="true"></span>
+<span class="button-label">{{ t('passes.watchlist_export_button') }}</span>
+</a>
+</div>
 
-    {% if watchlist_passes %}
-      <div class="table-scroll">
-        <table class="mission-table">
-          <thead>
-            <tr>
-              <th>Satellit</th>
-              <th>Datum</th>
-              <th>Aufgang</th>
-              <th>Maximum</th>
-              <th>Untergang</th>
-              <th>Max. Höhe</th>
-              <th>Azimut Aufgang</th>
-              <th>Azimut Untergang</th>
-              <th>Dauer</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for pass in watchlist_passes %}
-              <tr
-                class="pass-row watchlist-pass-row{% if loop.first %} active{% endif %}"
-                data-watchlist-pass-index="{{ loop.index0 }}"
-              >
-                <td>{{ pass.satellite_name|display_name }}</td>
-                <td>{{ pass.rise_time | fmt_time("%d.%m.%Y") }}</td>
-                <td>{{ pass.rise_time | fmt_time("%H:%M:%S") }}</td>
-                <td>{{ pass.culmination_time | fmt_time("%H:%M:%S") }}</td>
-                <td>{{ pass.set_time | fmt_time("%H:%M:%S") }}</td>
-                <td><strong>{{ "%.1f"|format(pass.max_elevation_deg) }}&deg;</strong></td>
-                <td>{{ "%.1f"|format(pass.rise_azimuth_deg) }}&deg;</td>
-                <td>{{ "%.1f"|format(pass.set_azimuth_deg) }}&deg;</td>
-                <td>
-                  {{ pass.duration_seconds // 60 }} Min.
-                  {{ pass.duration_seconds % 60 }} Sek.
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <div class="satellite-empty-block">
-        <strong>Merkliste leer oder keine Überflüge gefunden</strong>
-        <p>
-          Fügen Sie oben Satelliten zur Merkliste hinzu, um deren
-          Überflüge hier gesammelt zu sehen.
-        </p>
-      </div>
-    {% endif %}
-  </div>
+{% if watchlist_passes %}
+<div class="table-scroll">
+<table class="mission-table">
+<thead>
+<tr>
+<th>{{ t('passes.satellite_label') }}</th>
+<th>{{ t('passes.col_date') }}</th>
+<th>{{ t('passes.rise_label') }}</th>
+<th>Maximum</th>
+<th>{{ t('passes.set_label') }}</th>
+<th>{{ t('passes.col_max_elevation') }}</th>
+<th>{{ t('passes.azimuth_rise_label') }}</th>
+<th>{{ t('passes.azimuth_set_label') }}</th>
+<th>{{ t('passes.duration_label') }}</th>
+</tr>
+</thead>
+<tbody>
+{% for pass in watchlist_passes %}
+<tr
+class="pass-row watchlist-pass-row{% if loop.first %} active{% endif %}"
+data-watchlist-pass-index="{{ loop.index0 }}"
+>
+<td>{{ pass.satellite_name|display_name }}</td>
+<td>{{ pass.rise_time | fmt_time("%d.%m.%Y") }}</td>
+<td>{{ pass.rise_time | fmt_time("%H:%M:%S") }}</td>
+<td>{{ pass.culmination_time | fmt_time("%H:%M:%S") }}</td>
+<td>{{ pass.set_time | fmt_time("%H:%M:%S") }}</td>
+<td><strong>{{ "%.1f"|format(pass.max_elevation_deg) }}&deg;</strong></td>
+<td>{{ "%.1f"|format(pass.rise_azimuth_deg) }}&deg;</td>
+<td>{{ "%.1f"|format(pass.set_azimuth_deg) }}&deg;</td>
+<td>
+{{ pass.duration_seconds // 60 }} {{ t('passes.min_short') }}
+{{ pass.duration_seconds % 60 }} {{ t('passes.sec_short') }}
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% else %}
+<div class="satellite-empty-block">
+<strong>{{ t('passes.watchlist_empty_title') }}</strong>
+<p>
+{{ t('passes.watchlist_empty_desc') }}
+</p>
+</div>
+{% endif %}
+</div>
 </section>
 
 {% if watchlist_passes %}
 <script id="watchlist-passes-data" type="application/json">
 [
 {% for pass in watchlist_passes %}
-  {
-    "rise_iso": "{{ pass.rise_time.isoformat() }}",
-    "culmination_iso": "{{ pass.culmination_time.isoformat() }}",
-    "set_iso": "{{ pass.set_time.isoformat() }}",
-    "max_elevation_deg": {{ pass.max_elevation_deg }},
-    "rise_azimuth_deg": {{ pass.rise_azimuth_deg }},
-    "set_azimuth_deg": {{ pass.set_azimuth_deg }},
-    "duration_seconds": {{ pass.duration_seconds }},
-    "satellite_name": "{{ pass.satellite_name|display_name }}",
-    "satellite_norad_id": "{{ pass.satellite_norad_id }}",
-    "track_points": [{% for point in pass.track_points %}{"x": {{ point.polar_x }}, "y": {{ point.polar_y }}}{% if not loop.last %}, {% endif %}{% endfor %}]
-  }{% if not loop.last %},{% endif %}
+{
+"rise_iso": "{{ pass.rise_time.isoformat() }}",
+"culmination_iso": "{{ pass.culmination_time.isoformat() }}",
+"set_iso": "{{ pass.set_time.isoformat() }}",
+"max_elevation_deg": {{ pass.max_elevation_deg }},
+"rise_azimuth_deg": {{ pass.rise_azimuth_deg }},
+"set_azimuth_deg": {{ pass.set_azimuth_deg }},
+"duration_seconds": {{ pass.duration_seconds }},
+"satellite_name": "{{ pass.satellite_name|display_name }}",
+"satellite_norad_id": "{{ pass.satellite_norad_id }}",
+"track_points": [{% for point in pass.track_points %}{"x": {{ point.polar_x }}, "y": {{ point.polar_y }}}{% if not loop.last %}, {% endif %}{% endfor %}]
+}{% if not loop.last %},{% endif %}
 {% endfor %}
 ]
 </script>
 {% endif %}
 
-
 <div
-  class="orbit-wait-toast"
-  id="orbit-wait-toast"
-  role="status"
-  aria-live="polite"
+class="orbit-wait-toast"
+id="orbit-wait-toast"
+role="status"
+aria-live="polite"
 >
-  <span class="button-spinner" aria-hidden="true"></span>
-  <span>Bitte warten …</span>
+<span class="button-spinner" aria-hidden="true"></span>
+<span>{{ t('passes.please_wait') }}</span>
 </div>
 
 {% endblock %}
@@ -731,144 +728,140 @@
 {% block scripts %}
 <script>
 (function () {
-  function setBusy(el, busyLabel) {
-    if (!el) {
-      return function () {};
-    }
-    var label = el.querySelector(".button-label");
-    var originalLabel = label ? label.textContent : null;
-    el.classList.add("is-loading");
-    el.setAttribute("aria-busy", "true");
-    if (el.tagName === "BUTTON") {
-      el.disabled = true;
-    }
-    if (label && busyLabel) {
-      label.textContent = busyLabel;
-    }
-    if (window.OrbitWait) {
-      window.OrbitWait.show();
-    }
-    var reset = function () {
-      el.classList.remove("is-loading");
-      el.removeAttribute("aria-busy");
-      if (el.tagName === "BUTTON") {
-        el.disabled = false;
-      }
-      if (label && originalLabel !== null) {
-        label.textContent = originalLabel;
-      }
-      if (window.OrbitWait) {
-        window.OrbitWait.hide();
-      }
-    };
-    /* Sicherheitsnetz: Falls eine Aktion fehlschlaegt und kein expliziter
-       Reset erfolgt (z. B. Netzwerkfehler bei der Merkliste), wird der
-       Ladezustand spaetestens nach 8 Sekunden wieder aufgehoben. */
-    window.setTimeout(reset, 8000);
-    return reset;
-  }
+function setBusy(el, busyLabel) {
+if (!el) {
+return function () {};
+}
+var label = el.querySelector(".button-label");
+var originalLabel = label ? label.textContent : null;
+el.classList.add("is-loading");
+el.setAttribute("aria-busy", "true");
+if (el.tagName === "BUTTON") {
+el.disabled = true;
+}
+if (label && busyLabel) {
+label.textContent = busyLabel;
+}
+if (window.OrbitWait) {
+window.OrbitWait.show();
+}
+var reset = function () {
+el.classList.remove("is-loading");
+el.removeAttribute("aria-busy");
+if (el.tagName === "BUTTON") {
+el.disabled = false;
+}
+if (label && originalLabel !== null) {
+label.textContent = originalLabel;
+}
+if (window.OrbitWait) {
+window.OrbitWait.hide();
+}
+};
+/* Sicherheitsnetz: Falls eine Aktion fehlschlaegt und kein expliziter
+Reset erfolgt (z. B. Netzwerkfehler bei der Merkliste), wird der
+Ladezustand spaetestens nach 8 Sekunden wieder aufgehoben. */
+window.setTimeout(reset, 8000);
+return reset;
+}
 
-  /* Überflüge berechnen: normales GET-Formular - Ladezustand vor dem
-     Absenden anzeigen, der Seitenwechsel übernimmt danach. */
-  var passesForm = document.querySelector("form.passes-form");
-  var passesSubmitButton = document.getElementById("passes-submit-button");
-  if (passesForm && passesSubmitButton) {
-    passesForm.addEventListener("submit", function () {
-      setBusy(passesSubmitButton, "Bitte warten …");
-    });
-  }
+/* Überflüge berechnen: normales GET-Formular - Ladezustand vor dem
+Absenden anzeigen, der Seitenwechsel übernimmt danach. */
+var passesForm = document.querySelector("form.passes-form");
+var passesSubmitButton = document.getElementById("passes-submit-button");
+if (passesForm && passesSubmitButton) {
+passesForm.addEventListener("submit", function () {
+setBusy(passesSubmitButton, "{{ t('passes.please_wait') }}");
+});
+}
 
-  /* Als TXT exportieren / TXT-Download (Merkliste): Downloads lösen keine
-     Seitennavigation aus, daher Ladezustand nach kurzer Zeit zurücksetzen. */
-  [
-    document.getElementById("passes-export-link"),
-    document.getElementById("watchlist-export-link"),
-  ].forEach(function (link) {
-    if (!link) {
-      return;
-    }
-    link.addEventListener("click", function () {
-      var reset = setBusy(link, "Bitte warten …");
-      window.setTimeout(reset, 1200);
-    });
-  });
+/* Als TXT exportieren / TXT-Download (Merkliste): Downloads lösen keine
+Seitennavigation aus, daher Ladezustand nach kurzer Zeit zurücksetzen. */
+[
+document.getElementById("passes-export-link"),
+document.getElementById("watchlist-export-link"),
+].forEach(function (link) {
+if (!link) {
+return;
+}
+link.addEventListener("click", function () {
+var reset = setBusy(link, "{{ t('passes.please_wait') }}");
+window.setTimeout(reset, 1200);
+});
+});
 
-  /* Merkliste hinzufügen: Formular wird per fetch abgeschickt (dashboard.js),
-     hier nur den Ladezustand anzeigen. */
-  var watchlistAddForm = document.getElementById("watchlist-add-form");
-  var watchlistAddButton = document.getElementById("watchlist-add-button");
-  var watchlistAddSelect = document.getElementById("watchlist-add-select");
-  if (watchlistAddForm && watchlistAddButton) {
-    watchlistAddForm.addEventListener("submit", function () {
-      if (!watchlistAddSelect || !watchlistAddSelect.value) {
-        return;
-      }
-      setBusy(watchlistAddButton, "Bitte warten …");
-    });
-  }
+/* Merkliste hinzufügen: Formular wird per fetch abgeschickt (dashboard.js),
+hier nur den Ladezustand anzeigen. */
+var watchlistAddForm = document.getElementById("watchlist-add-form");
+var watchlistAddButton = document.getElementById("watchlist-add-button");
+var watchlistAddSelect = document.getElementById("watchlist-add-select");
+if (watchlistAddForm && watchlistAddButton) {
+watchlistAddForm.addEventListener("submit", function () {
+if (!watchlistAddSelect || !watchlistAddSelect.value) {
+return;
+}
+setBusy(watchlistAddButton, "{{ t('passes.please_wait') }}");
+});
+}
 
-  /* Satelliten-Quelle umschalten (Favoriten <-> Paket) */
-  var watchlistSourceStatus = document.getElementById(
-    "watchlist-source-status"
-  );
-  function showWatchlistSourceStatus(message, state) {
-    if (!watchlistSourceStatus) {
-      return;
-    }
-    watchlistSourceStatus.textContent = message;
-    watchlistSourceStatus.className = (
-      "dataset-update-status " + (state || "")
-    ).trim();
-  }
-  document
-    .querySelectorAll(".watchlist-source-switch [data-watchlist-selection]")
-    .forEach(function (button) {
-      button.addEventListener("click", function () {
-        var selection = button.getAttribute("data-watchlist-selection");
-        var label = (button.textContent || "").trim();
-        var count = button.getAttribute("data-watchlist-count") || "0";
-        document
-          .querySelectorAll(
-            ".watchlist-source-switch [data-watchlist-selection]"
-          )
-          .forEach(function (other) {
-            other.disabled = true;
-          });
-        setBusy(button, "Bitte warten …");
-        showWatchlistSourceStatus(
-          "Wechsle zu " +
-            label +
-            " (" +
-            count +
-            " Satelliten) … Die Überflüge werden für alle Satelliten neu " +
-            "berechnet, das kann bei vielen Satelliten bis zu einer Minute " +
-            "dauern.",
-          "is-running"
-        );
-        fetch("/api/watchlist/select", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ selection: selection }),
-        })
-          .then(function () {
-            window.setTimeout(function () {
-              window.location.reload();
-            }, 1200);
-          })
-          .catch(function () {
-            window.setTimeout(function () {
-              window.location.reload();
-            }, 1200);
-          });
-      });
-    });
+/* Satelliten-Quelle umschalten (Favoriten <-> Paket) */
+var watchlistSourceStatus = document.getElementById(
+"watchlist-source-status"
+);
+function showWatchlistSourceStatus(message, state) {
+if (!watchlistSourceStatus) {
+return;
+}
+watchlistSourceStatus.textContent = message;
+watchlistSourceStatus.className = (
+"dataset-update-status " + (state || "")
+).trim();
+}
+document
+.querySelectorAll(".watchlist-source-switch [data-watchlist-selection]")
+.forEach(function (button) {
+button.addEventListener("click", function () {
+var selection = button.getAttribute("data-watchlist-selection");
+var label = (button.textContent || "").trim();
+var count = button.getAttribute("data-watchlist-count") || "0";
+document
+.querySelectorAll(
+".watchlist-source-switch [data-watchlist-selection]"
+)
+.forEach(function (other) {
+other.disabled = true;
+});
+setBusy(button, "{{ t('passes.please_wait') }}");
+showWatchlistSourceStatus(
+"{{ t('passes.switching_to_template') }}"
+.replace("{label}", label)
+.replace("{count}", count),
+"is-running"
+);
+fetch("/api/watchlist/select", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ selection: selection }),
+})
+.then(function () {
+window.setTimeout(function () {
+window.location.reload();
+}, 1200);
+})
+.catch(function () {
+window.setTimeout(function () {
+window.location.reload();
+}, 1200);
+});
+});
+});
 
-  /* Merkliste entfernen (Chips) */
-  document.querySelectorAll(".watchlist-chip-remove").forEach(function (button) {
-    button.addEventListener("click", function () {
-      setBusy(button, null);
-    });
-  });
+/* Merkliste entfernen (Chips) */
+document.querySelectorAll(".watchlist-chip-remove").forEach(function (button) {
+button.addEventListener("click", function () {
+setBusy(button, null);
+});
+});
 })();
 </script>
 {% endblock %}

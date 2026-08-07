@@ -1242,18 +1242,19 @@ async def passes_export_txt(
         observer = load_observer_settings()
 
     lines = [
-        "OrbitHub – Überflugliste",
+        translate_text("passes_export.title_single"),
         "=" * 40,
         "",
-        f"Beobachter: {observer.qth_name} ({observer.locator})",
+        f"{translate_text('passes_export.observer_label')}: {observer.qth_name} ({observer.locator})",
         (
             f"Position: {observer.latitude_deg:.4f}, "
             f"{observer.longitude_deg:.4f}"
         ),
-        f"Zeitraum: {hours} Stunden, Mindesthöhe {minimum_elevation:.0f}°",
-        f"Zeitangaben in {time_zone_label()}",
+        f"{translate_text('passes.period_label')}: {hours} {translate_text('passes.hours_suffix')}, "
+        f"{translate_text('passes.min_elevation_label')} {minimum_elevation:.0f}°",
+        translate_text('passes_export.times_in_template').replace('{tz}', time_zone_label()),
         (
-            "Erstellt am "
+            translate_text('passes_export.created_on') + " "
             + format_time_value(
                 datetime.now(timezone.utc),
                 "%d.%m.%Y %H:%M:%S",
@@ -1264,37 +1265,37 @@ async def passes_export_txt(
 
     if selected_record is not None:
         lines.append(
-            f"Satellit: {selected_record.name} (NORAD {selected_record.norad_id})"
+            translate_text('passes_export.satellite_template').replace('{name}', selected_record.name).replace('{id}', str(selected_record.norad_id))
         )
     else:
-        lines.append("Satellit: keine TLE-Daten verfügbar")
+        lines.append(translate_text('passes_export.no_satellite_data'))
 
     lines.append("")
 
     if not satellite_passes:
-        lines.append("Keine Überflüge im gewählten Zeitraum gefunden.")
+        lines.append(translate_text('passes_export.no_passes_period'))
     else:
         for index, pass_ in enumerate(satellite_passes, start=1):
-            lines.append(f"Überflug {index}")
+            lines.append(translate_text('passes_export.pass_number_template').replace('{index}', str(index)))
             lines.append("-" * 40)
             lines.append(
-                "Aufgang:     "
+                f"{translate_text('passes.rise_label')}: "
                 + format_time_value(pass_.rise_time, "%d.%m.%Y %H:%M:%S")
-                + f"  (Azimut {pass_.rise_azimuth_deg:.1f}°)"
+                + f"  ({translate_text('passes_export.azimuth_label')} {pass_.rise_azimuth_deg:.1f}°)"
             )
             lines.append(
-                "Kulmination: "
+                f"{translate_text('passes_export.culmination_label')}: "
                 + format_time_value(pass_.culmination_time, "%H:%M:%S")
-                + f"  (max. Höhe {pass_.max_elevation_deg:.1f}°)"
+                + f"  ({translate_text('passes_export.max_elevation_inline')} {pass_.max_elevation_deg:.1f}°)"
             )
             lines.append(
-                "Untergang:   "
+                f"{translate_text('passes.set_label')}: "
                 + format_time_value(pass_.set_time, "%H:%M:%S")
-                + f"  (Azimut {pass_.set_azimuth_deg:.1f}°)"
+                + f"  ({translate_text('passes_export.azimuth_label')} {pass_.set_azimuth_deg:.1f}°)"
             )
             lines.append(
-                f"Dauer:       {pass_.duration_seconds // 60} Min "
-                f"{pass_.duration_seconds % 60} Sek"
+                f"{translate_text('passes.duration_label')}: {pass_.duration_seconds // 60} {translate_text('passes.min_short')} "
+                f"{pass_.duration_seconds % 60} {translate_text('passes.sec_short')}"
             )
             lines.append("")
 
@@ -1365,69 +1366,62 @@ async def passes_export_watchlist_txt(
     watchlist_passes.sort(key=lambda item: item[1].rise_time)
 
     lines = [
-        "OrbitHub - Ueberflugliste (Meine Satelliten)",
+        translate_text('passes_export.title_watchlist'),
         "=" * 40,
         "",
-        f"Beobachter: {observer.qth_name} ({observer.locator})",
+        f"{translate_text('passes_export.observer_label')}: {observer.qth_name} ({observer.locator})",
         (
             f"Position: {observer.latitude_deg:.4f}, "
             f"{observer.longitude_deg:.4f}"
         ),
         (
-            f"Zeitraum: {hours} Stunden, "
-            f"Mindesthoehe {minimum_elevation:.0f}°"
+            f"{translate_text('passes.period_label')}: {hours} {translate_text('passes.hours_suffix')}, "
+            f"{translate_text('passes.min_elevation_label')} {minimum_elevation:.0f}°"
         ),
-        f"Zeitangaben in {time_zone_label()}",
+        translate_text('passes_export.times_in_template').replace('{tz}', time_zone_label()),
         "",
     ]
 
     if not watchlist_records:
-        lines.append("Merkliste: keine Satelliten ausgewaehlt")
+        lines.append(translate_text('passes_export.watchlist_none'))
     else:
         satellite_labels = ", ".join(
             f"{record.name} (NORAD {record.norad_id})"
             for record in watchlist_records
         )
-        lines.append(f"Merkliste: {satellite_labels}")
+        lines.append(translate_text('passes_export.watchlist_label_template').replace('{labels}', satellite_labels))
 
     lines.append("")
 
     if not watchlist_passes:
-        lines.append(
-            "Keine Ueberfluege im gewaehlten Zeitraum gefunden."
-        )
+        lines.append(translate_text('passes_export.no_passes_period'))
     else:
         for index, (record, pass_) in enumerate(
             watchlist_passes, start=1
         ):
-            lines.append(f"Ueberflug {index}")
+            lines.append(translate_text('passes_export.pass_number_template').replace('{index}', str(index)))
             lines.append(
-                f"Satellit:    {record.name} "
-                f"(NORAD {record.norad_id})"
+                translate_text('passes_export.satellite_template').replace('{name}', record.name).replace('{id}', str(record.norad_id))
             )
             lines.append("-" * 40)
             lines.append(
-                "Aufgang:    "
-                + format_time_value(
-                    pass_.rise_time, "%d.%m.%Y %H:%M:%S"
-                )
-                + f"  (Azimut {pass_.rise_azimuth_deg:.1f}°)"
+                f"{translate_text('passes.rise_label')}: "
+                + format_time_value(pass_.rise_time, "%d.%m.%Y %H:%M:%S")
+                + f"  ({translate_text('passes_export.azimuth_label')} {pass_.rise_azimuth_deg:.1f}°)"
             )
             lines.append(
-                "Kulmination: "
-                + format_time_value(
-                    pass_.culmination_time, "%H:%M:%S"
-                )
-                + f"  (max. Hoehe {pass_.max_elevation_deg:.1f}°)"
+                f"{translate_text('passes_export.culmination_label')}: "
+                + format_time_value(pass_.culmination_time, "%H:%M:%S")
+                + f"  ({translate_text('passes_export.max_elevation_inline')} {pass_.max_elevation_deg:.1f}°)"
             )
             lines.append(
-                "Untergang:  "
+                f"{translate_text('passes.set_label')}: "
                 + format_time_value(pass_.set_time, "%H:%M:%S")
-                + f"  (Azimut {pass_.set_azimuth_deg:.1f}°)"
+                + f"  ({translate_text('passes_export.azimuth_label')} {pass_.set_azimuth_deg:.1f}°)"
             )
             lines.append(
-                f"Dauer:      {pass_.duration_seconds // 60} Min "
-                f"{pass_.duration_seconds % 60} Sek"
+                f"{translate_text('passes.duration_label')}: {pass_.duration_seconds // 60} {translate_text('passes.min_short')} "
+                f"{pass_.duration_seconds % 60} {translate_text('passes.sec_short')}"
             )
             lines.append("")
 
