@@ -1,73 +1,71 @@
 {% extends "base.html" %}
 
-{% block title %}OrbitHub - Über OrbitHub{% endblock %}
+{% block title %}{{ t('nav.about') }} — {{ app_name }}{% endblock %}
 
 {% block nav_about %}active{% endblock %}
 
-{% block page_heading %}Über OrbitHub{% endblock %}
+{% block page_heading %}{{ t('nav.about') }}{% endblock %}
 
 {% block content %}
 
 <section class="mission-hero sources-hero">
   <div>
-    <div class="eyebrow">VERSION & INFO</div>
+    <div class="eyebrow">{{ t('about.eyebrow') }}</div>
     <h2>Version {{ version }} (Codename: {{ codename }})</h2>
     <p>
-      Selbst gehostet auf einem Raspberry Pi 3B.
-      Ursprünglich entwickelt von Christian Henkel (DL7AG).
-      Diese Instanz wird betrieben von {{ observer_name }} (Locator {{ observer_locator }}).
+{{ t('about.self_hosted') }} {{ t('about.originally_developed') }} {{ t('about.operated_by_prefix') }} {{ observer_name }} (Locator {{ observer_locator }}).
     </p>
   </div>
 </section>
 
 <div class="add-source-panel">
-  <span class="label">WAS IST ORBITHUB</span>
-  <h3>Satellitenuüberflüge, lokal berechnet</h3>
+  <span class="label">{{ t('about.label_what_is') }}</span>
+  <h3>{{ t('about.h3_what_is') }}</h3>
   <p>
-    OrbitHub ist eine selbst gehostete Webanwendung zur Vorhersage von Satellitenuüberflügen, entwickelt für den Einsatz im Amateurfunk. Statt sich auf externe Onlinedienste zu verlassen, berechnet OrbitHub alle Bahndaten lokal, auf eigener Hardware, ohne dass Beobachtungsstandort oder Nutzungsdaten das eigene Netzwerk verlassen.
+    {{ t('about.p_what_is_1') }}
   </p>
   <p>
-    Im Zentrum steht die Frage, die sich jeder Satelliten-Beobachter stellt: Wann und wo am Himmel wird ein bestimmter Satellit als nächstes sichtbar sein, und wie lange? OrbitHub beantwortet das mit präzisen, auf den eigenen Standort zugeschnittenen Vorhersagen.
-  </p>
-</div>
-
-<div class="add-source-panel">
-  <span class="label">FUNKTIONEN IM ÜBERBLICK</span>
-  <h3>Übersicht</h3>
-  <p>Das Dashboard zeigt auf einen Blick den Status der Anlage: den nächsten anstehenden Überflug mit Live-Countdown, den Zustand der Bahndaten (Alter, Quelle, Anzahl Datensätze) sowie grundlegende Systemmetriken des Raspberry Pi.</p>
-
-  <h3>Satellitenkatalog</h3>
-  <p>Durchsuchbare Liste aller verfügbaren Satelliten mit NORAD-ID, aus der ein Satellit für die Überflugberechnung ausgewählt werden kann.</p>
-
-  <h3>Überflüge</h3>
-  <p>
-    Das Herzstück von OrbitHub: Für einen gewählten Satelliten werden alle Überflüge innerhalb eines einstellbaren Zeitraums (z. B. 24 Stunden) berechnet, jeweils mit Aufgangs-, Kulminations- und Untergangszeit, maximaler Elevation sowie Auf- und Untergangsazimut. Zwei Visualisierungen stehen zur Verfügung: ein klassischer Polarplot (Himmelsansicht von unten, inklusive optionaler Abschattung durch eine benutzerdefinierte Horizontmaske) sowie eine interaktive Weltkarte mit Bodenspur, eigenem Standort, Sichtbarkeitsradius (Footprint) im Kulminationspunkt und AOS-/LOS-Markierungen.
-  </p>
-
-  <h3>Karte &amp; Historie</h3>
-  <p>In Vorbereitung: eine permanente, eigenständige Kartenansicht sowie ein Rückblick auf vergangene Überflüge.</p>
-
-  <h3>Daten &amp; Quellen</h3>
-  <p>
-    OrbitHub bezieht aktuelle Bahndaten (TLE, Two-Line Elements) wahlweise von SatNOGS (der offenen Satellitendatenbank der Amateurfunk-Community) oder von CelesTrak (dem klassischen NORAD-Katalog aktiver Satelliten). Eine bevorzugte Quelle lässt sich festlegen, inklusive automatischem Fallback, falls diese einmal nicht erreichbar ist. Zusätzlich lassen sich beliebige eigene TLE-Quellen per URL hinzufügen; OrbitHub prüft deren Gültigkeit, bevor sie gespeichert werden.
-  </p>
-
-  <h3>Downloads &amp; API</h3>
-  <p>
-    Die aktuellen Bahndaten stehen als Datei zum Download bereit, unter anderem im Standardformat sowie kompatibel zu SatGazer. Über eine schlanke HTTP-API lassen sich dieselben Daten auch programmatisch abrufen, etwa für eigene Skripte oder externe Ground-Station-Software.
-  </p>
-
-  <h3>Einstellungen</h3>
-  <p>
-    Hier werden der eigene Standort (Rufzeichen, QTH-Name, Maidenhead-Locator, geografische Koordinaten und Höhe), eine Mindestelevation für Überflüge sowie eine individuelle Horizontmaske hinterlegt. Letztere erlaubt es, Himmelsbereiche auszuschließen, die durch Gebäude, Bäume oder Gelände real verdeckt sind. Vorhersagen berücksichtigen das entsprechend.
+    {{ t('about.p_what_is_2') }}
   </p>
 </div>
 
 <div class="add-source-panel">
-  <span class="label">TECHNIK DAHINTER</span>
-  <h3>Wie OrbitHub rechnet</h3>
+  <span class="label">{{ t('about.label_features') }}</span>
+  <h3>{{ t('nav.dashboard') }}</h3>
+  <p>{{ t('about.p_dashboard') }}</p>
+
+  <h3>{{ t('about.h3_catalog') }}</h3>
+  <p>{{ t('about.p_catalog') }}</p>
+
+  <h3>{{ t('nav.passes') }}</h3>
   <p>
-    OrbitHub basiert auf Python (FastAPI) im Backend und einem bewusst schlanken Frontend aus Jinja2-Templates, Vanilla JavaScript und CSS, ganz ohne Build-Prozess oder externe Frameworks. Die eigentliche Bahnmechanik übernimmt die Skyfield-Bibliothek auf Basis des WGS84-Erdmodells, wodurch Position, Elevation, Azimut und Bodenspur eines Satelliten für jeden beliebigen Zeitpunkt präzise berechnet werden können. Die Weltkarten-Darstellung nutzt Leaflet mit einem kostenlosen, kartenschlüsselfreien Kartenstil von CARTO. Betrieben wird die gesamte Anwendung in einem Docker-Container, was Updates und einen sauberen, reproduzierbaren Betrieb auf dem Raspberry Pi vereinfacht.
+    {{ t('about.p_passes') }}
+  </p>
+
+  <h3>{{ t('about.h3_map_history') }}</h3>
+  <p>{{ t('about.p_map_history') }}</p>
+
+  <h3>{{ t('nav.sources') }}</h3>
+  <p>
+    {{ t('about.p_sources') }}
+  </p>
+
+  <h3>{{ t('about.h3_downloads_api') }}</h3>
+  <p>
+    {{ t('about.p_downloads_api') }}
+  </p>
+
+  <h3>{{ t('nav.settings') }}</h3>
+  <p>
+    {{ t('about.p_settings') }}
+  </p>
+</div>
+
+<div class="add-source-panel">
+  <span class="label">{{ t('about.label_tech') }}</span>
+  <h3>{{ t('about.h3_how_it_works') }}</h3>
+  <p>
+    {{ t('about.p_tech') }}
   </p>
 </div>
 
