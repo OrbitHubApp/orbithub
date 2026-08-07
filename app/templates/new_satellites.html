@@ -1,209 +1,204 @@
 {% extends "base.html" %}
 
 {% block title %}
-  OrbitHub &middot; Neue Satelliten
+OrbitHub &middot; {{ t('nav.new_satellites') }}
 {% endblock %}
 
 {% block nav_new_satellites %}active{% endblock %}
 
 {% block page_heading %}
-  Neue Satelliten
+{{ t('nav.new_satellites') }}
 {% endblock %}
 
 {% block content %}
 
 <section class="mission-hero">
-  <div>
-    <div class="eyebrow">COMMUNITY-ERKENNUNG</div>
+<div>
+<div class="eyebrow">{{ t('new_satellites.eyebrow') }}</div>
 
-    <h2>Kürzlich aufgetauchte Satelliten</h2>
+<h2>{{ t('new_satellites.heading') }}</h2>
 
-    <p>
-      Objekte, die neu in der aktiven TLE-Quelle erschienen sind und von
-      TinyGS oder SatNOGS DB bereits einen Namen zugeordnet bekommen haben,
-      obwohl der offizielle Katalog sie noch als Platzhalter führt
-      (z. B. "OBJECT BJ"). Bahndaten liegen bereits vor - ein Klick
-      genügt, um sie zu den Favoriten hinzuzufügen.
-    </p>
-  </div>
+<p>
+{{ t('new_satellites.intro') }}
+</p>
+</div>
 
-  <div class="hero-online">
-    <span class="hero-online-dot"></span>
-    <div>
-      <strong>{{ new_satellites|length }}</strong>
-      <small>Kandidaten</small>
-    </div>
-  </div>
+<div class="hero-online">
+<span class="hero-online-dot"></span>
+<div>
+<strong>{{ new_satellites|length }}</strong>
+<small>{{ t('new_satellites.candidates_label') }}</small>
+</div>
+</div>
 </section>
 
 <section>
-  {% if new_satellites %}
-  <div class="table-scroll">
-    <table class="mission-table" id="new-satellite-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>NORAD-ID</th>
-          <th>Quelle</th>
-          <th>Erstmals gesehen</th>
-          <th>Aktion</th>
-        </tr>
-      </thead>
+{% if new_satellites %}
+<div class="table-scroll">
+<table class="mission-table" id="new-satellite-table">
+<thead>
+<tr>
+<th>{{ t('satellites.col_name') }}</th>
+<th>{{ t('satellites.col_norad') }}</th>
+<th>{{ t('new_satellites.col_source') }}</th>
+<th>{{ t('new_satellites.col_first_seen') }}</th>
+<th>{{ t('satellites.col_action') }}</th>
+</tr>
+</thead>
 
-      <tbody>
-        {% for entry in new_satellites %}
-        <tr data-norad="{{ entry.norad_id|lower }}">
-          <td>{{ entry.name }}</td>
-          <td>{{ entry.norad_id }}</td>
-          <td>{{ entry.source }}</td>
-          <td>{{ entry.first_seen_utc[:10] }}</td>
-          <td>
-            {% if entry.norad_id in favorite_norad_ids %}
-              <span class="source-action-button secondary" aria-disabled="true">In Favoriten</span>
-            {% else %}
-              <button
-                type="button"
-                class="source-action-button"
-                data-add-new-satellite
-                data-norad="{{ entry.norad_id }}"
-              >
-                Favorisieren
-              </button>
-            {% endif %}
-            <a
-              class="source-action-button secondary"
-              href="/passes?satellite={{ entry.norad_id }}"
-            >
-              Ueberfluege
-            </a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <p class="satellite-empty-block">
-    Aktuell keine neuen, von der Community identifizierten Satelliten.
-  </p>
-  {% endif %}
+<tbody>
+{% for entry in new_satellites %}
+<tr data-norad="{{ entry.norad_id|lower }}">
+<td>{{ entry.name }}</td>
+<td>{{ entry.norad_id }}</td>
+<td>{{ entry.source }}</td>
+<td>{{ entry.first_seen_utc[:10] }}</td>
+<td>
+{% if entry.norad_id in favorite_norad_ids %}
+<span class="source-action-button secondary" aria-disabled="true">{{ t('new_satellites.in_favorites') }}</span>
+{% else %}
+<button
+type="button"
+class="source-action-button"
+data-add-new-satellite
+data-norad="{{ entry.norad_id }}"
+>
+{{ t('new_satellites.favorite_button') }}
+</button>
+{% endif %}
+<a
+class="source-action-button secondary"
+href="/passes?satellite={{ entry.norad_id }}"
+>
+{{ t('new_satellites.view_passes') }}
+</a>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% else %}
+<p class="satellite-empty-block">
+{{ t('new_satellites.empty_state') }}
+</p>
+{% endif %}
 </section>
 
 <section class="source-update-panel">
-  <div>
-    <div class="label">
-      DATENSÄTZE
-    </div>
+<div>
+<div class="label">
+{{ t('new_satellites.datasets_label') }}
+</div>
 
-    <h3>Neue Satelliten jetzt suchen</h3>
+<h3>{{ t('new_satellites.search_now_heading') }}</h3>
 
-    <p>
-      Prüft die aktive TLE-Quelle auf neu hinzugekommene Objekte und
-      gleicht sie sofort mit TinyGS- und SatNOGS-Aliasen ab.
-    </p>
-  </div>
+<p>
+{{ t('new_satellites.search_now_desc') }}
+</p>
+</div>
 
-  <button
-    class="update-dataset-button"
-    id="new-satellites-update-button"
-    type="button"
-  >
-    <span class="update-button-icon">↻</span>
-    Jetzt aktualisieren
-  </button>
+<button
+class="update-dataset-button"
+id="new-satellites-update-button"
+type="button"
+>
+<span class="update-button-icon">↻</span>
+{{ t('new_satellites.update_now_button') }}
+</button>
 </section>
 
 <div
-  class="dataset-update-status"
-  id="new-satellites-global-status"
-  role="status"
-  aria-live="polite"
+class="dataset-update-status"
+id="new-satellites-global-status"
+role="status"
+aria-live="polite"
 ></div>
 
 <script>
 (() => {
-  const updateButton = document.getElementById(
-    "new-satellites-update-button"
-  );
-  const globalStatus = document.getElementById(
-    "new-satellites-global-status"
-  );
+const updateButton = document.getElementById(
+"new-satellites-update-button"
+);
+const globalStatus = document.getElementById(
+"new-satellites-global-status"
+);
 
-  function showGlobalStatus(message, state = "") {
-    globalStatus.textContent = message;
-    globalStatus.className =
-      `dataset-update-status ${state}`.trim();
-  }
+function showGlobalStatus(message, state = "") {
+globalStatus.textContent = message;
+globalStatus.className =
+`dataset-update-status ${state}`.trim();
+}
 
-  async function postJson(url, payload = {}) {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-    return response.json();
-  }
+async function postJson(url, payload = {}) {
+const response = await fetch(url, {
+method: "POST",
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify(payload)
+});
+return response.json();
+}
 
-  updateButton.addEventListener("click", async () => {
-    updateButton.disabled = true;
-    updateButton.classList.add("is-updating");
-    showGlobalStatus(
-      "Neue Satelliten werden gesucht …",
-      "is-running"
-    );
+updateButton.addEventListener("click", async () => {
+updateButton.disabled = true;
+updateButton.classList.add("is-updating");
+showGlobalStatus(
+"{{ t('new_satellites.searching_status') }}",
+"is-running"
+);
 
-    try {
-      const data = await postJson("/api/sources/refresh");
-      if (!data.ok) {
-        throw new Error(data.error || "Aktualisierung fehlgeschlagen.");
-      }
-      showGlobalStatus(
-        "Datensätze aktualisiert. Seite wird neu geladen …",
-        "is-success"
-      );
-      window.setTimeout(() => {
-        window.location.reload();
-      }, 900);
-    } catch (error) {
-      showGlobalStatus(`Fehler: ${error.message}`, "is-error");
-    } finally {
-      updateButton.disabled = false;
-      updateButton.classList.remove("is-updating");
-    }
-  });
+try {
+const data = await postJson("/api/sources/refresh");
+if (!data.ok) {
+throw new Error(data.error || "{{ t('new_satellites.update_failed_default') }}");
+}
+showGlobalStatus(
+"{{ t('new_satellites.update_success') }}",
+"is-success"
+);
+window.setTimeout(() => {
+window.location.reload();
+}, 900);
+} catch (error) {
+showGlobalStatus("{{ t('new_satellites.error_prefix') }}" + error.message, "is-error");
+} finally {
+updateButton.disabled = false;
+updateButton.classList.remove("is-updating");
+}
+});
 })();
 </script>
 
 <script>
 document.addEventListener("click", async function (event) {
-  var button = event.target.closest("[data-add-new-satellite]");
-  if (!button) {
-    return;
-  }
+var button = event.target.closest("[data-add-new-satellite]");
+if (!button) {
+return;
+}
 
-  var noradId = button.getAttribute("data-norad");
-  button.disabled = true;
-  button.textContent = "Wird hinzugefügt...";
+var noradId = button.getAttribute("data-norad");
+button.disabled = true;
+button.textContent = "{{ t('new_satellites.adding_label') }}";
 
-  try {
-    var response = await fetch("/api/favorites/add", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ norad_id: noradId }),
-    });
+try {
+var response = await fetch("/api/favorites/add", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ norad_id: noradId }),
+});
 
-    if (!response.ok) {
-      throw new Error("Anfrage fehlgeschlagen");
-    }
+if (!response.ok) {
+throw new Error("{{ t('new_satellites.request_failed') }}");
+}
 
-    button.outerHTML = '<span class="source-action-button secondary" aria-disabled="true">In Favoriten</span>';
-  } catch (error) {
-    button.disabled = false;
-    button.textContent = "Favorisieren";
-    window.alert("Konnte nicht zu Favoriten hinzugefügt werden.");
-  }
+button.outerHTML = '<span class="source-action-button secondary" aria-disabled="true">{{ t("new_satellites.in_favorites") }}</span>';
+} catch (error) {
+button.disabled = false;
+button.textContent = "{{ t('new_satellites.favorite_button') }}";
+window.alert("{{ t('new_satellites.add_favorite_error') }}");
+}
 });
 </script>
 
