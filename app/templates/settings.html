@@ -1,40 +1,36 @@
 {% extends "base.html" %}
 
-{% block title %}
-  OrbitHub · Einstellungen
-{% endblock %}
+{% block title %}{{ t('nav.settings') }} — {{ app_name }}{% endblock %}
 
 {% block nav_settings %}active{% endblock %}
 
 {% block page_heading %}
-  Einstellungen
+  {{ t('nav.settings') }}
 {% endblock %}
 
 {% block content %}
 
 <section class="mission-hero sources-hero">
   <div>
-    <div class="eyebrow">STATION &amp; SICHTBARKEIT</div>
-    <h2>Standort, Rufzeichen &amp; Horizont</h2>
+    <div class="eyebrow">{{ t('settings.eyebrow') }}</div>
+    <h2>{{ t('settings.hero_heading') }}</h2>
     <p>
-      Hinterlege deinen Standort, dein Rufzeichen und deinen tatsächlich
-      freien Himmelsausschnitt. OrbitHub zeigt Überflüge dann nur noch dort,
-      wo du sie wirklich empfangen kannst.
+{{ t('settings.hero_intro') }}
     </p>
   </div>
 
   <article class="source-summary-card">
-    <span>Rufzeichen</span>
+    <span>{{ t('settings.label_callsign') }}</span>
     <strong>{{ settings.callsign }}</strong>
   </article>
 
   <article class="source-summary-card">
-    <span>QTH</span>
+    <span>{{ t('settings.label_qth') }}</span>
     <strong>{{ settings.qth_name }}</strong>
   </article>
 
   <article class="source-summary-card">
-    <span>Locator</span>
+    <span>{{ t('settings.label_locator') }}</span>
     <strong>{{ settings.locator }}</strong>
   </article>
 </section>
@@ -42,18 +38,17 @@
 <section class="add-source-panel">
   <div class="add-source-panel-header">
     <div>
-      <div class="label">STATION</div>
-      <h3>Rufzeichen &amp; Standort</h3>
+      <div class="label">{{ t('settings.station_label') }}</div>
+      <h3>{{ t('settings.station_heading') }}</h3>
       <p>
-        Der Locator berechnet Breiten- und Längengrad automatisch. Alternativ
-        kannst du Koordinaten manuell eingeben.
+{{ t('settings.station_intro') }}
       </p>
     </div>
   </div>
 
   <div class="source-form-grid" id="settings-station-form">
     <label>
-      <span>Rufzeichen</span>
+      <span>{{ t('settings.label_callsign') }}</span>
       <input
         type="text"
         id="settings-callsign"
@@ -64,7 +59,7 @@
     </label>
 
     <label>
-      <span>QTH-Name</span>
+      <span>{{ t('settings.label_qth_name') }}</span>
       <input
         type="text"
         id="settings-qth-name"
@@ -75,7 +70,7 @@
     </label>
 
     <label>
-      <span>Maidenhead-Locator</span>
+      <span>{{ t('settings.label_locator_full') }}</span>
       <input
         type="text"
         id="settings-locator"
@@ -86,15 +81,15 @@
     </label>
 
     <label>
-      <span>Position bestimmen über</span>
+      <span>{{ t('settings.label_position_via') }}</span>
       <select id="settings-use-locator">
-        <option value="1" selected>Locator (automatisch)</option>
-        <option value="0">Manuelle Koordinaten</option>
+        <option value="1" selected>{{ t('settings.option_locator_auto') }}</option>
+        <option value="0">{{ t('settings.option_manual_coords') }}</option>
       </select>
     </label>
 
     <label>
-      <span>Breitengrad (°)</span>
+      <span>{{ t('settings.label_latitude') }}</span>
       <input
         type="text"
         id="settings-latitude"
@@ -105,7 +100,7 @@
     </label>
 
     <label>
-      <span>Längengrad (°)</span>
+      <span>{{ t('settings.label_longitude') }}</span>
       <input
         type="text"
         id="settings-longitude"
@@ -116,7 +111,7 @@
     </label>
 
     <label>
-      <span>Höhe über NN (m)</span>
+      <span>{{ t('settings.label_elevation') }}</span>
       <input
         type="text"
         id="settings-elevation"
@@ -127,7 +122,7 @@
     </label>
 
     <label>
-      <span>Standard-Mindesthöhe (°)</span>
+      <span>{{ t('settings.label_default_min_elevation') }}</span>
       <input
         type="text"
         id="settings-default-min-elevation"
@@ -138,19 +133,19 @@
     </label>
 
     <label>
-      <span>Zeitanzeige</span>
+      <span>{{ t('settings.label_time_display') }}</span>
       <select id="settings-time-display">
-        <option value="local" {% if settings.time_display != "utc" %}selected{% endif %}>Ortszeit</option>
-        <option value="utc" {% if settings.time_display == "utc" %}selected{% endif %}>GMT / UTC</option>
+        <option value="local" {% if settings.time_display != "utc" %}selected{% endif %}>{{ t('settings.option_local_time') }}</option>
+        <option value="utc" {% if settings.time_display == "utc" %}selected{% endif %}>{{ t('settings.option_utc') }}</option>
       </select>
     </label>
 
     <label class="source-form-wide">
-      <span>TinyGS-Empfangsstation(en)</span>
+      <span>{{ t('settings.label_tinygs') }}</span>
       <textarea
         id="settings-tinygs-stations"
         rows="3"
-        placeholder="z. B. TinyGS@5279258241 (eine Station pro Zeile)"
+        placeholder="{{ t('settings.tinygs_placeholder') }}"
       >{{ settings.tinygs_stations|join("\n") }}</textarea>
     </label>
   </div>
@@ -159,12 +154,10 @@
 <section class="add-source-panel">
   <div class="add-source-panel-header">
     <div>
-      <div class="label">SICHTBARER HIMMEL</div>
-      <h3>Horizont-Profil</h3>
+      <div class="label">{{ t('settings.horizon_label') }}</div>
+      <h3>{{ t('settings.horizon_heading') }}</h3>
       <p>
-        Trage die Himmelsrichtungen ein, in denen Gebäude, Bäume o. Ä. die
-        Sicht einschränken, und ab welcher Elevation du dort erst freie Sicht
-        hast. Nicht abgedeckte Richtungen nutzen die Standard-Mindesthöhe.
+{{ t('settings.horizon_intro') }}
       </p>
     </div>
 
@@ -173,15 +166,14 @@
       id="add-horizon-segment"
       type="button"
     >
-      + Bereich hinzufügen
+      {{ t('settings.add_segment_button') }}
     </button>
   </div>
 
   <div id="horizon-segments-list"></div>
 
   <p class="source-form-status" id="horizon-empty-hint">
-    Noch keine Einschränkung eingetragen — der komplette Himmel ab der
-    Standard-Mindesthöhe gilt als sichtbar.
+{{ t('settings.horizon_empty_hint') }}
   </p>
 
   <div class="source-form-actions">
@@ -190,14 +182,14 @@
       id="reload-settings"
       type="button"
     >
-      Verwerfen
+      {{ t('settings.discard_button') }}
     </button>
     <button
       class="source-action-button primary"
       id="save-settings"
       type="button"
     >
-      Einstellungen speichern
+      {{ t('settings.save_button') }}
     </button>
   </div>
 
@@ -206,7 +198,7 @@
     id="settings-status"
     role="status"
     aria-live="polite"
-  >{% if saved %}Einstellungen gespeichert.{% endif %}</div>
+  >{% if saved %}{{ t('settings.saved_message') }}{% endif %}</div>
 </section>
 
 {% endblock %}
@@ -221,6 +213,8 @@
   const saveButton = document.getElementById("save-settings");
   const reloadButton = document.getElementById("reload-settings");
   const statusEl = document.getElementById("settings-status");
+const appliedTemplate = "{{ t('settings.applied_template') }}";
+const errorTemplate = "{{ t('settings.error_template') }}";
 
   if (!listEl || !addButton || !saveButton) return;
 
@@ -248,31 +242,31 @@
 
       row.innerHTML = `
         <label>
-          <span>Azimut von (°)</span>
+          <span>{{ t('settings.label_azimuth_from') }}</span>
           <input type="text" inputmode="decimal" data-field="azimuth_from_deg" value="${segment.azimuth_from_deg}">
         </label>
         <label>
-          <span>Azimut bis (°)</span>
+          <span>{{ t('settings.label_azimuth_to') }}</span>
           <input type="text" inputmode="decimal" data-field="azimuth_to_deg" value="${segment.azimuth_to_deg}">
         </label>
         <label>
-          <span>Mindesthöhe hier (°)</span>
+          <span>{{ t('settings.label_min_elevation_here') }}</span>
           <input type="text" inputmode="decimal" data-field="minimum_elevation_deg" value="${segment.minimum_elevation_deg}">
         </label>
                 <div class="horizon-height-helper">
-          <span class="horizon-height-helper-title">Höhenrechner: Hindernis in Meter statt Grad eingeben</span>
+          <span class="horizon-height-helper-title">{{ t('settings.helper_title') }}</span>
           <label>
-            <span>Hindernishöhe (m)</span>
-            <input type="text" inputmode="decimal" class="horizon-helper-height" placeholder="z. B. 8">
+            <span>{{ t('settings.label_obstacle_height') }}</span>
+            <input type="text" inputmode="decimal" class="horizon-helper-height" placeholder="{{ t('settings.obstacle_height_placeholder') }}">
           </label>
           <label>
-            <span>Entfernung (m)</span>
-            <input type="text" inputmode="decimal" class="horizon-helper-distance" placeholder="z. B. 25">
+            <span>{{ t('settings.label_distance') }}</span>
+            <input type="text" inputmode="decimal" class="horizon-helper-distance" placeholder="{{ t('settings.distance_placeholder') }}">
           </label>
-          <button type="button" class="source-action-button secondary horizon-helper-apply">Übernehmen</button>
+          <button type="button" class="source-action-button secondary horizon-helper-apply">{{ t('settings.apply_button') }}</button>
           <span class="horizon-helper-result"></span>
         </div>
-        <button type="button" class="source-action-button secondary" data-remove-index="${index}">Entfernen</button>
+        <button type="button" class="source-action-button secondary" data-remove-index="${index}">{{ t('settings.remove_button') }}</button>
       `;
 
       row.querySelectorAll("input[data-field]").forEach((input) => {
@@ -307,14 +301,14 @@
         const height = parseFloat(helperHeightInput.value.replace(",", "."));
         const distance = parseFloat(helperDistanceInput.value.replace(",", "."));
         if (!Number.isFinite(height) || !Number.isFinite(distance) || distance <= 0 || height < 0) {
-          helperResult.textContent = "Bitte Höhe und Entfernung angeben.";
+          helperResult.textContent = "{{ t('settings.helper_prompt') }}";
           return;
         }
         const angle = (Math.atan2(height, distance) * 180) / Math.PI;
         const rounded = angle.toFixed(1);
         minElevationInput.value = rounded;
         segments[index].minimum_elevation_deg = rounded;
-        helperResult.textContent = `Übernommen: ${rounded}°`;
+        helperResult.textContent = appliedTemplate.replace("{value}", rounded);
       });
 
       listEl.appendChild(row);
@@ -363,7 +357,7 @@
   saveButton.addEventListener("click", async () => {
     saveButton.disabled = true;
     if (statusEl) {
-      statusEl.textContent = "Wird gespeichert …";
+      statusEl.textContent = "{{ t('settings.saving_status') }}";
       statusEl.className = "source-form-status running";
     }
 
@@ -396,7 +390,7 @@
       window.location.href = "/settings?saved=1";
     } catch (error) {
       if (statusEl) {
-        statusEl.textContent = `Fehler: ${error.message}`;
+        statusEl.textContent = errorTemplate.replace("{message}", error.message);
         statusEl.className = "source-form-status error";
       }
       saveButton.disabled = false;
