@@ -1,25 +1,23 @@
 {% extends "base.html" %}
 
-{% block title %}Visuell – {{ app_name }}{% endblock %}
+{% block title %}{{ t('nav.visibility') }} – {{ app_name }}{% endblock %}
 
 {% block nav_visibility %}active{% endblock %}
 
 {% block page_heading %}
-  Visuell
+{{ t('nav.visibility') }}
 {% endblock %}
 
 {% block content %}
 
 <section class="mission-hero">
   <div>
-    <div class="eyebrow">VISUELLE BEOBACHTUNG</div>
+    <div class="eyebrow">{{ t('visibility.eyebrow') }}</div>
 
-    <h2>Welche Satelliten sind mit blossem Auge sichtbar?</h2>
+    <h2>{{ t('visibility.hero_heading') }}</h2>
 
     <p>
-      Ein Durchgang gilt als sichtbar, wenn der Satellit von der Sonne
-      beschienen wird und der Himmel gleichzeitig dunkel genug ist. Wo
-      bekannt, wird zusätzlich eine geschätzte Helligkeit angegeben.
+      {{ t('visibility.hero_intro') }}
     </p>
   </div>
 
@@ -34,7 +32,7 @@
 </section>
 
 <section class="source-summary-card visibility-bright-panel">
-  <span>Favoriten – Status der nächsten Sichtbarkeit</span>
+<span>{{ t('visibility.favorites_panel_heading') }}</span>
   <div id="favorites-panel-body">
     {% include "_favorites_panel.html" %}
   </div>
@@ -42,7 +40,7 @@
 
 <section class="download-table-panel">
   <h3 class="visibility-table-heading">
-    Alle sichtbaren Durchgänge in der kommenden Woche
+    {{ t('visibility.upcoming_table_heading') }}
   </h3>
 
   {% if upcoming_visible_passes %}
@@ -50,13 +48,13 @@
     <table class="mission-table">
       <thead>
         <tr>
-          <th>Satellit</th>
-          <th>Datum</th>
-          <th>Aufgang</th>
-          <th>Kulmination</th>
-          <th>Untergang</th>
-          <th>Max. Höhe</th>
-          <th>Helligkeit</th>
+          <th>{{ t('passes.satellite_label') }}</th>
+          <th>{{ t('passes.col_date') }}</th>
+          <th>{{ t('passes.rise_label') }}</th>
+          <th>{{ t("passes_export.culmination_label") }}</th>
+          <th>{{ t('passes.set_label') }}</th>
+          <th>{{ t('passes.col_max_elevation') }}</th>
+          <th>{{ t('visibility.col_magnitude') }}</th>
         </tr>
       </thead>
 
@@ -73,7 +71,7 @@
             {% if entry.visibility.magnitude is not none %}
               {{ "%.1f"|format(entry.visibility.magnitude) }} mag
             {% else %}
-              unbekannt
+{{ t('visibility.unknown') }}
             {% endif %}
           </td>
         </tr>
@@ -93,7 +91,7 @@
         {{ entry.record.name|display_name }}
         ·
         {{ entry.pass.rise_time | fmt_time("%d.%m.%Y %H:%M:%S") }}
-        bis
+{{ t('passes.until_label') }}
         {{ entry.pass.set_time | fmt_time("%H:%M:%S") }}
         · Maximum {{ "%.1f"|format(entry.pass.max_elevation_deg) }}°
       </p>
@@ -101,7 +99,7 @@
         class="polarplot"
         viewBox="0 0 200 200"
         role="img"
-        aria-label="Polarplot des Durchgangs von {{ entry.record.name|display_name }} am {{ entry.pass.rise_time | fmt_time('%d.%m.%Y') }}"
+aria-label="{{ t('visibility.polarplot_aria_named_template').replace('{name}', entry.record.name|display_name).replace('{date}', entry.pass.rise_time | fmt_time('%d.%m.%Y')) }}"
       >
         <circle class="polarplot-horizon" cx="100" cy="100" r="90" />
         <circle class="polarplot-ring" cx="100" cy="100" r="60" />
@@ -115,7 +113,7 @@
         {% endfor %}
 
         <text class="polarplot-direction" x="100" y="7">N</text>
-        <text class="polarplot-direction" x="193" y="104">O</text>
+        <text class="polarplot-direction" x="193" y="104">{{ t("passes.compass_east") }}</text>
         <text class="polarplot-direction" x="100" y="199">S</text>
         <text class="polarplot-direction" x="7" y="104">W</text>
 
@@ -163,18 +161,18 @@
   </div>
 {% else %}
   <p class="satellite-empty-block">
-    Kein sichtbarer Durchgang eines bekannten hellen Satelliten in der kommenden Woche.
+    {{ t('visibility.no_bright_passes') }}
   </p>
   {% endif %}
 </section>
 
 <section class="source-summary-card">
-  <span>Satellit auswählen</span>
+  <span>{{ t('visibility.select_satellite_heading') }}</span>
 
   <form class="add-source-form" method="get" action="/visibility" data-pause-auto-refresh>
     <div class="source-form-grid visibility-form-grid">
       <label>
-        <span>Satellit</span>
+        <span>{{ t('passes.satellite_label') }}</span>
 
         <div class="satellite-combobox-wrap">
           <input
@@ -182,15 +180,15 @@
             id="satellite-combo-input"
             class="satellite-search-input"
             autocomplete="off"
-            placeholder="Name oder NORAD-ID eingeben …"
+placeholder="{{ t('visibility.satellite_input_placeholder') }}"
             value="{% if selected_satellite %}{{ selected_satellite.name|display_name }} · NORAD {{ selected_satellite.norad_id }}{% endif %}"
           >
           <button
             type="button"
             id="satellite-combo-clear"
             class="satellite-combo-clear-button"
-            aria-label="Auswahl zurücksetzen"
-            title="Auswahl zurücksetzen"
+            aria-label="{{ t('passes.reset_selection_label') }}"
+            title="{{ t('passes.reset_selection_label') }}"
             hidden
           >&times;</button>
           <ul id="satellite-combo-list" class="satellite-combo-list" role="listbox" hidden></ul>
@@ -210,18 +208,18 @@
       </label>
 
       <label>
-        <span>Zeitraum</span>
+        <span>{{ t('passes.period_label') }}</span>
 
         <select name="hours">
-          <option value="24" {% if hours == 24 %}selected{% endif %}>24 Stunden</option>
-          <option value="48" {% if hours == 48 %}selected{% endif %}>48 Stunden</option>
-          <option value="72" {% if hours == 72 %}selected{% endif %}>72 Stunden</option>
-          <option value="168" {% if hours == 168 %}selected{% endif %}>7 Tage</option>
+          <option value="24" {% if hours == 24 %}selected{% endif %}>24 {{ t('passes.hours_suffix') }}</option>
+          <option value="48" {% if hours == 48 %}selected{% endif %}>48 {{ t('passes.hours_suffix') }}</option>
+          <option value="72" {% if hours == 72 %}selected{% endif %}>72 {{ t('passes.hours_suffix') }}</option>
+          <option value="168" {% if hours == 168 %}selected{% endif %}>7 {{ t('visibility.days_suffix') }}</option>
         </select>
       </label>
 
       <label>
-        <span>Mindesthöhe</span>
+        <span>{{ t('passes.min_elevation_label') }}</span>
 
         <select name="minimum_elevation">
           <option value="5" {% if minimum_elevation == 5.0 %}selected{% endif %}>5°</option>
@@ -233,12 +231,12 @@
 
       <button type="submit" class="source-action-button" id="visibility-submit-button">
         <span class="button-spinner" aria-hidden="true"></span>
-        <span class="button-label">Anzeigen</span>
+        <span class="button-label">{{ t('visibility.show_button') }}</span>
       </button>
 
       <button type="button" class="source-action-button favorite-add-button" id="favorite-add-button">
         <span class="button-spinner" aria-hidden="true"></span>
-        <span class="button-label">☆ Merken</span>
+        <span class="button-label">{{ t('visibility.favorite_button') }}</span>
       </button>
     </div>
   </form>
@@ -261,7 +259,7 @@
   >
     <p class="polarplot-card-summary">
       {{ entry.pass.rise_time | fmt_time("%d.%m.%Y %H:%M:%S") }}
-      bis
+{{ t('passes.until_label') }}
       {{ entry.pass.set_time | fmt_time("%H:%M:%S") }}
       · Maximum {{ "%.1f"|format(entry.pass.max_elevation_deg) }}°
     </p>
@@ -269,7 +267,7 @@
       class="polarplot"
       viewBox="0 0 200 200"
       role="img"
-      aria-label="Polarplot des Durchgangs am {{ entry.pass.rise_time | fmt_time('%d.%m.%Y') }}"
+aria-label="{{ t('visibility.polarplot_aria_template').replace('{date}', entry.pass.rise_time | fmt_time('%d.%m.%Y')) }}"
     >
       <circle class="polarplot-horizon" cx="100" cy="100" r="90" />
       <circle class="polarplot-ring" cx="100" cy="100" r="60" />
@@ -283,7 +281,7 @@
       {% endfor %}
 
       <text class="polarplot-direction" x="100" y="7">N</text>
-      <text class="polarplot-direction" x="193" y="104">O</text>
+      <text class="polarplot-direction" x="193" y="104">{{ t("passes.compass_east") }}</text>
       <text class="polarplot-direction" x="100" y="199">S</text>
       <text class="polarplot-direction" x="7" y="104">W</text>
 
@@ -334,13 +332,13 @@
     <table class="mission-table">
       <thead>
         <tr>
-          <th>Datum</th>
-          <th>Aufgang</th>
-          <th>Kulmination</th>
-          <th>Untergang</th>
-          <th>Max. Höhe</th>
-          <th>Sichtbar</th>
-          <th>Helligkeit</th>
+          <th>{{ t('passes.col_date') }}</th>
+          <th>{{ t('passes.rise_label') }}</th>
+          <th>{{ t("passes_export.culmination_label") }}</th>
+          <th>{{ t('passes.set_label') }}</th>
+          <th>{{ t('passes.col_max_elevation') }}</th>
+          <th>{{ t('visibility.col_visible') }}</th>
+          <th>{{ t('visibility.col_magnitude') }}</th>
         </tr>
       </thead>
 
@@ -354,18 +352,18 @@
           <td><strong>{{ "%.1f"|format(entry.pass.max_elevation_deg) }}°</strong></td>
           <td>
             {% if entry.visibility.visible %}
-            <span class="visibility-badge is-visible">sichtbar</span>
+            <span class="visibility-badge is-visible">{{ t('visibility.badge_visible') }}</span>
             {% elif not entry.visibility.sunlit %}
-            <span class="visibility-badge">im Erdschatten</span>
+            <span class="visibility-badge">{{ t('visibility.badge_earth_shadow') }}</span>
             {% else %}
-            <span class="visibility-badge">Himmel zu hell</span>
+            <span class="visibility-badge">{{ t('visibility.badge_sky_too_bright') }}</span>
             {% endif %}
           </td>
           <td>
             {% if entry.visibility.magnitude is not none %}
               {{ "%.1f"|format(entry.visibility.magnitude) }} mag
             {% elif entry.visibility.visible %}
-              unbekannt
+{{ t('visibility.unknown') }}
             {% else %}
               –
             {% endif %}
@@ -377,12 +375,11 @@
   </div>
   {% elif selected_satellite %}
   <p class="satellite-empty-block">
-    Keine Durchgänge ab Beginn der nautischen Dämmerung im gewählten
-    Zeitraum gefunden.
+    {{ t('visibility.no_passes_for_satellite') }}
   </p>
   {% else %}
   <p class="satellite-empty-block">
-    Bitte einen Satelliten auswählen, um die Durchgänge anzuzeigen.
+    {{ t('visibility.select_satellite_prompt') }}
   </p>
   {% endif %}
 </section>
@@ -549,7 +546,7 @@
       submitButton.disabled = true;
       var label = submitButton.querySelector(".button-label");
       if (label) {
-        label.textContent = "Wird berechnet \u2026";
+        label.textContent = "{{ t('passes.please_wait') }}";
       }
     });
   }
@@ -611,7 +608,7 @@ upcomingPassRows.forEach(function (row) {
       favoriteAddButton.disabled = true;
       var favoriteLabel = favoriteAddButton.querySelector(".button-label");
       if (favoriteLabel) {
-        favoriteLabel.textContent = "Wird gespeichert …";
+favoriteLabel.textContent = "{{ t('passes.please_wait') }}";
       }
       fetch("/api/favorites/add", {
         method: "POST",
@@ -623,7 +620,7 @@ upcomingPassRows.forEach(function (row) {
         favoriteAddButton.classList.remove("is-loading");
         favoriteAddButton.disabled = false;
         if (favoriteLabel) {
-          favoriteLabel.textContent = "☆ Merken";
+          favoriteLabel.textContent = "{{ t('visibility.favorite_button') }}";
         }
       });
     });
