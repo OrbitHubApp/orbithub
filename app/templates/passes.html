@@ -413,6 +413,162 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
 {% endif %}
 </section>
 
+
+{% if selected_satellite %}
+<section class="add-source-panel" id="rig-control-panel" data-norad-id="{{ selected_satellite.norad_id }}">
+<div class="label">IC-705 DOPPLER-TRACKING</div>
+<h3>Rig-Control</h3>
+<p id="rig-reachable-note" class="rig-control-note"></p>
+<div class="rig-control-actions">
+<button type="button" id="rig-tracking-start" class="rig-control-btn rig-control-btn-start">Tracking starten</button>
+<button type="button" id="rig-tracking-stop" class="rig-control-btn rig-control-btn-stop" disabled>Stoppen</button>
+</div>
+<dl class="pass-summary-list" id="rig-tracking-details" hidden>
+<dt>Satellit</dt>
+<dd id="rig-detail-satellite">-</dd>
+<dt>Transponder</dt>
+<dd id="rig-detail-transponder">-</dd>
+<dt>RX (Downlink)</dt>
+<dd id="rig-detail-rx">-</dd>
+<dt>TX (Uplink)</dt>
+<dd id="rig-detail-tx">-</dd>
+<dt>Radialgeschwindigkeit</dt>
+<dd id="rig-detail-rate">-</dd>
+</dl>
+<p id="rig-tracking-error" class="rig-control-error" hidden></p>
+</section>
+
+<style>
+#rig-control-panel .rig-control-note { opacity: 0.75; font-size: 0.9em; }
+#rig-control-panel .rig-control-actions { display: flex; gap: 0.6em; margin: 0.6em 0; }
+#rig-control-panel .rig-control-btn {
+  padding: 0.5em 1.1em;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+#rig-control-panel .rig-control-btn:disabled { opacity: 0.4; cursor: default; }
+#rig-control-panel .rig-control-btn-start { color: #3fae54; }
+#rig-control-panel .rig-control-btn-stop { color: #c0392b; }
+#rig-control-panel .rig-control-error { color: #c0392b; font-size: 0.9em; }
+#rig-control-panel [hidden] { display: none !important; }
+</style>
+
+<script>
+(function () {
+  var panel = document.getElementById("rig-control-panel");
+  if (!panel) { return; }
+  var noradId = panel.dataset.noradId;
+  var startBtn = document.getElementById("rig-tracking-start");
+  var stopBtn = document.getElementById("rig-tracking-stop");
+  var details = document.getElementById("rig-tracking-details");
+  var errorEl = document.getElementById("rig-tracking-error");
+  var reachableNote = document.getElementById("rig-reachable-note");
+  var pollTimer = null;
+
+  function fmtMHz(hz) {
+    if (hz === null || hz === undefined) { return "-"; }
+    return (hz / 1e6).toFixed(4) + " MHz";
+  }
+
+  function showError(message) {
+    if (!message) {
+      errorEl.hidden = true;
+      errorEl.textContent = "";
+      return;
+    }
+    errorEl.hidden = false;
+    errorEl.textContent = message;
+  }
+
+  function renderStatus(status) {
+    if (!status || !status.active) {
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      details.hidden = true;
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      return;
+    }
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    details.hidden = false;
+    document.getElementById("rig-detail-satellite").textContent = status.satellite_name || status.norad_id || "-";
+    document.getElementById("rig-detail-transponder").textContent =
+      (status.transponder_description || "-") + (status.transponder_mode ? " (" + status.transponder_mode + ")" : "");
+    document.getElementById("rig-detail-rx").textContent = fmtMHz(status.rx_frequency_hz);
+    document.getElementById("rig-detail-tx").textContent = fmtMHz(status.tx_frequency_hz);
+    document.getElementById("rig-detail-rate").textContent =
+      (status.range_rate_km_s === null || status.range_rate_km_s === undefined)
+        ? "-"
+        : status.range_rate_km_s.toFixed(3) + " km/s";
+    showError(status.error);
+    if (!pollTimer) {
+      pollTimer = setInterval(refreshStatus, 3000);
+    }
+  }
+
+  function refreshStatus() {
+    fetch("/api/rig/tracking/status")
+      .then(function (response) { return response.json(); })
+      .then(function (data) { renderStatus(data.status); })
+      .catch(function () {});
+  }
+
+  function checkRigReachable() {
+    fetch("/api/rig/status")
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        reachableNote.textContent = data.reachable
+          ? "IC-705 / rigctld erreichbar."
+          : "IC-705 / rigctld aktuell nicht erreichbar.";
+      })
+      .catch(function () {
+        reachableNote.textContent = "IC-705 / rigctld-Status unbekannt.";
+      });
+  }
+
+  startBtn.addEventListener("click", function () {
+    showError(null);
+    startBtn.disabled = true;
+    fetch("/api/rig/tracking/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ norad_id: noradId }),
+    })
+      .then(function (response) {
+        return response.json().then(function (data) {
+          if (!response.ok) {
+            throw new Error(data.detail || "Tracking konnte nicht gestartet werden.");
+          }
+          return data;
+        });
+      })
+      .then(function (data) { renderStatus(data.status); })
+      .catch(function (err) {
+        startBtn.disabled = false;
+        showError(err.message);
+      });
+  });
+
+  stopBtn.addEventListener("click", function () {
+    stopBtn.disabled = true;
+    fetch("/api/rig/tracking/stop", { method: "POST" })
+      .then(function (response) { return response.json(); })
+      .then(function (data) { renderStatus(data.status); })
+      .catch(function () {});
+  });
+
+  refreshStatus();
+  checkRigReachable();
+})();
+</script>
+{% endif %}
+
 {% if passes %}
 <script id="passes-data" type="application/json">
 [

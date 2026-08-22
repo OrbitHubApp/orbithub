@@ -56,9 +56,12 @@ from app.services.satnogs_aliases import (
     load_satnogs_launched,
 )
 from app.services.transponder_db import (
+    best_downlink_transponder,
     fetch_and_save_transponders,
     load_transponders,
 )
+from app.services.rig_control import rig_control
+from app.services.rig_tracking import tracking_session
 from app.services.tinygs_aliases import (
     fetch_and_save_tinygs_aliases,
     load_tinygs_aliases,
@@ -69,6 +72,7 @@ from app.services.new_satellites import (
     record_new_satellites,
 )
 from app.services.pass_predictor import PassPredictor
+from skyfield.api import EarthSatellite
 
 
 _predict_cache: dict = {}
@@ -2693,6 +2697,77 @@ async def satellite_track(
             for point in track_points
         ],
     }
+
+
+@app.post("/api/rig/tracking/start")
+async def start_rig_tracking(request: Request) -> dict:
+    """Startet die Doppler-korrigierte IC-705-Verfolgung fuer einen Satelliten."""
+    payload = await request.json()
+    norad_id = str(payload.get("norad_id", "")).strip()
+    if not norad_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Keine NORAD-ID angegeben.",
+        )
+
+    records = await _get_all_tle_records()
+    records_by_norad_id = {record.norad_id: record for record in records}
+    record = records_by_norad_id.get(norad_id)
+    if record is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Satellit mit NORAD-ID {norad_id} nicht gefunden.",
+        )
+
+    all_transponders = load_transponders(SATNOGS_TRANSMITTERS_FILE)
+    transponder = best_downlink_transponder(all_transponders.get(norad_id, []))
+    if transponder is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Kein aktiver Downlink-Transponder fuer NORAD-ID {norad_id} gefunden.",
+        )
+
+    observer = load_observer_settings()
+    predictor = PassPredictor(
+        latitude_deg=observer.latitude_deg,
+        longitude_deg=observer.longitude_deg,
+        elevation_m=observer.elevation_m,
+    )
+    satellite = EarthSatellite(
+        record.line1,
+        record.line2,
+        record.name,
+        predictor.timescale,
+    )
+
+    tracking_session.start(
+        norad_id=norad_id,
+        satellite=satellite,
+        observer=predictor.observer,
+        timescale=predictor.timescale,
+        transponder=transponder,
+    )
+    return {"ok": True, "status": asdict(tracking_session.status)}
+
+
+@app.post("/api/rig/tracking/stop")
+async def stop_rig_tracking() -> dict:
+    """Stoppt eine laufende Doppler-Tracking-Sitzung."""
+    tracking_session.stop()
+    return {"ok": True, "status": asdict(tracking_session.status)}
+
+
+@app.get("/api/rig/tracking/status")
+async def rig_tracking_status() -> dict:
+    """Liefert den aktuellen Status der Doppler-Tracking-Sitzung."""
+    return {"status": asdict(tracking_session.status)}
+
+
+@app.get("/api/rig/status")
+async def rig_status() -> dict:
+    """Prueft, ob rigctld (kappanhang/IC-705) aktuell erreichbar ist."""
+    reachable = await asyncio.to_thread(rig_control.is_reachable)
+    return {"reachable": reachable}
 
 
 @app.get("/update")
