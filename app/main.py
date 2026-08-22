@@ -50,6 +50,7 @@ from app.services.system_metrics import collect_system_metrics
 from app.services.tle_parser import TLEParser
 from app.services.satnogs_aliases import (
     fetch_and_save_satnogs_aliases,
+    load_satnogs_alt_names,
     load_satnogs_aliases,
     load_satnogs_launched,
 )
@@ -1566,6 +1567,8 @@ async def satellites_page(request: Request):
         ).lower(),
     )
 
+    satellite_alt_names = load_satnogs_alt_names(SATNOGS_ALIASES_FILE)
+
     return templates.TemplateResponse(
         name="satellites.html",
         context={
@@ -1579,6 +1582,7 @@ async def satellites_page(request: Request):
             ),
             "records": status["records"],
             "satellites": records,
+            "satellite_alt_names": satellite_alt_names,
         },
     )
 

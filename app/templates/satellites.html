@@ -86,6 +86,7 @@ class="satellite-search-input"
 <tr
 data-name="{{ satellite.name|display_name|lower }}"
 data-norad="{{ satellite.norad_id|lower }}"
+data-alias="{{ satellite_alt_names.get(satellite.norad_id, '')|lower }}"
 >
 <td>{{ satellite.name|display_name }}</td>
 <td>{{ satellite.norad_id }}</td>
@@ -153,7 +154,8 @@ rows.forEach((row) => {
 const matches =
 !query ||
 row.dataset.name.includes(query) ||
-row.dataset.norad.includes(query);
+row.dataset.norad.includes(query) ||
+(row.dataset.alias || "").includes(query);
 
 row.hidden = !matches;
 

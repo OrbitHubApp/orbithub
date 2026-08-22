@@ -75,12 +75,16 @@ async def fetch_and_save_satnogs_aliases(path: Path) -> dict[str, Any]:
 
     aliases: dict[str, str] = {}
     launched: dict[str, str] = {}
+    alt_names: dict[str, str] = {}
     for satellite in satellites:
         norad_cat_id = satellite.get("norad_cat_id")
         name = (satellite.get("name") or "").strip()
         launched_at = satellite.get("launched")
         if norad_cat_id is not None and launched_at:
             launched[str(norad_cat_id)] = launched_at
+        names_field = (satellite.get("names") or "").strip()
+        if norad_cat_id is not None and names_field:
+            alt_names[str(norad_cat_id)] = names_field
         if norad_cat_id is None or not name:
             continue
         aliases[str(norad_cat_id)] = name
@@ -91,6 +95,7 @@ async def fetch_and_save_satnogs_aliases(path: Path) -> dict[str, Any]:
         "count": len(aliases),
         "aliases": aliases,
         "launched": launched,
+        "alt_names": alt_names,
     }
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -134,6 +139,41 @@ def load_satnogs_launched(path: Path) -> dict[str, str]:
     _launch_cache["mtime"] = mtime
     _launch_cache["value"] = launched
     return launched
+
+
+_alt_names_cache: dict[str, Any] = {"mtime": None, "value": {}}
+
+
+def _read_alt_names_cache_file(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    alt_names = payload.get("alt_names", {})
+    if not isinstance(alt_names, dict):
+        return {}
+    return alt_names
+
+
+def load_satnogs_alt_names(path: Path) -> dict[str, str]:
+    """Liest die zwischengespeicherten SatNOGS-Alternativnamen
+    (norad_cat_id -> rohes `names`-Feld aus der SatNOGS-DB, z. B.
+    Amateurfunk-Rufzeichen wie "RS95S"), gecacht anhand der Datei-mtime.
+    """
+    if not path.exists():
+        return {}
+
+    mtime = path.stat().st_mtime
+    if _alt_names_cache["mtime"] == mtime:
+        return _alt_names_cache["value"]
+
+    alt_names = _read_alt_names_cache_file(path)
+    _alt_names_cache["mtime"] = mtime
+    _alt_names_cache["value"] = alt_names
+    return alt_names
 
 
 def enrich_name_with_alias(name: str, norad_id: str, aliases: dict[str, str]) -> str:
