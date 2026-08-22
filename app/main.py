@@ -28,6 +28,7 @@ from app.config import (
     DATA_DIR,
     HISTORY_FILE,
     SATNOGS_ALIASES_FILE,
+    SATNOGS_TRANSMITTERS_FILE,
     TINYGS_ALIASES_FILE,
     NEW_SATELLITES_FILE,
     SOURCE_SETTINGS_FILE,
@@ -53,6 +54,10 @@ from app.services.satnogs_aliases import (
     load_satnogs_alt_names,
     load_satnogs_aliases,
     load_satnogs_launched,
+)
+from app.services.transponder_db import (
+    fetch_and_save_transponders,
+    load_transponders,
 )
 from app.services.tinygs_aliases import (
     fetch_and_save_tinygs_aliases,
@@ -703,6 +708,7 @@ async def periodic_tle_refresh_loop() -> None:
 
 
 SATNOGS_ALIAS_REFRESH_HOURS = 24
+SATNOGS_TRANSPONDER_REFRESH_HOURS = 24
 
 
 TINYGS_ALIAS_REFRESH_HOURS = 24
@@ -736,6 +742,19 @@ async def periodic_satnogs_alias_refresh_loop() -> None:
             prune_old_entries()
         except Exception as exc:
             print(f"OrbitHub Statistik-Bereinigung-Fehler: {exc!r}")
+
+
+async def update_transponders() -> None:
+    try:
+        await fetch_and_save_transponders(SATNOGS_TRANSMITTERS_FILE)
+    except Exception as exc:
+        print(f"OrbitHub Transponder-DB-Fehler: {exc!r}")
+
+
+async def periodic_transponder_refresh_loop() -> None:
+    while True:
+        await asyncio.sleep(SATNOGS_TRANSPONDER_REFRESH_HOURS * 3600)
+        await update_transponders()
 
 
 BRIGHT_ENTRIES_PREWARM_INTERVAL_SECONDS = 600
@@ -963,11 +982,13 @@ def format_tle_file_time() -> str:
 async def startup_event() -> None:
     await update_tle()
     await update_satnogs_aliases()
+    await update_transponders()
     await update_tinygs_aliases()
     await _get_all_tle_records()
     asyncio.create_task(system_metrics_sampler_loop())
     asyncio.create_task(periodic_tle_refresh_loop())
     asyncio.create_task(periodic_satnogs_alias_refresh_loop())
+    asyncio.create_task(periodic_transponder_refresh_loop())
     asyncio.create_task(periodic_tinygs_alias_refresh_loop())
     asyncio.create_task(periodic_bright_entries_prewarm_loop())
     asyncio.create_task(periodic_watchlist_passes_prewarm_loop())
