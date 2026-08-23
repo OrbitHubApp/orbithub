@@ -649,38 +649,56 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
       });
   }
 
-  startBtn.addEventListener("click", function () {
-    showError(null);
-    startBtn.disabled = true;
-    fetch("/api/rig/tracking/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ norad_id: noradId }),
-    })
-      .then(function (response) {
-        return response.json().then(function (data) {
-          if (!response.ok) {
-            throw new Error(data.detail || "Tracking konnte nicht gestartet werden.");
-          }
-          return data;
-        });
-      })
-      .then(function (data) { renderStatus(data.status); })
-      .catch(function (err) {
-        startBtn.disabled = false;
-        showError(err.message);
-      });
-  });
+  function fetchWithTimeout(url, options, timeoutMs) {
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, timeoutMs);
+      var opts = Object.assign({}, options || {}, { signal: controller.signal });
+      return fetch(url, opts).then(
+        function (response) { clearTimeout(timer); return response; },
+        function (err) { clearTimeout(timer); throw err; }
+      );
+    }
 
-  stopBtn.addEventListener("click", function () {
-    stopBtn.disabled = true;
-    fetch("/api/rig/tracking/stop", { method: "POST" })
-      .then(function (r) { return r.json(); })
-      .then(function (d) { renderStatus(d.status); })
-      .catch(function () {});
-  });
+    startBtn.addEventListener("click", function () {
+      showError(null);
+      startBtn.disabled = true;
+      startBtn.textContent = "Wird gestartet \u2026";
+      fetchWithTimeout("/api/rig/tracking/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ norad_id: noradId }),
+      }, 30000)
+        .then(function (response) {
+          return response.json().then(function (data) {
+            if (!response.ok) {
+              throw new Error(data.detail || "Tracking konnte nicht gestartet werden.");
+            }
+            return data;
+          });
+        })
+        .then(function (data) { renderStatus(data.status); })
+        .catch(function (err) {
+          startBtn.disabled = false;
+          showError(err.name === "AbortError" ? "Server antwortet nicht (System stark ausgelastet) \u2013 bitte kurz warten und erneut versuchen." : err.message);
+        })
+        .then(function () { startBtn.textContent = "Tracking starten"; });
+    });
 
-  refreshStatus();
+    stopBtn.addEventListener("click", function () {
+      showError(null);
+      stopBtn.disabled = true;
+      stopBtn.textContent = "Wird gestoppt \u2026";
+      fetchWithTimeout("/api/rig/tracking/stop", { method: "POST" }, 30000)
+        .then(function (r) { return r.json(); })
+        .then(function (d) { renderStatus(d.status); })
+        .catch(function (err) {
+          stopBtn.disabled = false;
+          showError(err.name === "AbortError" ? "Server antwortet nicht (System stark ausgelastet) \u2013 bitte kurz warten und erneut versuchen." : "Stoppen fehlgeschlagen \u2013 bitte erneut versuchen.");
+        })
+        .then(function () { stopBtn.textContent = "Stoppen"; });
+    });
+
+    refreshStatus();
   checkRigReachable();
 })();
 </script>

@@ -99,6 +99,18 @@ class TrackingSession:
         transponder: dict[str, Any],
     ) -> None:
         try:
+            mode = str(transponder.get("mode") or "").strip().upper()
+            if mode:
+                try:
+                    await asyncio.to_thread(rig_control.set_mode, mode, 0)
+                except RigControlError as exc:
+                    logger.warning(
+                        "Doppler-Tracking: Mode '%s' konnte nicht gesetzt werden: %r",
+                        mode,
+                        exc,
+                    )
+                    self._status.error = str(exc)
+
             while True:
                 try:
                     t = timescale.now()
