@@ -424,6 +424,13 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
 <button type="button" id="rig-tracking-stop" class="rig-control-btn rig-control-btn-stop" disabled>Stoppen</button>
 </div>
 
+<div class="rig-audio-actions" id="rig-audio-actions">
+<span class="rig-control-note">Hören</span>
+<button type="button" id="rig-audio-radio" class="rig-audio-btn is-active" aria-pressed="true">IC-705</button>
+<button type="button" id="rig-audio-mac" class="rig-audio-btn" aria-pressed="false">Mac</button>
+</div>
+<audio id="rig-audio-player" preload="none" hidden></audio>
+
 <div class="rig-freq-display" id="rig-freq-display">
 <div class="rig-freq-row rig-freq-row-countdown" id="rig-freq-row-countdown">
 <span class="rig-freq-tag small" id="rig-countdown-label">Nächster Überflug in</span>
@@ -456,6 +463,9 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
 #rig-control-panel .rig-control-btn-start { color: #3fae54; }
 #rig-control-panel .rig-control-btn-stop { color: #c0392b; }
 #rig-control-panel .rig-control-error { color: #c0392b; font-size: 0.9em; }
+#rig-control-panel .rig-audio-actions { display: flex; align-items: center; gap: 0.5em; margin: 0 0 0.6em 0; font-size: 0.85em; }
+#rig-control-panel .rig-audio-btn { padding: 0.3em 0.85em; border-radius: 999px; border: 1px solid currentColor; background: transparent; cursor: pointer; font: inherit; opacity: 0.55; }
+#rig-control-panel .rig-audio-btn.is-active { opacity: 1; background: rgba(63, 255, 130, 0.12); border-color: #3fae54; color: #3fae54; }
 #rig-control-panel [hidden] { display: none !important; }
 
 #rig-control-panel .rig-freq-display {
@@ -581,6 +591,10 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
   var errorEl = document.getElementById("rig-tracking-error");
   var reachableNote = document.getElementById("rig-reachable-note");
   var pollTimer = null;
+var audioRadioBtn = document.getElementById("rig-audio-radio");
+var audioMacBtn = document.getElementById("rig-audio-mac");
+var audioPlayer = document.getElementById("rig-audio-player");
+var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
 
   function fmtDigits(hz) {
     if (hz === null || hz === undefined) { return "---.---.---"; }
@@ -715,7 +729,31 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
         .then(function () { stopBtn.textContent = "Stoppen"; });
     });
 
-    refreshStatus();
+  function setAudioMode(mode) {
+    var isMac = mode === "mac";
+    if (audioRadioBtn) {
+      audioRadioBtn.classList.toggle("is-active", !isMac);
+      audioRadioBtn.setAttribute("aria-pressed", String(!isMac));
+    }
+    if (audioMacBtn) {
+      audioMacBtn.classList.toggle("is-active", isMac);
+      audioMacBtn.setAttribute("aria-pressed", String(isMac));
+    }
+    if (!audioPlayer) { return; }
+    if (isMac) {
+      if (audioPlayer.getAttribute("src") !== audioStreamUrl) { audioPlayer.src = audioStreamUrl; }
+      audioPlayer.play().catch(function () {});
+    } else {
+      audioPlayer.pause();
+      audioPlayer.removeAttribute("src");
+      audioPlayer.load();
+    }
+  }
+
+  if (audioRadioBtn) { audioRadioBtn.addEventListener("click", function () { setAudioMode("radio"); }); }
+  if (audioMacBtn) { audioMacBtn.addEventListener("click", function () { setAudioMode("mac"); }); }
+
+  refreshStatus();
   checkRigReachable();
 })();
 </script>
