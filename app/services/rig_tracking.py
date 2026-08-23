@@ -99,6 +99,17 @@ class TrackingSession:
         transponder: dict[str, Any],
     ) -> None:
         try:
+            reachable = await asyncio.to_thread(
+                rig_control.wait_until_reachable, 4, 1.5
+            )
+            if not reachable:
+                self._status.error = (
+                    "IC-705 antwortet nicht \u2013 bitte pruefen, ob es "
+                    "eingeschaltet und im WLAN verbunden ist. Die Doppler-"
+                    "Verfolgung versucht automatisch weiter, sobald es "
+                    "wieder erreichbar ist."
+                )
+
             mode = str(transponder.get("mode") or "").strip().upper()
             if mode:
                 try:
@@ -129,7 +140,14 @@ class TrackingSession:
                     self._status.error = None
                 except RigControlError as exc:
                     logger.warning("Doppler-Tracking: rigctld-Fehler: %r", exc)
-                    self._status.error = str(exc)
+                    message = str(exc)
+                    if "Connection refused" in message or "fehlgeschlagen" in message:
+                        self._status.error = (
+                            "IC-705 nicht erreichbar (aus, im Standby oder WLAN "
+                            "getrennt?). Verfolgung versucht automatisch weiter."
+                        )
+                    else:
+                        self._status.error = message
                 except Exception as exc:  # noqa: BLE001 - der Loop soll nicht sterben
                     logger.exception("Doppler-Tracking: unerwarteter Fehler")
                     self._status.error = str(exc)

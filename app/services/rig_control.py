@@ -15,6 +15,7 @@ import logging
 import os
 import socket
 import threading
+import time
 from typing import Tuple
 
 logger = logging.getLogger(__name__)
@@ -102,6 +103,23 @@ class RigControl:
             return True
         except RigControlError:
             return False
+
+    def wait_until_reachable(self, attempts: int = 4, delay_seconds: float = 1.5) -> bool:
+        """Versucht mehrfach, rigctld/den IC-705 zu erreichen.
+
+        Gedacht, um dem Funkgeraet ein paar Sekunden Zeit zu geben, aus einem
+        Display-Standby aufzuwachen bzw. kappanhang eine kurze Reconnect-Phase
+        abzuschliessen, bevor der Aufrufer einen Fehler anzeigt. Kann den echten
+        Funkgeraete-Netzwerk-Standby (Geraet komplett ausgeschaltet) nicht
+        ueberwinden - dafuer gibt es weder in rigctld noch in kappanhang einen
+        Fernstart-Befehl.
+        """
+        for attempt in range(attempts):
+            if self.is_reachable():
+                return True
+            if attempt < attempts - 1:
+                time.sleep(delay_seconds)
+        return False
 
 
 # Modulweite Standardinstanz fuer einfache Verwendung in main.py & Co.

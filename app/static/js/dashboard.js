@@ -599,6 +599,8 @@ window.OrbitFavorites = {
 
   const labelEl = document.getElementById("pass-countdown-label");
   const valueEl = document.getElementById("pass-countdown-value");
+  const rigLabelEl = document.getElementById("rig-countdown-label");
+  const rigValueEl = document.getElementById("rig-countdown-value");
 
   function pad(number) {
     return String(number).padStart(2, "0");
@@ -621,6 +623,8 @@ window.OrbitFavorites = {
     if (Number.isNaN(riseTime.getTime()) || Number.isNaN(setTime.getTime())) {
       labelEl.textContent = "Kein Überflug geplant";
       valueEl.textContent = "--:--:--";
+      if (rigLabelEl) { rigLabelEl.textContent = "Kein Überflug geplant"; }
+      if (rigValueEl) { rigValueEl.textContent = "--:--:--"; }
       return;
     }
 
@@ -629,14 +633,20 @@ window.OrbitFavorites = {
     if (now < riseTime) {
       labelEl.textContent = "Nächster Überflug in";
       valueEl.textContent = formatDuration(riseTime - now);
+      if (rigLabelEl) { rigLabelEl.textContent = "Nächster Überflug in"; }
+      if (rigValueEl) { rigValueEl.textContent = formatDuration(riseTime - now); }
       panel.classList.remove("is-active");
     } else if (now < setTime) {
       labelEl.textContent = "Überflug läuft · LOS in";
       valueEl.textContent = formatDuration(setTime - now);
+      if (rigLabelEl) { rigLabelEl.textContent = "Im Bereich · LOS in"; }
+      if (rigValueEl) { rigValueEl.textContent = formatDuration(setTime - now); }
       panel.classList.add("is-active");
     } else {
       labelEl.textContent = "Überflug beendet";
       valueEl.textContent = "00:00:00";
+      if (rigLabelEl) { rigLabelEl.textContent = "Überflug beendet"; }
+      if (rigValueEl) { rigValueEl.textContent = "00:00:00"; }
       panel.classList.remove("is-active");
 
       if (intervalId !== null) {

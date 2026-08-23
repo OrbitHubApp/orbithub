@@ -425,6 +425,10 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
 </div>
 
 <div class="rig-freq-display" id="rig-freq-display">
+<div class="rig-freq-row rig-freq-row-countdown" id="rig-freq-row-countdown">
+<span class="rig-freq-tag small" id="rig-countdown-label">Nächster Überflug in</span>
+<span class="rig-freq-digits rig-countdown-digits" id="rig-countdown-value">—:—:—</span>
+</div>
 <div class="rig-freq-row" id="rig-freq-row-rx">
 <span class="rig-freq-tag">RX<small>Downlink</small></span>
 <span class="rig-freq-digits" id="rig-freq-rx-digits">---.---.---</span>
@@ -487,6 +491,19 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
   letter-spacing: 0.04em;
   text-transform: none;
   opacity: 0.65;
+}
+#rig-control-panel .rig-freq-row-countdown {
+  padding-bottom: 0.55em;
+  margin-bottom: 0.15em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+#rig-control-panel .rig-countdown-digits {
+  font-size: clamp(1rem, 2.4vw, 1.35rem);
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: none;
+}
+#rig-control-panel .rig-freq-display.is-live .rig-countdown-digits {
+  color: #9fe6b0;
 }
 #rig-control-panel .rig-freq-digits {
   font-family: "DejaVu Sans Mono", Consolas, "SFMono-Regular", Menlo, monospace;
