@@ -77,6 +77,7 @@ from skyfield.api import EarthSatellite
 
 _predict_cache: dict = {}
 _PREDICT_CACHE_TTL_SECONDS = 900
+_PREDICT_TIMEOUT_SECONDS = 90
 _predict_semaphore = asyncio.Semaphore(1)
 
 
@@ -122,7 +123,24 @@ async def _predict_async(predictor, record, **kwargs):
         if cached is not None and cached[0] > now:
             return cached[1]
 
-        value = await asyncio.to_thread(predictor.predict, record, **kwargs)
+        try:
+            value = await asyncio.wait_for(
+                asyncio.to_thread(predictor.predict, record, **kwargs),
+                timeout=_PREDICT_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            print(
+                f"OrbitHub Predict-Timeout: {record.name} "
+                f"(NORAD {record.norad_id}) > {_PREDICT_TIMEOUT_SECONDS}s"
+            )
+            raise HTTPException(
+                status_code=504,
+                detail=(
+                    f"Berechnung für {record.name} (NORAD {record.norad_id}) "
+                    f"hat das Zeitlimit von {_PREDICT_TIMEOUT_SECONDS}s überschritten. "
+                    "Bitte später erneut versuchen."
+                ),
+            ) from None
         _predict_cache[cache_key] = (now + _PREDICT_CACHE_TTL_SECONDS, value)
         return value
 from app.services.favorites_store import (
