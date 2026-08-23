@@ -419,6 +419,29 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
 <div class="label">IC-705 DOPPLER-TRACKING</div>
 <h3>Rig-Control</h3>
 <p id="rig-reachable-note" class="rig-control-note"></p>
+<div class="rig-transponder-select" id="rig-transponder-select">
+  <div class="rig-select-row">
+    <span class="rig-control-note">Transponder/Bake</span>
+    <select id="rig-transponder-choice" class="rig-select"></select>
+  </div>
+  <div class="rig-select-row">
+    <span class="rig-control-note">Modus</span>
+    <input list="rig-mode-options" id="rig-mode-choice" class="rig-select" autocomplete="off">
+    <datalist id="rig-mode-options">
+      <option value="FM"></option>
+      <option value="USB"></option>
+      <option value="LSB"></option>
+      <option value="CW"></option>
+      <option value="CWR"></option>
+      <option value="AM"></option>
+      <option value="RTTY"></option>
+      <option value="WFM"></option>
+      <option value="DV"></option>
+    </datalist>
+  </div>
+</div>
+<p id="rig-transponder-note" class="rig-control-note" hidden></p>
+
 <div class="rig-control-actions">
 <button type="button" id="rig-tracking-start" class="rig-control-btn rig-control-btn-start">Tracking starten</button>
 <button type="button" id="rig-tracking-stop" class="rig-control-btn rig-control-btn-stop" disabled>Stoppen</button>
@@ -462,6 +485,11 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
 #rig-control-panel .rig-control-btn:disabled { opacity: 0.4; cursor: default; }
 #rig-control-panel .rig-control-btn-start { color: #3fae54; }
 #rig-control-panel .rig-control-btn-stop { color: #c0392b; }
+#rig-control-panel .rig-transponder-select { display: flex; flex-direction: column; gap: 0.4em; margin: 0.6em 0; }
+#rig-control-panel .rig-select-row { display: flex; align-items: center; gap: 0.6em; }
+#rig-control-panel .rig-select-row .rig-control-note { min-width: 7.5em; }
+#rig-control-panel .rig-select { flex: 1; padding: 0.35em 0.6em; border-radius: 6px; border: 1px solid currentColor; background: transparent; color: inherit; font: inherit; }
+#rig-control-panel .rig-select:disabled { opacity: 0.5; }
 #rig-control-panel .rig-control-error { color: #c0392b; font-size: 0.9em; }
 #rig-control-panel .rig-audio-actions { display: flex; align-items: center; gap: 0.5em; margin: 0 0 0.6em 0; font-size: 0.85em; }
 #rig-control-panel .rig-audio-btn { padding: 0.3em 0.85em; border-radius: 999px; border: 1px solid currentColor; background: transparent; cursor: pointer; font: inherit; opacity: 0.55; }
@@ -590,6 +618,9 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
   var metaText = document.getElementById("rig-freq-meta-text");
   var errorEl = document.getElementById("rig-tracking-error");
   var reachableNote = document.getElementById("rig-reachable-note");
+  var transponderChoice = document.getElementById("rig-transponder-choice");
+  var modeChoice = document.getElementById("rig-mode-choice");
+  var transponderNote = document.getElementById("rig-transponder-note");
   var pollTimer = null;
 var audioRadioBtn = document.getElementById("rig-audio-radio");
 var audioMacBtn = document.getElementById("rig-audio-mac");
@@ -628,6 +659,8 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     var active = !!(status && status.active);
     startBtn.disabled = active;
     stopBtn.disabled = !active;
+    if (transponderChoice) { transponderChoice.disabled = active; }
+    if (modeChoice) { modeChoice.disabled = active; }
     freqDisplay.classList.toggle("is-live", active);
 
     if (!active) {
@@ -660,6 +693,56 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
 
     showError(status.error);
     if (!pollTimer) { pollTimer = setInterval(refreshStatus, 3000); }
+  }
+
+  function populateTransponderOptions(data) {
+    if (!transponderChoice) { return; }
+    transponderChoice.innerHTML = "";
+    var list = (data && data.transponders) || [];
+    if (!list.length) {
+      var emptyOpt = document.createElement("option");
+      emptyOpt.value = "";
+      emptyOpt.textContent = "Keine Transponder-Daten gefunden";
+      transponderChoice.appendChild(emptyOpt);
+      transponderChoice.disabled = true;
+      return;
+    }
+    transponderChoice.disabled = false;
+    list.forEach(function (t) {
+      var opt = document.createElement("option");
+      opt.value = t.uuid || "";
+      var kind = t.is_beacon ? "Bake" : "Transponder";
+      var freqMhz = (t.downlink_low != null) ? (t.downlink_low / 1e6).toFixed(4) + " MHz" : "?";
+      var modeText = t.mode ? " (" + t.mode + ")" : "";
+      opt.textContent = kind + ": " + (t.description || "?") + " \u2013 " + freqMhz + modeText;
+      opt.dataset.mode = t.mode || "";
+      if (t.recommended) { opt.selected = true; }
+      transponderChoice.appendChild(opt);
+    });
+    syncModeFromSelection();
+  }
+
+  function syncModeFromSelection() {
+    if (!transponderChoice || !modeChoice) { return; }
+    var selected = transponderChoice.options[transponderChoice.selectedIndex];
+    if (selected && selected.dataset.mode) { modeChoice.value = selected.dataset.mode; }
+  }
+
+  function loadTransponderOptions() {
+    if (!noradId) { return; }
+    fetch("/api/rig/transponders?norad_id=" + encodeURIComponent(noradId))
+      .then(function (r) { return r.json(); })
+      .then(function (data) { populateTransponderOptions(data); })
+      .catch(function () {
+        if (transponderNote) {
+          transponderNote.hidden = false;
+          transponderNote.textContent = "Transponder-Liste konnte nicht geladen werden.";
+        }
+      });
+  }
+
+  if (transponderChoice) {
+    transponderChoice.addEventListener("change", syncModeFromSelection);
   }
 
   function refreshStatus() {
@@ -697,7 +780,11 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       fetchWithTimeout("/api/rig/tracking/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ norad_id: noradId }),
+        body: JSON.stringify({
+          norad_id: noradId,
+          transponder_uuid: transponderChoice ? transponderChoice.value : "",
+          mode_override: modeChoice ? modeChoice.value : "",
+        }),
       }, 30000)
         .then(function (response) {
           return response.json().then(function (data) {
@@ -755,6 +842,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
 
   refreshStatus();
   checkRigReachable();
+  loadTransponderOptions();
 })();
 </script>
 {% endif %}

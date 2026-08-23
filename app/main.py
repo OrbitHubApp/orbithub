@@ -2738,12 +2738,24 @@ async def start_rig_tracking(request: Request) -> dict:
         )
 
     all_transponders = load_transponders(SATNOGS_TRANSMITTERS_FILE)
-    transponder = best_downlink_transponder(all_transponders.get(norad_id, []))
+    candidates = all_transponders.get(norad_id, [])
+    transponder_uuid = str(payload.get("transponder_uuid", "")).strip()
+    transponder = None
+    if transponder_uuid:
+        transponder = next(
+            (t for t in candidates if t.get("uuid") == transponder_uuid), None
+        )
+    if transponder is None:
+        transponder = best_downlink_transponder(candidates)
     if transponder is None:
         raise HTTPException(
             status_code=404,
             detail=f"Kein aktiver Downlink-Transponder fuer NORAD-ID {norad_id} gefunden.",
         )
+
+    mode_override = str(payload.get("mode_override", "")).strip().upper()
+    if mode_override:
+        transponder = {**transponder, "mode": mode_override}
 
     observer = load_observer_settings()
     predictor = PassPredictor(
@@ -2786,6 +2798,34 @@ async def rig_status() -> dict:
     """Prueft, ob rigctld (kappanhang/IC-705) aktuell erreichbar ist."""
     reachable = await asyncio.to_thread(rig_control.is_reachable)
     return {"reachable": reachable}
+
+
+@app.get("/api/rig/transponders")
+async def list_rig_transponders(norad_id: str) -> dict:
+    """Liefert alle bekannten Transponder/Baken eines Satelliten (SatNOGS) fuer die Auswahl im Rig-Control-Panel."""
+    all_transponders = load_transponders(SATNOGS_TRANSMITTERS_FILE)
+    candidates = all_transponders.get(norad_id, [])
+    recommended = best_downlink_transponder(candidates)
+    recommended_uuid = recommended.get("uuid") if recommended else None
+
+    def _entry(t: dict) -> dict:
+        return {
+            "uuid": t.get("uuid"),
+            "description": t.get("description") or "",
+            "mode": t.get("mode") or "",
+            "downlink_low": t.get("downlink_low"),
+            "downlink_high": t.get("downlink_high"),
+            "uplink_low": t.get("uplink_low"),
+            "uplink_high": t.get("uplink_high"),
+            "is_beacon": t.get("uplink_low") is None,
+            "status": t.get("status"),
+            "alive": bool(t.get("alive")),
+            "recommended": t.get("uuid") == recommended_uuid,
+        }
+
+    entries = [_entry(t) for t in candidates if t.get("downlink_low") is not None]
+    entries.sort(key=lambda e: (not e["recommended"], e["is_beacon"], e["description"]))
+    return {"transponders": entries, "recommended_uuid": recommended_uuid}
 
 
 @app.get("/update")
