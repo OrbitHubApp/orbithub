@@ -423,37 +423,130 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
 <button type="button" id="rig-tracking-start" class="rig-control-btn rig-control-btn-start">Tracking starten</button>
 <button type="button" id="rig-tracking-stop" class="rig-control-btn rig-control-btn-stop" disabled>Stoppen</button>
 </div>
-<dl class="pass-summary-list" id="rig-tracking-details" hidden>
-<dt>Satellit</dt>
-<dd id="rig-detail-satellite">-</dd>
-<dt>Transponder</dt>
-<dd id="rig-detail-transponder">-</dd>
-<dt>RX (Downlink)</dt>
-<dd id="rig-detail-rx">-</dd>
-<dt>TX (Uplink)</dt>
-<dd id="rig-detail-tx">-</dd>
-<dt>Radialgeschwindigkeit</dt>
-<dd id="rig-detail-rate">-</dd>
-</dl>
+
+<div class="rig-freq-display" id="rig-freq-display">
+<div class="rig-freq-row" id="rig-freq-row-rx">
+<span class="rig-freq-tag">RX<small>Downlink</small></span>
+<span class="rig-freq-digits" id="rig-freq-rx-digits">---.---.---</span>
+<span class="rig-freq-mhz">MHz</span>
+</div>
+<div class="rig-freq-row rig-freq-row-tx" id="rig-freq-row-tx" hidden>
+<span class="rig-freq-tag">TX<small>Uplink</small></span>
+<span class="rig-freq-digits" id="rig-freq-tx-digits">---.---.---</span>
+<span class="rig-freq-mhz">MHz</span>
+</div>
+<div class="rig-freq-meta">
+<span class="rig-freq-live-dot" id="rig-freq-live-dot"></span>
+<span id="rig-freq-meta-text">Tracking inaktiv</span>
+</div>
+</div>
+
 <p id="rig-tracking-error" class="rig-control-error" hidden></p>
 </section>
 
 <style>
 #rig-control-panel .rig-control-note { opacity: 0.75; font-size: 0.9em; }
 #rig-control-panel .rig-control-actions { display: flex; gap: 0.6em; margin: 0.6em 0; }
-#rig-control-panel .rig-control-btn {
-  padding: 0.5em 1.1em;
-  border-radius: 6px;
-  border: 1px solid currentColor;
-  background: transparent;
-  cursor: pointer;
-  font: inherit;
-}
+#rig-control-panel .rig-control-btn { padding: 0.5em 1.1em; border-radius: 6px; border: 1px solid currentColor; background: transparent; cursor: pointer; font: inherit; }
 #rig-control-panel .rig-control-btn:disabled { opacity: 0.4; cursor: default; }
 #rig-control-panel .rig-control-btn-start { color: #3fae54; }
 #rig-control-panel .rig-control-btn-stop { color: #c0392b; }
 #rig-control-panel .rig-control-error { color: #c0392b; font-size: 0.9em; }
 #rig-control-panel [hidden] { display: none !important; }
+
+#rig-control-panel .rig-freq-display {
+  margin: 0.9em 0;
+  border-radius: 12px;
+  background: radial-gradient(ellipse at 30% 0%, #10241a 0%, #050b08 75%);
+  border: 1px solid rgba(63, 255, 130, 0.18);
+  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.65), inset 0 0 2px rgba(63, 255, 130, 0.15);
+  padding: 1.1em 1.3em 0.9em;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+#rig-control-panel .rig-freq-display.is-live {
+  border-color: rgba(63, 255, 130, 0.45);
+  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.65), 0 0 22px rgba(63, 255, 130, 0.12);
+}
+#rig-control-panel .rig-freq-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7em;
+}
+#rig-control-panel .rig-freq-row + .rig-freq-row { margin-top: 0.15em; }
+#rig-control-panel .rig-freq-tag {
+  min-width: 4.6em;
+  font-size: 0.62em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6fe38a;
+  opacity: 0.8;
+}
+#rig-control-panel .rig-freq-tag small {
+  display: block;
+  font-size: 0.8em;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  opacity: 0.65;
+}
+#rig-control-panel .rig-freq-digits {
+  font-family: "DejaVu Sans Mono", Consolas, "SFMono-Regular", Menlo, monospace;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  font-size: clamp(1.7rem, 5.2vw, 2.7rem);
+  color: rgba(120, 255, 170, 0.22);
+  text-shadow: none;
+  transition: color 0.4s ease, text-shadow 0.4s ease;
+}
+#rig-control-panel .rig-freq-row-tx .rig-freq-digits {
+  font-size: clamp(1.25rem, 3.8vw, 1.95rem);
+  color: rgba(255, 190, 100, 0.22);
+}
+#rig-control-panel .rig-freq-display.is-live .rig-freq-row-rx .rig-freq-digits {
+  color: #3dff82;
+  text-shadow: 0 0 6px rgba(61, 255, 130, 0.85), 0 0 18px rgba(61, 255, 130, 0.5), 0 0 38px rgba(61, 255, 130, 0.25);
+}
+#rig-control-panel .rig-freq-display.is-live .rig-freq-row-tx .rig-freq-digits {
+  color: #ffb545;
+  text-shadow: 0 0 6px rgba(255, 181, 69, 0.85), 0 0 18px rgba(255, 181, 69, 0.5), 0 0 38px rgba(255, 181, 69, 0.25);
+}
+#rig-control-panel .rig-freq-digits.rig-freq-flash { animation: rig-freq-flash 0.3s ease-out; }
+@keyframes rig-freq-flash {
+  0% { filter: brightness(1.9); }
+  100% { filter: brightness(1); }
+}
+#rig-control-panel .rig-freq-mhz {
+  font-size: 0.78em;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.05em;
+}
+#rig-control-panel .rig-freq-meta {
+  margin-top: 0.75em;
+  padding-top: 0.6em;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  font-size: 0.85em;
+  color: rgba(255, 255, 255, 0.6);
+}
+#rig-control-panel .rig-freq-live-dot {
+  width: 0.62em;
+  height: 0.62em;
+  border-radius: 50%;
+  background: rgba(120, 255, 170, 0.2);
+  flex-shrink: 0;
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+#rig-control-panel .rig-freq-display.is-live .rig-freq-live-dot {
+  background: #3dff82;
+  box-shadow: 0 0 6px #3dff82, 0 0 12px #3dff82;
+  animation: rig-live-pulse 1.4s ease-in-out infinite;
+}
+@keyframes rig-live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.8); }
+}
 </style>
 
 <script>
@@ -463,14 +556,31 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
   var noradId = panel.dataset.noradId;
   var startBtn = document.getElementById("rig-tracking-start");
   var stopBtn = document.getElementById("rig-tracking-stop");
-  var details = document.getElementById("rig-tracking-details");
+  var freqDisplay = document.getElementById("rig-freq-display");
+  var txRow = document.getElementById("rig-freq-row-tx");
+  var rxDigits = document.getElementById("rig-freq-rx-digits");
+  var txDigits = document.getElementById("rig-freq-tx-digits");
+  var metaText = document.getElementById("rig-freq-meta-text");
   var errorEl = document.getElementById("rig-tracking-error");
   var reachableNote = document.getElementById("rig-reachable-note");
   var pollTimer = null;
 
-  function fmtMHz(hz) {
-    if (hz === null || hz === undefined) { return "-"; }
-    return (hz / 1e6).toFixed(4) + " MHz";
+  function fmtDigits(hz) {
+    if (hz === null || hz === undefined) { return "---.---.---"; }
+    var str = Math.round(hz).toString();
+    var groups = [];
+    while (str.length > 3) {
+      groups.unshift(str.slice(-3));
+      str = str.slice(0, -3);
+    }
+    groups.unshift(str);
+    return groups.join(".");
+  }
+
+  function flash(el) {
+    el.classList.remove("rig-freq-flash");
+    void el.offsetWidth;
+    el.classList.add("rig-freq-flash");
   }
 
   function showError(message) {
@@ -484,48 +594,55 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
   }
 
   function renderStatus(status) {
-    if (!status || !status.active) {
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-      details.hidden = true;
-      if (pollTimer) {
-        clearInterval(pollTimer);
-        pollTimer = null;
-      }
+    var active = !!(status && status.active);
+    startBtn.disabled = active;
+    stopBtn.disabled = !active;
+    freqDisplay.classList.toggle("is-live", active);
+
+    if (!active) {
+      rxDigits.textContent = "---.---.---";
+      txDigits.textContent = "---.---.---";
+      txRow.hidden = true;
+      metaText.textContent = "Tracking inaktiv";
+      showError(status ? status.error : null);
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
       return;
     }
-    startBtn.disabled = true;
-    stopBtn.disabled = false;
-    details.hidden = false;
-    document.getElementById("rig-detail-satellite").textContent = status.satellite_name || status.norad_id || "-";
-    document.getElementById("rig-detail-transponder").textContent =
-      (status.transponder_description || "-") + (status.transponder_mode ? " (" + status.transponder_mode + ")" : "");
-    document.getElementById("rig-detail-rx").textContent = fmtMHz(status.rx_frequency_hz);
-    document.getElementById("rig-detail-tx").textContent = fmtMHz(status.tx_frequency_hz);
-    document.getElementById("rig-detail-rate").textContent =
-      (status.range_rate_km_s === null || status.range_rate_km_s === undefined)
-        ? "-"
-        : status.range_rate_km_s.toFixed(3) + " km/s";
-    showError(status.error);
-    if (!pollTimer) {
-      pollTimer = setInterval(refreshStatus, 3000);
+
+    rxDigits.textContent = fmtDigits(status.rx_frequency_hz);
+    flash(rxDigits);
+
+    if (status.tx_frequency_hz == null) {
+      txRow.hidden = true;
+    } else {
+      txRow.hidden = false;
+      txDigits.textContent = fmtDigits(status.tx_frequency_hz);
+      flash(txDigits);
     }
+
+    var satLabel = status.satellite_name || status.norad_id || "-";
+    var transLabel = (status.transponder_description || "-") + (status.transponder_mode ? " (" + status.transponder_mode + ")" : "");
+    var rateLabel = (status.range_rate_km_s == null)
+      ? ""
+      : (status.range_rate_km_s > 0 ? " · ▲ " : " · ▼ ") + Math.abs(status.range_rate_km_s).toFixed(3) + " km/s";
+    metaText.textContent = satLabel + " · " + transLabel + rateLabel;
+
+    showError(status.error);
+    if (!pollTimer) { pollTimer = setInterval(refreshStatus, 3000); }
   }
 
   function refreshStatus() {
     fetch("/api/rig/tracking/status")
-      .then(function (response) { return response.json(); })
-      .then(function (data) { renderStatus(data.status); })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { renderStatus(d.status); })
       .catch(function () {});
   }
 
   function checkRigReachable() {
     fetch("/api/rig/status")
-      .then(function (response) { return response.json(); })
-      .then(function (data) {
-        reachableNote.textContent = data.reachable
-          ? "IC-705 / rigctld erreichbar."
-          : "IC-705 / rigctld aktuell nicht erreichbar.";
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        reachableNote.textContent = d.reachable ? "IC-705 / rigctld erreichbar." : "IC-705 / rigctld aktuell nicht erreichbar.";
       })
       .catch(function () {
         reachableNote.textContent = "IC-705 / rigctld-Status unbekannt.";
@@ -558,8 +675,8 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
   stopBtn.addEventListener("click", function () {
     stopBtn.disabled = true;
     fetch("/api/rig/tracking/stop", { method: "POST" })
-      .then(function (response) { return response.json(); })
-      .then(function (data) { renderStatus(data.status); })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { renderStatus(d.status); })
       .catch(function () {});
   });
 
@@ -568,7 +685,6 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
 })();
 </script>
 {% endif %}
-
 {% if passes %}
 <script id="passes-data" type="application/json">
 [
