@@ -814,6 +814,42 @@ _watchlist_passes_cache: dict = {"key": None, "expires": 0.0, "value": None}
 _WATCHLIST_PASSES_CACHE_TTL_SECONDS = 900
 
 
+_satellite_watchlist_pass_cache: dict = {}
+_SATELLITE_WATCHLIST_PASS_CACHE_TTL_SECONDS = 900
+
+
+async def _get_cached_satellite_passes(
+    watchlist_record, predictor, observer, hours, minimum_elevation
+):
+    """Wie _predict_async fuer einen einzelnen Watchlist-Satelliten, aber mit
+    eigenem Cache PRO Satellit (statt nur fuer die gesamte Favoritenliste).
+
+    Damit kostet das Hinzufuegen/Entfernen EINES Favoriten nicht mehr die
+    Neuberechnung ALLER Favoriten - nur ein neu hinzugefuegter Satellit wird
+    tatsaechlich frisch gerechnet, der Rest kommt aus diesem Cache.
+    """
+    import time as _time
+
+    key = (watchlist_record.norad_id, hours, minimum_elevation)
+    now = _time.time()
+    cached = _satellite_watchlist_pass_cache.get(key)
+    if cached and cached["expires"] > now:
+        return cached["passes"]
+
+    passes = await _predict_async(
+        predictor,
+        watchlist_record,
+        hours=hours,
+        minimum_elevation_deg=minimum_elevation,
+        observer_settings=observer,
+    )
+    _satellite_watchlist_pass_cache[key] = {
+        "expires": now + _SATELLITE_WATCHLIST_PASS_CACHE_TTL_SECONDS,
+        "passes": passes,
+    }
+    return passes
+
+
 async def _build_watchlist_passes(
     records, observer, predictor, favorite_norad_ids, hours, minimum_elevation
 ):
@@ -831,12 +867,8 @@ async def _build_watchlist_passes(
     ]
     watchlist_passes = []
     for watchlist_record in watchlist_records:
-        for watchlist_pass in await _predict_async(
-            predictor,
-            watchlist_record,
-            hours=hours,
-            minimum_elevation_deg=minimum_elevation,
-            observer_settings=observer,
+        for watchlist_pass in await _get_cached_satellite_passes(
+            watchlist_record, predictor, observer, hours, minimum_elevation
         ):
             watchlist_passes.append(
                 {
