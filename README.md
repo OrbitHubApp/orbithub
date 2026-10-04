@@ -19,7 +19,7 @@ At the heart of it is the question every satellite observer asks: when and where
 - **Visual** – prediction of visible passes of bright objects (e.g. the ISS), including sun and observer position matching.
 - **Downloads** – export orbital data as a TLE file (2-line or 3-line format), also available as a fixed link for automatic import into external satellite tracking software.
 - **Statistics** – history of TLE updates and system load.
-- **Settings** – your own location, callsign, Maidenhead locator, and a custom horizon mask (e.g. for obstruction by buildings).
+- **Settings** – your own location, callsign, Maidenhead locator, and two separate horizon masks: one for radio (passes, watchlist, polar plot, exports) and one for visual observation (Visual page) – because radio signals often still reach you where trees or rooftops block the view.
 - **History** – changelog of the application itself.
 
 ## Technology

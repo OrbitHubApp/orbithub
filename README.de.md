@@ -19,7 +19,7 @@ Im Zentrum steht die Frage, die sich jeder Satelliten-Beobachter stellt: Wann un
 - **Visuell** – Vorhersage sichtbarer Überflüge heller Objekte (z. B. ISS), inklusive Abgleich von Sonnen- und Beobachterstand.
 - **Downloads** – Export der Bahndaten als TLE-Datei (2-Zeilen- oder 3-Zeilen-Format), auch als fester Link für den automatischen Import in externe Satellitenprogramme.
 - **Statistik** – Verlauf von TLE-Updates und Systemauslastung.
-- **Einstellungen** – eigener Standort, Rufzeichen, Maidenhead-Locator und eine benutzerdefinierte Horizontmaske (z. B. bei Abschattung durch Gebäude).
+- **Einstellungen** – eigener Standort, Rufzeichen, Maidenhead-Locator und zwei getrennte Horizontmasken: eine für Funk (Überflüge, Merkliste, Polarplot, Exporte) und eine für die visuelle Beobachtung (Seite Visuell) – denn Funksignale erreichen dich oft auch dort, wo Bäume oder Dächer den Blick versperren.
 - **Historie** – Änderungsprotokoll der Anwendung selbst.
 
 ## Technik
