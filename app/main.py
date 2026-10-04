@@ -106,6 +106,7 @@ async def _predict_async(predictor, record, **kwargs):
         getattr(observer_settings, "longitude_deg", None),
         getattr(observer_settings, "elevation_m", None),
         getattr(observer_settings, "default_minimum_elevation_deg", None),
+        getattr(observer_settings, "horizon_segments", None),
     )
 
     now = time.time()
@@ -928,7 +929,7 @@ async def periodic_watchlist_passes_prewarm_loop() -> None:
         try:
             records = await _get_all_tle_records()
             if records:
-                observer = load_observer_settings()
+                observer = load_observer_settings().for_radio()
                 predictor = PassPredictor(
                     latitude_deg=observer.latitude_deg,
                     longitude_deg=observer.longitude_deg,
@@ -1182,7 +1183,8 @@ async def passes_page(
         if selected_record is None:
             selected_record = records[0]
 
-        observer = load_observer_settings()
+        # Funk-Horizont-Profil fuer Ueberfluege (siehe ObserverSettings.for_radio)
+        observer = load_observer_settings().for_radio()
 
         predictor = PassPredictor(
             latitude_deg=observer.latitude_deg,
@@ -1217,7 +1219,9 @@ async def passes_page(
         if path is not None
     ]
 
-    bright_entries, _ = await _get_cached_bright_entries(records, observer, predictor)
+    bright_entries, _ = await _get_cached_bright_entries(
+        records, load_observer_settings(), predictor
+    )
 
     return templates.TemplateResponse(
         name="passes.html",
@@ -1300,7 +1304,8 @@ async def passes_export_txt(
         if selected_record is None:
             selected_record = records[0]
 
-        observer = load_observer_settings()
+        # Funk-Horizont-Profil fuer Ueberfluege (siehe ObserverSettings.for_radio)
+        observer = load_observer_settings().for_radio()
 
         predictor = PassPredictor(
             latitude_deg=observer.latitude_deg,
@@ -1412,7 +1417,7 @@ async def passes_export_watchlist_txt(
         min(minimum_elevation, 90.0),
     )
 
-    observer = load_observer_settings()
+    observer = load_observer_settings().for_radio()
     favorite_norad_ids = load_favorite_norad_ids()
     records_by_norad_id = {
         record.norad_id: record for record in records
@@ -1525,6 +1530,9 @@ async def settings_page(request: Request):
     horizon_segments_json = json.dumps(
         [asdict(segment) for segment in settings.horizon_segments]
     )
+    radio_horizon_segments_json = json.dumps(
+        [asdict(segment) for segment in settings.radio_horizon_segments]
+    )
 
     return templates.TemplateResponse(
         name="settings.html",
@@ -1536,6 +1544,7 @@ async def settings_page(request: Request):
             "codename": CODENAME,
             "settings": settings,
             "horizon_segments_json": horizon_segments_json,
+            "radio_horizon_segments_json": radio_horizon_segments_json,
             "saved": request.query_params.get("saved") == "1",
         },
     )
@@ -1587,25 +1596,32 @@ async def update_settings(request: Request) -> dict:
         if isinstance(station, str) and str(station).strip()
     )
 
-    horizon_segments = []
-    for raw_segment in payload.get("horizon_segments") or []:
-        if not isinstance(raw_segment, dict):
-            continue
-
-        azimuth_from_deg = coerce_float(raw_segment.get("azimuth_from_deg"), 0.0) % 360.0
-        azimuth_to_deg = coerce_float(raw_segment.get("azimuth_to_deg"), 0.0) % 360.0
-        segment_minimum_elevation_deg = max(
-            0.0,
-            min(90.0, coerce_float(raw_segment.get("minimum_elevation_deg"), 0.0)),
-        )
-
-        horizon_segments.append(
-            HorizonSegment(
-                azimuth_from_deg=azimuth_from_deg,
-                azimuth_to_deg=azimuth_to_deg,
-                minimum_elevation_deg=segment_minimum_elevation_deg,
+    def parse_segments(raw_segments) -> tuple:
+        parsed = []
+        for raw_segment in raw_segments or []:
+            if not isinstance(raw_segment, dict):
+                continue
+            azimuth_from_deg = coerce_float(raw_segment.get("azimuth_from_deg"), 0.0) % 360.0
+            azimuth_to_deg = coerce_float(raw_segment.get("azimuth_to_deg"), 0.0) % 360.0
+            segment_minimum_elevation_deg = max(
+                0.0,
+                min(90.0, coerce_float(raw_segment.get("minimum_elevation_deg"), 0.0)),
             )
-        )
+            parsed.append(
+                HorizonSegment(
+                    azimuth_from_deg=azimuth_from_deg,
+                    azimuth_to_deg=azimuth_to_deg,
+                    minimum_elevation_deg=segment_minimum_elevation_deg,
+                )
+            )
+        return tuple(parsed)
+
+    horizon_segments = list(parse_segments(payload.get("horizon_segments")))
+    if "radio_horizon_segments" in payload:
+        radio_horizon_segments = parse_segments(payload.get("radio_horizon_segments"))
+    else:
+        # Aeltere Clients senden kein Funk-Profil -> bestehendes behalten
+        radio_horizon_segments = load_observer_settings().radio_horizon_segments
 
     settings = ObserverSettings(
         callsign=callsign,
@@ -1618,9 +1634,16 @@ async def update_settings(request: Request) -> dict:
         horizon_segments=tuple(horizon_segments),
         time_display=time_display,
         tinygs_stations=tinygs_stations,
+        radio_horizon_segments=radio_horizon_segments,
     )
 
     save_observer_settings(settings)
+
+    # Horizont-Profile koennen sich geaendert haben -> Pass-Caches verwerfen
+    _predict_cache.clear()
+    _satellite_watchlist_pass_cache.clear()
+    _watchlist_passes_cache["expires"] = 0.0
+    _bright_entries_cache["expires"] = 0.0
 
     return {"ok": True}
 

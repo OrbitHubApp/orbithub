@@ -151,6 +151,32 @@
   </div>
 </section>
 
+<section class="add-source-panel" id="radio-horizon-panel">
+  <div class="add-source-panel-header">
+    <div>
+      <div class="label">{{ t('settings.radio_horizon_label') }}</div>
+      <h3>{{ t('settings.radio_horizon_heading') }}</h3>
+      <p>
+{{ t('settings.radio_horizon_intro') }}
+      </p>
+    </div>
+
+    <button
+      class="source-action-button primary"
+      id="add-radio-horizon-segment"
+      type="button"
+    >
+      {{ t('settings.add_segment_button') }}
+    </button>
+  </div>
+
+  <div id="radio-horizon-segments-list"></div>
+
+  <p class="source-form-status" id="radio-horizon-empty-hint">
+{{ t('settings.radio_horizon_empty_hint') }}
+  </p>
+</section>
+
 <section class="add-source-panel">
   <div class="add-source-panel-header">
     <div>
@@ -205,6 +231,7 @@
 
 {% block scripts %}
 <script id="horizon-segments-data" type="application/json">{{ horizon_segments_json | safe }}</script>
+<script id="radio-horizon-segments-data" type="application/json">{{ radio_horizon_segments_json | safe }}</script>
 <script>
 (() => {
   const listEl = document.getElementById("horizon-segments-list");
@@ -218,15 +245,17 @@ const errorTemplate = "{{ t('settings.error_template') }}";
 
   if (!listEl || !addButton || !saveButton) return;
 
-  let segments = [];
-
-  try {
-    const dataEl = document.getElementById("horizon-segments-data");
-    segments = JSON.parse(dataEl.textContent || "[]");
-  } catch (error) {
-    segments = [];
+  function readSegments(dataId) {
+    try {
+      const dataEl = document.getElementById(dataId);
+      return JSON.parse(dataEl.textContent || "[]");
+    } catch (error) {
+      return [];
+    }
   }
 
+  // Ein Editor pro Horizont-Profil (Funk + Visuell), gleiche Bedienung.
+  function createHorizonEditor(listEl, emptyHint, addButton, segments) {
   function renderSegments() {
     listEl.innerHTML = "";
 
@@ -276,6 +305,14 @@ const errorTemplate = "{{ t('settings.error_template') }}";
         });
       });
 
+      const removeButton = row.querySelector("[data-remove-index]");
+      if (removeButton) {
+        removeButton.addEventListener("click", () => {
+          segments.splice(index, 1);
+          renderSegments();
+        });
+      }
+
       listEl.appendChild(row);
       const helperHeightInput = row.querySelector(".horizon-helper-height");
       const helperDistanceInput = row.querySelector(".horizon-helper-distance");
@@ -323,6 +360,27 @@ const errorTemplate = "{{ t('settings.error_template') }}";
     });
     renderSegments();
   });
+
+  renderSegments();
+  return segments;
+  }
+
+  const segments = createHorizonEditor(
+    listEl,
+    emptyHint,
+    addButton,
+    readSegments("horizon-segments-data"),
+  );
+
+  const radioListEl = document.getElementById("radio-horizon-segments-list");
+  const radioSegments = radioListEl
+    ? createHorizonEditor(
+        radioListEl,
+        document.getElementById("radio-horizon-empty-hint"),
+        document.getElementById("add-radio-horizon-segment"),
+        readSegments("radio-horizon-segments-data"),
+      )
+    : null;
 
   if (reloadButton) {
     reloadButton.addEventListener("click", () => {
@@ -378,6 +436,7 @@ const errorTemplate = "{{ t('settings.error_template') }}";
         "settings-time-display"
       ).value,
       horizon_segments: segments,
+      ...(radioSegments ? { radio_horizon_segments: radioSegments } : {}),
       tinygs_stations: document
         .getElementById("settings-tinygs-stations")
         .value.split("\n")
@@ -397,7 +456,6 @@ const errorTemplate = "{{ t('settings.error_template') }}";
     }
   });
 
-  renderSegments();
 })();
 </script>
 {% endblock %}

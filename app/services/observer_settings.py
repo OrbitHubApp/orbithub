@@ -1,9 +1,14 @@
-"""Persisted operator/observer configuration: QTH, locator, horizon mask."""
+"""Persisted operator/observer configuration: QTH, locator, horizon masks.
+
+Zwei getrennte Horizont-Profile:
+- horizon_segments: visuelle Sichtbarkeit (Seite Visuell, helle Satelliten)
+- radio_horizon_segments: Funk (Ueberfluege, Merkliste, Exporte)
+"""
 
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 
 from app.config import DATA_DIR
 
@@ -18,6 +23,7 @@ DEFAULT_SETTINGS = {
     "elevation_m": 50.0,
     "default_minimum_elevation_deg": 10.0,
     "horizon_segments": [],
+    "radio_horizon_segments": [],
     "time_display": "local",
     "tinygs_stations": [],
 }
@@ -44,6 +50,14 @@ class ObserverSettings:
     )
     time_display: str = "local"
     tinygs_stations: tuple[str, ...] = field(default_factory=tuple)
+    radio_horizon_segments: tuple[HorizonSegment, ...] = field(
+        default_factory=tuple,
+    )
+
+    def for_radio(self) -> "ObserverSettings":
+        """Kopie, deren horizon_segments das Funk-Profil sind - fuer alle
+        Pass-Berechnungen, die Funk-Sichtbarkeit meinen."""
+        return replace(self, horizon_segments=self.radio_horizon_segments)
 
     def minimum_elevation_at(self, azimuth_deg: float) -> float:
         """Required minimum elevation for a given azimuth, taking the
@@ -89,8 +103,22 @@ def load_observer_settings() -> ObserverSettings:
         except (json.JSONDecodeError, OSError):
             pass
 
-    raw_segments = data.get("horizon_segments") or []
-    segments = tuple(
+    segments = _parse_segments(data.get("horizon_segments"))
+    radio_segments = _parse_segments(data.get("radio_horizon_segments"))
+
+    raw_tinygs_stations = data.get("tinygs_stations") or []
+    tinygs_stations = tuple(
+        str(station).strip()
+        for station in raw_tinygs_stations
+        if isinstance(station, str) and str(station).strip()
+    )
+
+    return _build_settings(data, segments, radio_segments, tinygs_stations)
+
+
+def _parse_segments(raw_segments) -> tuple[HorizonSegment, ...]:
+    raw_segments = raw_segments or []
+    return tuple(
         HorizonSegment(
             azimuth_from_deg=_coerce_float(
                 segment.get("azimuth_from_deg"), 0.0,
@@ -106,13 +134,8 @@ def load_observer_settings() -> ObserverSettings:
         if isinstance(segment, dict)
     )
 
-    raw_tinygs_stations = data.get("tinygs_stations") or []
-    tinygs_stations = tuple(
-        str(station).strip()
-        for station in raw_tinygs_stations
-        if isinstance(station, str) and str(station).strip()
-    )
 
+def _build_settings(data, segments, radio_segments, tinygs_stations) -> ObserverSettings:
     return ObserverSettings(
         callsign=str(data.get("callsign", DEFAULT_SETTINGS["callsign"])),
         locator=str(data.get("locator", DEFAULT_SETTINGS["locator"])),
@@ -140,6 +163,7 @@ def load_observer_settings() -> ObserverSettings:
             else DEFAULT_SETTINGS["time_display"]
         ),
         tinygs_stations=tinygs_stations,
+        radio_horizon_segments=radio_segments,
     )
 
 
@@ -161,6 +185,9 @@ def save_observer_settings(settings: ObserverSettings) -> None:
         ],
         "time_display": settings.time_display,
         "tinygs_stations": list(settings.tinygs_stations),
+        "radio_horizon_segments": [
+            asdict(segment) for segment in settings.radio_horizon_segments
+        ],
     }
 
     OBSERVER_SETTINGS_FILE.write_text(
