@@ -217,7 +217,7 @@ mapResizeObserver.observe(mapContainer);
 
 const baseLayers = {
 "{{ t('map.layer_voyager') }}": L.tileLayer(
-"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+"https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
 {
 attribution: "{{ t('map.attribution_carto_voyager') }}",
 subdomains: "abcd",
