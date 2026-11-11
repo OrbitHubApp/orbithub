@@ -113,6 +113,14 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
 .ic705-live-mode { font-family: monospace; padding: 0.1em 0.5em; border-radius: 4px; border: 1px solid rgba(86,221,255,0.4); color: #56ddff; }
 .ic705-live-figs { font-variant-numeric: tabular-nums; opacity: 0.9; }
 .ic705-tick { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ic705-variants { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 0.5em; align-items: center; margin-top: 0.5em; }
+.ic705-variants-label { font-size: 0.85em; opacity: 0.7; }
+.ic705-variant-btn { padding: 0.45em 0.9em; border-radius: 8px; border: 1px solid rgba(86,221,255,0.45); background: rgba(86,221,255,0.06); color: inherit; font: inherit; font-size: 0.92em; cursor: pointer; font-variant-numeric: tabular-nums; }
+.ic705-variant-btn b { color: #56ddff; }
+.ic705-variant-btn:hover:not(:disabled) { background: rgba(86,221,255,0.16); }
+.ic705-variant-btn.is-active { border-color: #ff4fd8; background: rgba(255,79,216,0.16); box-shadow: 0 0 0 1px rgba(255,79,216,0.35); }
+.ic705-variant-btn.is-active b { color: #ff4fd8; }
+.ic705-variant-btn:disabled { cursor: progress; }
 .ic705-live-list { display: flex; flex-wrap: wrap; gap: 0.4em; margin: 0.3em 0 0.5em; }
 .ic705-live-chip { padding: 0.2em 0.7em; border-radius: 999px; border: 1px solid rgba(255,255,255,0.25); font-size: 0.85em; font-variant-numeric: tabular-nums; }
 .ic705-live-chip.is-current { border-color: #ff4fd8; color: #ff4fd8; }
@@ -157,10 +165,43 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
   }, 1000);
   function showError(msg) { errEl.hidden = !msg; errEl.textContent = msg || ""; }
 
+  // Mehrere gehoerte Betriebsarten (z. B. ISS: Crew, FM-Repeater, SSTV, Digi)
+  // -> Knoepfe zum schnellen Umschalten, Doppler laeuft automatisch mit
+  function variantButtons(cur) {
+    var list = cur.variants || [];
+    if (list.length < 2) { return ""; }
+    return '<div class="ic705-variants"><span class="ic705-variants-label">Umschalten:</span>' +
+      list.map(function (v) {
+        return '<button type="button" class="ic705-variant-btn' + (v.active ? " is-active" : "") + '"' +
+          ' data-norad="' + esc(cur.norad_id) + '" data-key="' + esc(v.key) + '"' +
+          ' title="' + esc(v.description) + '"' + (v.active ? ' aria-pressed="true"' : "") + ">" +
+          '<b>' + esc(v.mode) + "</b> " + (v.downlink_hz / 1e6).toFixed(3) + " " + esc(v.rig_mode || "") +
+          "</button>";
+      }).join("") + "</div>";
+  }
+  nowEl.addEventListener("click", function (evt) {
+    var btn = evt.target.closest(".ic705-variant-btn");
+    if (!btn || btn.classList.contains("is-active")) { return; }
+    Array.prototype.forEach.call(nowEl.querySelectorAll(".ic705-variant-btn"), function (b) {
+      b.classList.toggle("is-active", b === btn);
+      b.disabled = true;
+    });
+    fetch("/api/rig/live/variant", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ norad_id: btn.dataset.norad, key: btn.dataset.key }),
+    })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) { throw new Error(d.detail || "Fehler"); } return d; }); })
+      .then(function () { return new Promise(function (res) { setTimeout(res, 1500); }); })
+      .then(load)
+      .catch(function (err) { showError("Umschalten fehlgeschlagen: " + err.message); load(); });
+  });
+
   function render(d) {
     var s = d.status || {};
     var active = !!s.active;
     panel.classList.toggle("is-live", active);
+    if (active) { document.body.dataset.liveActive = "1"; } else { delete document.body.dataset.liveActive; }
     startBtn.hidden = active;
     hoursSel.disabled = active;
     stopBtn.hidden = !active;
@@ -176,7 +217,8 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
         '<span class="ic705-live-mode">' + esc(cur.mode) + "</span>" +
         '<span class="ic705-live-figs">' + (cur.downlink_hz / 1e6).toFixed(3) + " MHz " + esc(cur.rig_mode || "") +
         " · Elevation " + Math.round(cur.el) + "° · Azimut " + Math.round(cur.az) + "°" +
-        (cur.set ? " · LOS " + hhmm(cur.set) + " (" + remain(cur.set) + ")" : "") + "</span>";
+        (cur.set ? " · LOS " + hhmm(cur.set) + " (" + remain(cur.set) + ")" : "") + "</span>" +
+        variantButtons(cur);
     } else {
       nowEl.classList.add("is-idle");
       var n = s.next_up;
@@ -536,8 +578,11 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     trackingActive = active;
     startBtn.disabled = active;
     stopBtn.disabled = !active;
-    if (transponderChoice) { transponderChoice.disabled = active || !transponderChoice.options.length; }
-    if (modeChoice) { modeChoice.disabled = active; }
+    // Transponder/Modus bleiben auch waehrend des Trackings waehlbar - ein
+    // Wechsel stellt sofort um (ausser die Live-Beobachtung steuert gerade)
+    var liveSteers = active && !!document.body.dataset.liveActive;
+    if (transponderChoice) { transponderChoice.disabled = liveSteers || !transponderChoice.options.length; }
+    if (modeChoice) { modeChoice.disabled = liveSteers; }
     if (manualRx) { manualRx.disabled = active; }
     if (manualTx) { manualTx.disabled = active; }
     freqDisplay.classList.toggle("is-live", active);
@@ -669,6 +714,18 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
 
   if (transponderChoice) {
     transponderChoice.addEventListener("change", syncModeFromSelection);
+    transponderChoice.addEventListener("change", retuneIfTracking);
+  }
+  if (modeChoice) {
+    modeChoice.addEventListener("change", retuneIfTracking);
+  }
+
+  // Waehrend eines laufenden (manuellen) Trackings auf anderen Transponder
+  // bzw. Modus umschalten: Tracking mit der neuen Auswahl neu starten.
+  function retuneIfTracking() {
+    if (!trackingActive || document.body.dataset.liveActive || isManualSelected()) { return; }
+    startBtn.disabled = false;
+    startBtn.click();
   }
 
   function refreshStatus() {

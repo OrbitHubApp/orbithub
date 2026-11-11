@@ -18,6 +18,11 @@ Ablauf (alle CHECK_INTERVAL_SECONDS):
 4. Ist keiner hoerbar, wird das Tracking angehalten (der IC-705 bleibt auf
    der letzten Frequenz) und der naechste hoerbare Ueberflug angezeigt.
 
+Hat ein Satellit mehrere gehoerte Betriebsarten (ISS: Crew, FM-Repeater,
+SSTV, Digi), startet die Beobachtung mit der zuletzt gemeldeten. Ueber
+select_variant() laesst sich jederzeit umschalten; die Wahl gilt fuer diesen
+Satelliten, solange die Beobachtung laeuft.
+
 Der Zustand (an/aus, Zeitraum) wird in data/live-observer.json gespeichert,
 damit die Beobachtung einen Neustart des Containers uebersteht.
 """
@@ -66,6 +71,9 @@ class LiveObserver:
         self._task: asyncio.Task[None] | None = None
         self._status = LiveObserverStatus()
         self._provider: CandidateProvider | None = None
+        self._variant_choice: dict[str, str] = {}
+        self._candidates: list[dict[str, Any]] = []
+        self._wake: asyncio.Event | None = None
 
     @property
     def status(self) -> LiveObserverStatus:
@@ -97,6 +105,9 @@ class LiveObserver:
     def start(self, hours: int, provider: CandidateProvider) -> None:
         self.stop(stop_tracking=False, persist=False)
         self._provider = provider
+        self._variant_choice = {}
+        self._candidates = []
+        self._wake = asyncio.Event()
         self._status = LiveObserverStatus(
             active=True,
             hours=hours,
@@ -117,12 +128,45 @@ class LiveObserver:
         if persist:
             self._save_state()
 
+    # ------------------------------------------------------------- Varianten
+    def _variant(self, candidate: dict[str, Any]) -> dict[str, Any]:
+        wanted = self._variant_choice.get(candidate["norad_id"])
+        for variant in candidate["variants"]:
+            if variant["key"] == wanted:
+                return variant
+        return candidate["variants"][0]
+
+    def select_variant(self, norad_id: str, key: str) -> bool:
+        """Waehlt eine andere Betriebsart; wirkt sofort, wenn der Satellit gerade laeuft."""
+        candidate = next((c for c in self._candidates if c["norad_id"] == norad_id), None)
+        if candidate is None or not any(v["key"] == key for v in candidate["variants"]):
+            return False
+        self._variant_choice[norad_id] = key
+        if self._wake is not None:
+            self._wake.set()
+        return True
+
+    @staticmethod
+    def _variant_list(candidate: dict[str, Any], active_key: str) -> list[dict[str, Any]]:
+        return [
+            {
+                "key": v["key"],
+                "mode": v["mode"],
+                "rig_mode": v["rig_mode"],
+                "downlink_hz": v["downlink_hz"],
+                "description": v["description"],
+                "active": v["key"] == active_key,
+            }
+            for v in candidate["variants"]
+        ]
+
     # ------------------------------------------------------------------ Loop
     async def _loop(self) -> None:
         candidates: list[dict[str, Any]] = []
         context: dict[str, Any] = {}
         refreshed = 0.0
         current_key: str | None = None
+        current_variant: str | None = None
         try:
             while True:
                 try:
@@ -130,11 +174,12 @@ class LiveObserver:
                         assert self._provider is not None
                         context = await self._provider(self._status.hours)
                         candidates = context.get("candidates", [])
+                        self._candidates = candidates
                         refreshed = time.monotonic()
                         self._status.candidates_count = len(candidates)
                         self._status.candidates_refreshed_at = datetime.now(timezone.utc).isoformat()
 
-                    positions = await asyncio.to_thread(self._positions, candidates, context)
+                    positions = await asyncio.to_thread(self._positions, candidates, context, self._variant)
                     audible = [p for p in positions if p["audible"]]
                     audible.sort(key=lambda p: p["el"], reverse=True)
                     self._status.visible = [
@@ -153,11 +198,14 @@ class LiveObserver:
                         if current_key is not None:
                             tracking_session.stop()
                             current_key = None
+                            current_variant = None
                         self._status.current = None
                     else:
                         candidate = choice["candidate"]
+                        variant = self._variant(candidate)
                         if (
                             choice["key"] != current_key
+                            or variant["key"] != current_variant
                             or not tracking.active
                             or tracking.norad_id != candidate["norad_id"]
                         ):
@@ -166,8 +214,9 @@ class LiveObserver:
                                 satellite=candidate["satellite"],
                                 observer=context["observer"],
                                 timescale=context["timescale"],
-                                transponder=candidate["transponder"],
+                                transponder=variant["transponder"],
                             )
+                            current_variant = variant["key"]
                             if current_key is not None and choice["key"] != current_key:
                                 self._status.switches += 1
                             current_key = choice["key"]
@@ -176,6 +225,8 @@ class LiveObserver:
                             k: choice[k]
                             for k in ("key", "name", "mode", "el", "az", "rig_mode", "downlink_hz", "set")
                         }
+                        self._status.current["norad_id"] = candidate["norad_id"]
+                        self._status.current["variants"] = self._variant_list(candidate, variant["key"])
 
                     self._status.next_up = self._next_up(candidates, audible)
                     self._status.error = None
@@ -184,12 +235,22 @@ class LiveObserver:
                     self._status.error = str(exc)
                     if not candidates:
                         refreshed = 0.0
-                await asyncio.sleep(CHECK_INTERVAL_SECONDS)
+                # Warten - oder sofort weiter, wenn umgeschaltet wurde
+                assert self._wake is not None
+                try:
+                    await asyncio.wait_for(self._wake.wait(), CHECK_INTERVAL_SECONDS)
+                except asyncio.TimeoutError:
+                    pass
+                self._wake.clear()
         except asyncio.CancelledError:
             raise
 
     @staticmethod
-    def _positions(candidates: list[dict[str, Any]], context: dict[str, Any]) -> list[dict[str, Any]]:
+    def _positions(
+        candidates: list[dict[str, Any]],
+        context: dict[str, Any],
+        variant_of: Callable[[dict[str, Any]], dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         observer = context.get("observer")
         timescale = context.get("timescale")
         settings = context.get("observer_settings")
@@ -209,13 +270,14 @@ class LiveObserver:
                 (p for p in candidate.get("passes", []) if p["rise"] <= now <= p["set"]),
                 None,
             )
+            variant = variant_of(candidate)
             result.append(
                 {
                     "key": candidate["key"],
                     "name": candidate["name"],
-                    "mode": candidate["mode"],
-                    "rig_mode": candidate["rig_mode"],
-                    "downlink_hz": candidate["downlink_hz"],
+                    "mode": variant["mode"],
+                    "rig_mode": variant["rig_mode"],
+                    "downlink_hz": variant["downlink_hz"],
                     "el": round(el, 1),
                     "az": round(azimuth, 0),
                     "audible": el >= threshold,
@@ -243,7 +305,7 @@ class LiveObserver:
         candidate, p = best
         return {
             "name": candidate["name"],
-            "mode": candidate["mode"],
+            "mode": " / ".join(v["mode"] for v in candidate["variants"]),
             "rise": p["rise"].isoformat(),
             "set": p["set"].isoformat(),
             "max_el": round(p["max_el"], 0),

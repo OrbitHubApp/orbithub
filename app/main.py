@@ -3253,40 +3253,63 @@ async def _live_observer_candidates(hours: int) -> dict:
     )
     min_el = max(LIVE_MIN_ELEVATION_DEG, settings.default_minimum_elevation_deg)
 
-    best_by_norad: dict[str, dict] = {}
+    # Alle gehoerten Betriebsarten je Satellit sammeln (z. B. ISS: Crew, FM,
+    # SSTV, Digi) - zuletzt gemeldete zuerst; die Live-Beobachtung startet mit
+    # der ersten, auf /ic705 kann man jederzeit umschalten.
+    entries_by_norad: dict[str, list[dict]] = {}
     for entry in data["entries"]:
         if entry.get("status") == "Not Heard" or not entry.get("transponder_uuid"):
             continue
         if not entry.get("has_tle") or not entry.get("norad_id"):
             continue
-        norad_id = entry["norad_id"]
-        previous = best_by_norad.get(norad_id)
-        if previous is None or (entry.get("latest_time") or "") > (previous.get("latest_time") or ""):
-            best_by_norad[norad_id] = entry
+        entries_by_norad.setdefault(entry["norad_id"], []).append(entry)
 
     candidates = []
-    for norad_id, entry in best_by_norad.items():
+    for norad_id, entries in entries_by_norad.items():
         record = _resolve_record(norad_id, records_by_norad_id)
         if record is None:
             continue
-        transponder = next(
-            (t for t in _transponders_for(norad_id, all_transponders) if t.get("uuid") == entry["transponder_uuid"]),
-            None,
-        )
-        if transponder is None:
+        entries.sort(key=lambda e: e.get("latest_time") or "", reverse=True)
+        transponders = _transponders_for(norad_id, all_transponders)
+        variants: list[dict] = []
+        for entry in entries:
+            transponder = next(
+                (t for t in transponders if t.get("uuid") == entry["transponder_uuid"]), None
+            )
+            if transponder is None:
+                continue
+            if entry.get("rig_mode"):
+                transponder = {**transponder, "mode": entry["rig_mode"]}
+            # Gleiche Frequenz + gleiche Betriebsart (ISS Crew/SSTV auf
+            # 145,800 FM) -> ein Knopf mit beiden Bezeichnungen
+            same = next(
+                (v for v in variants
+                 if v["downlink_hz"] == entry.get("downlink_hz")
+                 and v["rig_mode"] == entry.get("rig_mode")),
+                None,
+            )
+            if same is not None:
+                same["mode"] += " · " + entry["mode"]
+                continue
+            variants.append(
+                {
+                    "key": entry["name"],
+                    "mode": entry["mode"],
+                    "rig_mode": entry.get("rig_mode"),
+                    "downlink_hz": entry.get("downlink_hz"),
+                    "description": transponder.get("description") or "",
+                    "transponder": transponder,
+                }
+            )
+        if not variants:
             continue
-        if entry.get("rig_mode"):
-            transponder = {**transponder, "mode": entry["rig_mode"]}
         passes = await _get_cached_satellite_passes(record, predictor, settings, 24, min_el)
         candidates.append(
             {
-                "key": entry["name"],
+                "key": norad_id,
                 "norad_id": norad_id,
-                "name": entry["satellite"],
-                "mode": entry["mode"],
-                "rig_mode": entry.get("rig_mode"),
-                "downlink_hz": entry.get("downlink_hz"),
-                "transponder": transponder,
+                "name": entries[0]["satellite"],
+                "variants": variants,
                 "satellite": EarthSatellite(record.line1, record.line2, record.name, predictor.timescale),
                 "passes": [
                     {"rise": p.rise_time, "set": p.set_time, "max_el": p.max_elevation_deg}
@@ -3323,6 +3346,20 @@ async def start_live_observation(request: Request) -> dict:
 async def stop_live_observation() -> dict:
     """Beendet die Live-Beobachtung und haelt das Tracking an."""
     live_observer.stop()
+    return {"ok": True, "status": asdict(live_observer.status)}
+
+
+@app.post("/api/rig/live/variant")
+async def select_live_variant(request: Request) -> dict:
+    """Schaltet waehrend der Live-Beobachtung auf eine andere gehoerte
+    Betriebsart desselben Satelliten um (z. B. ISS Crew -> FM-Repeater)."""
+    payload = await request.json()
+    norad_id = str(payload.get("norad_id", "")).strip()
+    key = str(payload.get("key", "")).strip()
+    if not live_observer.active:
+        raise HTTPException(status_code=409, detail="Live-Beobachtung läuft nicht.")
+    if not live_observer.select_variant(norad_id, key):
+        raise HTTPException(status_code=404, detail="Betriebsart nicht gefunden.")
     return {"ok": True, "status": asdict(live_observer.status)}
 
 
