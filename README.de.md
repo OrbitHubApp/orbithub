@@ -20,6 +20,8 @@ Im Zentrum steht die Frage, die sich jeder Satelliten-Beobachter stellt: Wann un
 - **Downloads** – Export der Bahndaten als TLE-Datei (2-Zeilen- oder 3-Zeilen-Format), auch als fester Link für den automatischen Import in externe Satellitenprogramme.
 - **Statistik** – Verlauf von TLE-Updates und Systemauslastung.
 - **Einstellungen** – eigener Standort, Rufzeichen, Maidenhead-Locator und zwei getrennte Horizontmasken: eine für Funk (Überflüge, Merkliste, Polarplot, Exporte) und eine für die visuelle Beobachtung (Seite Visuell) – denn Funksignale erreichen dich oft auch dort, wo Bäume oder Dächer den Blick versperren.
+- **IC-705** – Steuerung eines ICOM IC-705 über das Netzwerk (mit [kappanhang](https://github.com/nonoo/kappanhang) als rigctld-Brücke): automatische Doppler-Korrektur, passende Betriebsart je Transponder, manuelle Frequenzeingabe, Live-Anzeige des Geräts und Empfangston im Browser. Überflüge lassen sich anklicken und zeigen einen Polarplot mit Einschätzung der Hörbarkeit.
+- **AMSAT Live** – aktuelle Hörberichte von [status.amsat.org](https://status.amsat.org/): welche Satelliten zuletzt tatsächlich gehört wurden und in welcher Betriebsart, mit dem nächsten eigenen Überflug und einem Knopf, der den IC-705 auf Frequenz und Betriebsart einstellt. Neue Satelliten mit vorläufiger SatNOGS-Nummer werden automatisch zugeordnet.
 - **Historie** – Änderungsprotokoll der Anwendung selbst.
 
 ## Technik

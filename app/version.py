@@ -1,2 +1,2 @@
-VERSION = "4.1.0"
-CODENAME = "Neptun"
+VERSION = "4.2.0"
+CODENAME = "Uranus"
