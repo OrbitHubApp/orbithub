@@ -92,8 +92,14 @@ class RigControl:
             passband = 0
         return mode, passband
 
-    def set_mode(self, mode: str, passband: int = 0) -> None:
-        """Setzt Modus (z. B. 'FM', 'USB', 'LSB') und optional Passband-Breite."""
+    def set_mode(self, mode: str, passband: int = 3000) -> None:
+        """Setzt Modus (z. B. 'FM', 'USB', 'LSB') und Passband-Breite.
+
+        kappanhang waehlt das IC-705-Filter anhand der Breite: <=1800 Hz ->
+        FIL3 (schmal), <=2400 Hz -> FIL2, sonst FIL1 (breit). Ein Passband
+        von 0 (Hamlib-"Standard") landet bei kappanhang daher auf FIL3 -
+        deshalb ist der Default hier 3000 (= FIL1).
+        """
         self._command(f"M {mode} {passband}")
 
     def is_reachable(self) -> bool:
@@ -120,6 +126,51 @@ class RigControl:
             if attempt < attempts - 1:
                 time.sleep(delay_seconds)
         return False
+
+
+# Betriebsarten, die kappanhangs rigctld fuer den IC-705 kennt (civcontrol.go),
+# jeweils auch mit "PKT"-Praefix (Datenmodus) zulaessig.
+RIG_MODES = ("LSB", "USB", "AM", "CW", "RTTY", "FM", "WFM", "CW-R", "RTTY-R", "DV")
+
+# Umsetzung von SatNOGS-/Benutzer-Modusbezeichnungen auf IC-705-Betriebsarten.
+# Schluessel = erstes Wort der SatNOGS-Bezeichnung (z. B. "AFSK S-Net" -> "AFSK").
+_MODE_ALIASES = {
+    # FM-Demodulator: Sprache und alle FSK-artigen Datensignale
+    "FMN": "FM", "NFM": "FM", "AFSK": "FM", "AFSK1K2": "FM", "FFSK": "FM",
+    "FSK": "FM", "GFSK": "FM", "GMSK": "FM", "MSK": "FM", "MFSK": "FM",
+    "DUV": "FM", "SSTV": "FM", "APT": "FM", "APRS": "FM", "PACKET": "FM",
+    # SSB-Empfang fuer PSK-Varianten, Weak-Signal-Modi u. a.
+    "BPSK": "USB", "PSK": "USB", "PSK31": "USB", "QPSK": "USB", "QPSK31": "USB",
+    "DQPSK": "USB", "OQPSK": "USB", "WSJT": "USB", "FT8": "USB", "FT4": "USB",
+    "OFDM": "USB", "SSB": "USB",
+    # sonstige Schreibweisen
+    "CWR": "CW-R", "RTTYR": "RTTY-R", "DSTAR": "DV", "D-STAR": "DV",
+}
+
+
+def rig_mode_for(requested: str) -> tuple[str, str | None]:
+    """Setzt eine Modusbezeichnung auf eine IC-705-Betriebsart um.
+
+    Gibt (rig_mode, hinweis) zurueck. `hinweis` ist None, wenn der Modus
+    unveraendert uebernommen werden konnte, sonst ein kurzer deutscher Text
+    fuer die Anzeige (z. B. "AFSK → FM").
+    """
+    raw = (requested or "").strip().upper()
+    if not raw:
+        return "FM", "Kein Modus angegeben → FM"
+
+    prefix = ""
+    base = raw
+    if base.startswith("PKT") and base[3:] in RIG_MODES:
+        prefix, base = "PKT", base[3:]
+    if base in RIG_MODES:
+        return prefix + base, None
+
+    first_word = base.replace("_", " ").split()[0]
+    mapped = _MODE_ALIASES.get(first_word) or (first_word if first_word in RIG_MODES else None)
+    if mapped:
+        return mapped, f"{requested.strip()} → {mapped}"
+    return "FM", f"{requested.strip()} ist am IC-705 unbekannt → FM"
 
 
 # Modulweite Standardinstanz fuer einfache Verwendung in main.py & Co.

@@ -60,7 +60,7 @@ from app.services.transponder_db import (
     fetch_and_save_transponders,
     load_transponders,
 )
-from app.services.rig_control import rig_control
+from app.services.rig_control import rig_control, rig_mode_for
 from app.services.rig_tracking import tracking_session
 from app.services.tinygs_aliases import (
     fetch_and_save_tinygs_aliases,
@@ -2772,6 +2772,52 @@ async def satellite_track(
     }
 
 
+_RIG_MIN_HZ = 30_000          # IC-705 Empfangsbereich: 30 kHz ...
+_RIG_MAX_HZ = 470_000_000     # ... bis 470 MHz
+
+
+def _parse_mhz_to_hz(value: object, label: str, *, required: bool) -> int | None:
+    """Liest eine MHz-Angabe ("145.800" oder "145,800") und liefert Hz."""
+    text = str(value if value is not None else "").strip().replace(",", ".")
+    if not text:
+        if required:
+            raise HTTPException(status_code=400, detail=f"Bitte {label} angeben.")
+        return None
+    try:
+        hz = round(float(text) * 1_000_000)
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail=f"{label}: „{text}“ ist keine gültige Frequenz in MHz."
+        ) from None
+    if not _RIG_MIN_HZ <= hz <= _RIG_MAX_HZ:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{label} {hz / 1e6:.4f} MHz liegt außerhalb des IC-705-Bereichs (0,03–470 MHz).",
+        )
+    return hz
+
+
+def _manual_rig_transponder(payload: dict) -> dict:
+    """Baut aus einer manuellen Frequenzeingabe ein Transponder-Dict fuer die Doppler-Verfolgung."""
+    downlink_hz = _parse_mhz_to_hz(
+        payload.get("manual_downlink_mhz"), "RX-Frequenz (Downlink)", required=True
+    )
+    uplink_hz = _parse_mhz_to_hz(
+        payload.get("manual_uplink_mhz"), "TX-Frequenz (Uplink)", required=False
+    )
+    return {
+        "uuid": "__manual__",
+        "description": "Manuelle Frequenz",
+        "mode": "FM",
+        "downlink_low": downlink_hz,
+        "downlink_high": None,
+        "uplink_low": uplink_hz,
+        "uplink_high": None,
+        "invert": False,
+        "manual": True,
+    }
+
+
 @app.post("/api/rig/tracking/start")
 async def start_rig_tracking(request: Request) -> dict:
     """Startet die Doppler-korrigierte IC-705-Verfolgung fuer einen Satelliten."""
@@ -2796,7 +2842,9 @@ async def start_rig_tracking(request: Request) -> dict:
     candidates = all_transponders.get(norad_id, [])
     transponder_uuid = str(payload.get("transponder_uuid", "")).strip()
     transponder = None
-    if transponder_uuid:
+    if transponder_uuid == "__manual__":
+        transponder = _manual_rig_transponder(payload)
+    elif transponder_uuid:
         transponder = next(
             (t for t in candidates if t.get("uuid") == transponder_uuid), None
         )
@@ -2880,6 +2928,9 @@ async def list_rig_transponders(norad_id: str) -> dict:
 
     entries = [_entry(t) for t in candidates if t.get("downlink_low") is not None]
     entries.sort(key=lambda e: (not e["recommended"], e["is_beacon"], e["description"]))
+    for entry in entries:
+        rig_mode, _note = rig_mode_for(entry["mode"])
+        entry["rig_mode"] = rig_mode
     return {"transponders": entries, "recommended_uuid": recommended_uuid}
 
 

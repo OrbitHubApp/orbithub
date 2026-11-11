@@ -424,6 +424,19 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
     <span class="rig-control-note">Transponder/Bake</span>
     <select id="rig-transponder-choice" class="rig-select"></select>
   </div>
+  <div class="rig-manual-freq" id="rig-manual-freq" hidden>
+    <div class="rig-select-row">
+      <span class="rig-control-note">RX (Downlink)</span>
+      <input type="text" inputmode="decimal" id="rig-manual-rx" class="rig-select" placeholder="z. B. 145.800" autocomplete="off">
+      <span class="rig-control-note rig-unit">MHz</span>
+    </div>
+    <div class="rig-select-row">
+      <span class="rig-control-note">TX (Uplink)</span>
+      <input type="text" inputmode="decimal" id="rig-manual-tx" class="rig-select" placeholder="optional, z. B. 437.800" autocomplete="off">
+      <span class="rig-control-note rig-unit">MHz</span>
+    </div>
+    <p class="rig-control-note rig-manual-hint">Nominalfrequenz des Satelliten eingeben – die Doppler-Korrektur rechnet OrbitHub selbst.</p>
+  </div>
   <div class="rig-select-row">
     <span class="rig-control-note">Modus</span>
     <input list="rig-mode-options" id="rig-mode-choice" class="rig-select" autocomplete="off">
@@ -432,15 +445,18 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
       <option value="USB"></option>
       <option value="LSB"></option>
       <option value="CW"></option>
-      <option value="CWR"></option>
+      <option value="CW-R"></option>
       <option value="AM"></option>
       <option value="RTTY"></option>
       <option value="WFM"></option>
       <option value="DV"></option>
+      <option value="PKTFM"></option>
+      <option value="PKTUSB"></option>
     </datalist>
   </div>
 </div>
 <p id="rig-transponder-note" class="rig-control-note" hidden></p>
+<p id="rig-mode-note" class="rig-control-note rig-mode-note" hidden></p>
 
 <div class="rig-control-actions">
 <button type="button" id="rig-tracking-start" class="rig-control-btn rig-control-btn-start">Tracking starten</button>
@@ -448,9 +464,9 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
 </div>
 
 <div class="rig-audio-actions" id="rig-audio-actions">
-<span class="rig-control-note">Hören</span>
-<button type="button" id="rig-audio-radio" class="rig-audio-btn is-active" aria-pressed="true">IC-705</button>
-<button type="button" id="rig-audio-mac" class="rig-audio-btn" aria-pressed="false">Mac</button>
+<span class="rig-audio-label">🔊 Ton hören über</span>
+<button type="button" id="rig-audio-radio" class="rig-audio-btn is-active" aria-pressed="true">IC-705-Lautsprecher</button>
+<button type="button" id="rig-audio-mac" class="rig-audio-btn" aria-pressed="false">Mac (Browser)</button>
 </div>
 <audio id="rig-audio-player" preload="none" hidden></audio>
 
@@ -476,6 +492,7 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
 </div>
 
 <p id="rig-tracking-error" class="rig-control-error" hidden></p>
+<span id="rig-refresh-pause" data-pause-auto-refresh hidden></span>
 </section>
 
 <style>
@@ -491,9 +508,15 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
 #rig-control-panel .rig-select { flex: 1; padding: 0.35em 0.6em; border-radius: 6px; border: 1px solid currentColor; background: transparent; color: inherit; font: inherit; }
 #rig-control-panel .rig-select:disabled { opacity: 0.5; }
 #rig-control-panel .rig-control-error { color: #c0392b; font-size: 0.9em; }
-#rig-control-panel .rig-audio-actions { display: flex; align-items: center; gap: 0.5em; margin: 0 0 0.6em 0; font-size: 0.85em; }
-#rig-control-panel .rig-audio-btn { padding: 0.3em 0.85em; border-radius: 999px; border: 1px solid currentColor; background: transparent; cursor: pointer; font: inherit; opacity: 0.55; }
-#rig-control-panel .rig-audio-btn.is-active { opacity: 1; background: rgba(63, 255, 130, 0.12); border-color: #3fae54; color: #3fae54; }
+#rig-control-panel .rig-manual-freq { display: flex; flex-direction: column; gap: 0.4em; }
+#rig-control-panel .rig-select-row .rig-unit { min-width: 0; }
+#rig-control-panel .rig-manual-hint { margin: 0; font-size: 0.8em; }
+#rig-control-panel .rig-mode-note { color: #e0a63a; opacity: 1; }
+#rig-control-panel .rig-audio-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6em; margin: 0.4em 0 0.9em 0; font-size: 1em; }
+#rig-control-panel .rig-audio-label { font-weight: 600; margin-right: 0.2em; }
+#rig-control-panel .rig-audio-btn { padding: 0.5em 1.2em; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.05); color: inherit; cursor: pointer; font: inherit; }
+#rig-control-panel .rig-audio-btn:hover { border-color: #3fae54; }
+#rig-control-panel .rig-audio-btn.is-active { background: rgba(63, 255, 130, 0.16); border-color: #3fae54; color: #3fae54; font-weight: 600; }
 #rig-control-panel [hidden] { display: none !important; }
 
 #rig-control-panel .rig-freq-display {
@@ -621,6 +644,13 @@ data-observer-name="{{ observer_name }} ({{ observer_locator }})"
   var transponderChoice = document.getElementById("rig-transponder-choice");
   var modeChoice = document.getElementById("rig-mode-choice");
   var transponderNote = document.getElementById("rig-transponder-note");
+  var modeNote = document.getElementById("rig-mode-note");
+  var manualBox = document.getElementById("rig-manual-freq");
+  var manualRx = document.getElementById("rig-manual-rx");
+  var manualTx = document.getElementById("rig-manual-tx");
+  var MANUAL_VALUE = "__manual__";
+  var refreshPause = document.getElementById("rig-refresh-pause");
+  var trackingActive = false;
   var pollTimer = null;
 var audioRadioBtn = document.getElementById("rig-audio-radio");
 var audioMacBtn = document.getElementById("rig-audio-mac");
@@ -657,11 +687,20 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
 
   function renderStatus(status) {
     var active = !!(status && status.active);
+    trackingActive = active;
     startBtn.disabled = active;
     stopBtn.disabled = !active;
-    if (transponderChoice) { transponderChoice.disabled = active; }
+    if (transponderChoice) { transponderChoice.disabled = active || !transponderChoice.options.length; }
     if (modeChoice) { modeChoice.disabled = active; }
+    if (manualRx) { manualRx.disabled = active; }
+    if (manualTx) { manualTx.disabled = active; }
     freqDisplay.classList.toggle("is-live", active);
+
+    if (modeNote) {
+      var note = active ? status.mode_note : null;
+      modeNote.hidden = !note;
+      modeNote.textContent = note ? "Modus: " + note : "";
+    }
 
     if (!active) {
       rxDigits.textContent = "---.---.---";
@@ -685,7 +724,8 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     }
 
     var satLabel = status.satellite_name || status.norad_id || "-";
-    var transLabel = (status.transponder_description || "-") + (status.transponder_mode ? " (" + status.transponder_mode + ")" : "");
+    var shownMode = status.rig_mode || status.transponder_mode || "";
+    var transLabel = (status.transponder_description || "-") + (shownMode ? " (" + shownMode + ")" : "");
     var rateLabel = (status.range_rate_km_s == null)
       ? ""
       : (status.range_rate_km_s > 0 ? " · ▲ " : " · ▼ ") + Math.abs(status.range_rate_km_s).toFixed(3) + " km/s";
@@ -699,15 +739,14 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     if (!transponderChoice) { return; }
     transponderChoice.innerHTML = "";
     var list = (data && data.transponders) || [];
+    transponderChoice.disabled = false;
     if (!list.length) {
       var emptyOpt = document.createElement("option");
       emptyOpt.value = "";
-      emptyOpt.textContent = "Keine Transponder-Daten gefunden";
+      emptyOpt.disabled = true;
+      emptyOpt.textContent = "Keine SatNOGS-Transponderdaten";
       transponderChoice.appendChild(emptyOpt);
-      transponderChoice.disabled = true;
-      return;
     }
-    transponderChoice.disabled = false;
     list.forEach(function (t) {
       var opt = document.createElement("option");
       opt.value = t.uuid || "";
@@ -715,15 +754,31 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       var freqMhz = (t.downlink_low != null) ? (t.downlink_low / 1e6).toFixed(4) + " MHz" : "?";
       var modeText = t.mode ? " (" + t.mode + ")" : "";
       opt.textContent = kind + ": " + (t.description || "?") + " \u2013 " + freqMhz + modeText;
-      opt.dataset.mode = t.mode || "";
+      opt.dataset.mode = t.rig_mode || t.mode || "";
       if (t.recommended) { opt.selected = true; }
       transponderChoice.appendChild(opt);
     });
+    var manualOpt = document.createElement("option");
+    manualOpt.value = MANUAL_VALUE;
+    manualOpt.textContent = "Manuelle Frequenz …";
+    if (!list.length) { manualOpt.selected = true; }
+    transponderChoice.appendChild(manualOpt);
     syncModeFromSelection();
   }
 
-  function syncModeFromSelection() {
+  function isManualSelected() {
+    return !!(transponderChoice && transponderChoice.value === MANUAL_VALUE);
+  }
+
+  function syncModeFromSelection(evt) {
     if (!transponderChoice || !modeChoice) { return; }
+    var manual = isManualSelected();
+    if (manualBox) { manualBox.hidden = !manual; }
+    if (manual) {
+      if (!modeChoice.value) { modeChoice.value = "FM"; }
+      if (evt && manualRx && !manualRx.value) { manualRx.focus(); }
+      return;
+    }
     var selected = transponderChoice.options[transponderChoice.selectedIndex];
     if (selected && selected.dataset.mode) { modeChoice.value = selected.dataset.mode; }
   }
@@ -784,6 +839,8 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
           norad_id: noradId,
           transponder_uuid: transponderChoice ? transponderChoice.value : "",
           mode_override: modeChoice ? modeChoice.value : "",
+          manual_downlink_mhz: (isManualSelected() && manualRx) ? manualRx.value : "",
+          manual_uplink_mhz: (isManualSelected() && manualTx) ? manualTx.value : "",
         }),
       }, 30000)
         .then(function (response) {
@@ -829,7 +886,11 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     if (!audioPlayer) { return; }
     if (isMac) {
       if (audioPlayer.getAttribute("src") !== audioStreamUrl) { audioPlayer.src = audioStreamUrl; }
-      audioPlayer.play().catch(function () {});
+      audioPlayer.play().catch(function (err) {
+        if (err && err.name === "NotAllowedError") {
+          showError("Der Browser hat die Wiedergabe blockiert – bitte erneut auf „Mac“ klicken.");
+        }
+      });
     } else {
       audioPlayer.pause();
       audioPlayer.removeAttribute("src");
@@ -837,8 +898,26 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     }
   }
 
+  if (audioPlayer) {
+    audioPlayer.addEventListener("error", function () {
+      if (!audioPlayer.getAttribute("src")) { return; }
+      showError("Audio-Stream nicht erreichbar (" + audioStreamUrl + ") – läuft der Dienst audio-stream auf dem Server?");
+      setAudioMode("radio");
+    });
+  }
+
   if (audioRadioBtn) { audioRadioBtn.addEventListener("click", function () { setAudioMode("radio"); }); }
   if (audioMacBtn) { audioMacBtn.addEventListener("click", function () { setAudioMode("mac"); }); }
+
+  // Die Seite laedt sich sonst alle 60 s neu (dashboard.js) - das wuerde
+  // eine gerade eingetippte Frequenz verwerfen und den Mac-Ton abbrechen.
+  function updateRefreshPause() {
+    if (!refreshPause) { return; }
+    var macAudio = !!(audioPlayer && audioPlayer.getAttribute("src"));
+    var typing = panel.contains(document.activeElement) && document.activeElement !== document.body;
+    refreshPause.hidden = !(trackingActive || macAudio || isManualSelected() || typing);
+  }
+  setInterval(updateRefreshPause, 500);
 
   refreshStatus();
   checkRigReachable();

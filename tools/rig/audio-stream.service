@@ -1,0 +1,12 @@
+[Unit]
+Description=OrbitHub IC-705 Audio-Stream (MP3 über HTTP, Port 8766)
+After=kappanhang.service pipewire-pulse.service
+Wants=kappanhang.service
+
+[Service]
+ExecStart=/usr/bin/python3 %h/orbithub/tools/rig/audio_stream_server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

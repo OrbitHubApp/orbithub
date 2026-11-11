@@ -1,0 +1,12 @@
+[Unit]
+Description=kappanhang IC-705 WLAN-Brücke (rigctld :4532)
+After=network-online.target pipewire-pulse.service
+
+[Service]
+EnvironmentFile=%h/kappanhang/kappanhang.env
+ExecStart=%h/kappanhang/kappanhang -a ${KAPPANHANG_HOST} -u ${KAPPANHANG_USER} -p ${KAPPANHANG_PASS}
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

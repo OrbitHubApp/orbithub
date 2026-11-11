@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.services.doppler import corrected_transponder_frequencies, range_rate_km_s
-from app.services.rig_control import RigControlError, rig_control
+from app.services.rig_control import RigControlError, rig_control, rig_mode_for
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,13 @@ class TrackingStatus:
     satellite_name: str = ""
     transponder_description: str = ""
     transponder_mode: str = ""
+    # Tatsaechlich am IC-705 eingestellte Betriebsart (nach Umsetzung, z. B. AFSK -> FM)
+    rig_mode: str = ""
+    # Dauerhafter Hinweis zur Modus-Umsetzung bzw. zu einem abgelehnten Modus.
+    # Bewusst getrennt von `error`, das der Loop bei jedem erfolgreichen
+    # Update wieder leert.
+    mode_note: str | None = None
+    manual: bool = False
     range_rate_km_s: float | None = None
     rx_frequency_hz: float | None = None
     tx_frequency_hz: float | None = None
@@ -79,6 +86,7 @@ class TrackingSession:
             satellite_name=getattr(satellite, "name", "") or norad_id,
             transponder_description=str(transponder.get("description") or ""),
             transponder_mode=str(transponder.get("mode") or ""),
+            manual=bool(transponder.get("manual")),
         )
         self._task = asyncio.create_task(
             self._loop(satellite, observer, timescale, transponder)
@@ -110,20 +118,29 @@ class TrackingSession:
                     "wieder erreichbar ist."
                 )
 
-            mode = str(transponder.get("mode") or "").strip().upper()
-            if mode:
-                try:
-                    await asyncio.to_thread(rig_control.set_mode, mode, 0)
-                except RigControlError as exc:
-                    logger.warning(
-                        "Doppler-Tracking: Mode '%s' konnte nicht gesetzt werden: %r",
-                        mode,
-                        exc,
-                    )
-                    self._status.error = str(exc)
+            rig_mode, note = rig_mode_for(str(transponder.get("mode") or ""))
+            self._status.mode_note = note
+            mode_pending = True
 
             while True:
                 try:
+                    if mode_pending:
+                        try:
+                            await asyncio.to_thread(rig_control.set_mode, rig_mode)
+                            self._status.rig_mode = rig_mode
+                        except RigControlError as exc:
+                            if "fehlgeschlagen" in str(exc):
+                                raise  # nicht erreichbar -> naechster Durchlauf versucht es erneut
+                            logger.warning(
+                                "Doppler-Tracking: Mode '%s' abgelehnt: %r", rig_mode, exc
+                            )
+                            self._status.rig_mode = ""
+                            self._status.mode_note = (
+                                f"Modus {rig_mode} wurde vom IC-705 abgelehnt – "
+                                "bitte am Funkgerät von Hand einstellen."
+                            )
+                        mode_pending = False
+
                     t = timescale.now()
                     rate = await asyncio.to_thread(
                         range_rate_km_s, satellite, observer, t

@@ -1,0 +1,40 @@
+diff --git a/rigctld.go b/rigctld.go
+index 5431cf8..2762209 100644
+--- a/rigctld.go
++++ b/rigctld.go
+@@ -170,7 +170,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+ 	case cmdSplit[0] == "M", cmdSplit[0] == "\\set_mode":
+ 		mode := cmdSplit[1]
+ 		var dataMode bool
+-		if mode[:3] == "PKT" {
++		if strings.HasPrefix(mode, "PKT") {
+ 			dataMode = true
+ 			mode = mode[3:]
+ 		}
+@@ -200,7 +200,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+ 		} else if width <= 2400 {
+ 			filterCode = 1
+ 		}
+-		err = civControl.setOperatingModeAndFilter(modeCode, filterCode)
++		err = civControl.setOperatingModeAndFilter(modeCode, civFilters[filterCode].code)
+ 		if err != nil {
+ 			_ = s.sendReplyCode(rigctldInvalidParam)
+ 		} else {
+@@ -318,7 +318,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+ 	case cmdSplit[0] == "X", cmdSplit[0] == "\\set_split_mode":
+ 		mode := cmdSplit[1]
+ 		var dataMode byte
+-		if mode[:3] == "PKT" {
++		if strings.HasPrefix(mode, "PKT") {
+ 			dataMode = 1
+ 			mode = mode[3:]
+ 		}
+@@ -348,7 +348,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+ 		} else if width <= 2400 {
+ 			filterCode = 1
+ 		}
+-		err = civControl.setSubVFOMode(modeCode, dataMode, filterCode)
++		err = civControl.setSubVFOMode(modeCode, dataMode, civFilters[filterCode].code)
+ 		if err != nil {
+ 			_ = s.sendReplyCode(rigctldInvalidParam)
+ 		} else {
