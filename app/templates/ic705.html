@@ -112,6 +112,7 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
 @keyframes ic705-live-pulse { 50% { opacity: 0.3; } }
 .ic705-live-mode { font-family: monospace; padding: 0.1em 0.5em; border-radius: 4px; border: 1px solid rgba(86,221,255,0.4); color: #56ddff; }
 .ic705-live-figs { font-variant-numeric: tabular-nums; opacity: 0.9; }
+.ic705-tick { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ic705-live-list { display: flex; flex-wrap: wrap; gap: 0.4em; margin: 0.3em 0 0.5em; }
 .ic705-live-chip { padding: 0.2em 0.7em; border-radius: 999px; border: 1px solid rgba(255,255,255,0.25); font-size: 0.85em; font-variant-numeric: tabular-nums; }
 .ic705-live-chip.is-current { border-color: #ff4fd8; color: #ff4fd8; }
@@ -137,11 +138,23 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
     });
   }
   function hhmm(iso) { return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); }
-  function until(iso) {
-    var min = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
-    if (min < 60) { return "in " + Math.max(min, 0) + " min"; }
-    return "in " + Math.floor(min / 60) + " h " + (min % 60) + " min";
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function fmtSpan(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    if (sec < 3600) { return Math.floor(sec / 60) + ":" + pad2(sec % 60) + " min"; }
+    var min = Math.floor(sec / 60);
+    return Math.floor(min / 60) + " h " + pad2(min % 60) + " min";
   }
+  function untilText(iso) { return "in " + fmtSpan((new Date(iso).getTime() - Date.now()) / 1000); }
+  function remainText(iso) { return "noch " + fmtSpan((new Date(iso).getTime() - Date.now()) / 1000); }
+  function until(iso) { return '<span class="ic705-tick" data-until="' + esc(iso) + '">' + untilText(iso) + "</span>"; }
+  function remain(iso) { return '<span class="ic705-tick" data-remain="' + esc(iso) + '">' + remainText(iso) + "</span>"; }
+  // Countdowns im Panel laufen sekundengenau mit (Status selbst alle 5 s)
+  setInterval(function () {
+    Array.prototype.forEach.call(panel.querySelectorAll(".ic705-tick"), function (el) {
+      el.textContent = el.dataset.until ? untilText(el.dataset.until) : remainText(el.dataset.remain);
+    });
+  }, 1000);
   function showError(msg) { errEl.hidden = !msg; errEl.textContent = msg || ""; }
 
   function render(d) {
@@ -163,7 +176,7 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
         '<span class="ic705-live-mode">' + esc(cur.mode) + "</span>" +
         '<span class="ic705-live-figs">' + (cur.downlink_hz / 1e6).toFixed(3) + " MHz " + esc(cur.rig_mode || "") +
         " · Elevation " + Math.round(cur.el) + "° · Azimut " + Math.round(cur.az) + "°" +
-        (cur.set ? " · LOS " + hhmm(cur.set) : "") + "</span>";
+        (cur.set ? " · LOS " + hhmm(cur.set) + " (" + remain(cur.set) + ")" : "") + "</span>";
     } else {
       nowEl.classList.add("is-idle");
       var n = s.next_up;
@@ -182,9 +195,9 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
       : "";
 
     var meta = s.candidates_count + " gemeldete Satelliten mit IC-705-Frequenz (AMSAT Live, gehört in " + s.hours + " h)";
-    if (cur && s.next_up) { meta += " · danach: " + s.next_up.name + " um " + hhmm(s.next_up.rise); }
+    if (cur && s.next_up) { meta += " · danach: " + esc(s.next_up.name) + " um " + hhmm(s.next_up.rise) + " (" + until(s.next_up.rise) + ")"; }
     if (s.switches) { meta += " · " + s.switches + " Wechsel"; }
-    metaEl.textContent = meta;
+    metaEl.innerHTML = meta;
     var trErr = (d.tracking && d.tracking.active) ? d.tracking.error : null;
     showError(s.error ? "Live-Beobachtung: " + s.error : trErr);
 

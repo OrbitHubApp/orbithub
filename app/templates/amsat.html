@@ -91,6 +91,7 @@ Daten: <a href="https://status.amsat.org/" target="_blank" rel="noopener">status
 .amsat-counts { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .amsat-counts .c-h { color: #3fe08a; } .amsat-counts .c-t { color: #7cbcff; } .amsat-counts .c-n { color: #ff8a8a; }
 .amsat-pass { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.amsat-tick { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .amsat-pass.is-live { color: #ff4fd8; font-weight: 700; }
 .amsat-el { font-weight: 700; }
 .amsat-el.q-weak { color: #e0a63a; } .amsat-el.q-ok { color: #8fd36b; } .amsat-el.q-good { color: #3fe08a; }
@@ -122,18 +123,31 @@ Daten: <a href="https://status.amsat.org/" target="_blank" rel="noopener">status
     });
   }
   function hhmm(iso) { return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); }
+  // Zeitangaben laufen sekundengenau mit (siehe tick()): die Spans tragen
+  // ihren Zeitpunkt als data-Attribut und werden jede Sekunde neu beschriftet.
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function fmtSpan(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    if (sec < 3600) { return Math.floor(sec / 60) + ":" + pad2(sec % 60) + " min"; }
+    var min = Math.floor(sec / 60);
+    return Math.floor(min / 60) + " h " + pad2(min % 60) + " min";
+  }
+  function agoText(iso) {
+    var sec = (Date.now() - new Date(iso).getTime()) / 1000;
+    return sec < 60 ? "gerade eben" : "vor " + fmtSpan(sec);
+  }
+  function untilText(iso) { return "in " + fmtSpan((new Date(iso).getTime() - Date.now()) / 1000); }
+  function remainText(iso) { return "noch " + fmtSpan((new Date(iso).getTime() - Date.now()) / 1000); }
   function ago(iso) {
     if (!iso) { return "–"; }
-    var min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-    if (min < 1) { return "gerade eben"; }
-    if (min < 60) { return "vor " + min + " min"; }
-    var h = Math.floor(min / 60);
-    return "vor " + h + " h " + (min % 60 ? (min % 60) + " min" : "");
+    return '<span class="amsat-tick" data-ago="' + esc(iso) + '">' + agoText(iso) + "</span>";
   }
-  function until(iso) {
-    var min = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
-    if (min < 60) { return "in " + Math.max(min, 0) + " min"; }
-    return "in " + Math.floor(min / 60) + " h " + (min % 60) + " min";
+  function until(iso) { return '<span class="amsat-tick" data-until="' + esc(iso) + '">' + untilText(iso) + "</span>"; }
+  function remain(iso) { return '<span class="amsat-tick" data-remain="' + esc(iso) + '">' + remainText(iso) + "</span>"; }
+  function passPhase(p) {
+    if (!p) { return "none"; }
+    var now = Date.now();
+    return now < new Date(p.rise).getTime() ? "before" : now <= new Date(p.set).getTime() ? "live" : "after";
   }
   function elClass(el) { return el < 15 ? "q-weak" : el < 35 ? "q-ok" : "q-good"; }
   function badge(e) {
@@ -151,7 +165,7 @@ Daten: <a href="https://status.amsat.org/" target="_blank" rel="noopener">status
     var el = '<span class="amsat-el ' + elClass(p.max_el) + '">' + Math.round(p.max_el) + "°</span>";
     var src = e.tle_source ? ' <span class="amsat-src" title="Noch nicht im Haupt-TLE-Katalog – Bahndaten von SatNOGS">· Bahn: ' + esc(e.tle_source) + "</span>" : "";
     if (now >= rise && now <= set) {
-      return '<span class="amsat-pass is-live">● jetzt im Bereich · LOS ' + hhmm(p.set) + "</span><span class=\"amsat-sub\">max. " + el + "</span>";
+      return '<span class="amsat-pass is-live">● jetzt im Bereich · LOS ' + hhmm(p.set) + "</span><span class=\"amsat-sub\">" + remain(p.set) + " · max. " + el + "</span>";
     }
     return '<span class="amsat-pass">' + hhmm(p.rise) + " · " + el + '</span><span class="amsat-sub">' + until(p.rise) + src + "</span>";
   }
@@ -215,7 +229,23 @@ Daten: <a href="https://status.amsat.org/" target="_blank" rel="noopener">status
   });
 
   load();
-  setInterval(render, 30000);      // Countdowns/„vor x min“ aktuell halten
+  // Jede Sekunde: Zeitangaben neu beschriften; beginnt oder endet ein
+  // Ueberflug, die Tabelle neu aufbauen (Status "jetzt im Bereich").
+  var lastPhases = "";
+  function tick() {
+    var phases = entries.map(function (e) { return passPhase(e.next_pass); }).join(",");
+    if (phases !== lastPhases) {
+      var first = lastPhases === "";
+      lastPhases = phases;
+      if (!first) { render(); return; }
+    }
+    Array.prototype.forEach.call(body.querySelectorAll(".amsat-tick"), function (el) {
+      if (el.dataset.ago) { el.textContent = agoText(el.dataset.ago); }
+      else if (el.dataset.until) { el.textContent = untilText(el.dataset.until); }
+      else if (el.dataset.remain) { el.textContent = remainText(el.dataset.remain); }
+    });
+  }
+  setInterval(tick, 1000);
   setInterval(load, 10 * 60000);   // Daten alle 10 min neu holen (Server-Cache ebenso 10 min)
 })();
 </script>
