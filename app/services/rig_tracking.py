@@ -159,6 +159,13 @@ class TrackingSession:
 
                     await asyncio.to_thread(rig_control.set_frequency, rx_hz)
                     actual_hz = await asyncio.to_thread(rig_control.get_frequency)
+                    # Modus ebenfalls zuruecklesen: war das Geraet beim ersten
+                    # Setzen nicht verbunden, hat kappanhang "M" scheinbar
+                    # angenommen - dann im naechsten Durchlauf erneut setzen.
+                    if self._status.rig_mode:
+                        actual_mode, _ = await asyncio.to_thread(rig_control.get_mode)
+                        if actual_mode and actual_mode != self._status.rig_mode:
+                            mode_pending = True
 
                     self._status.range_rate_km_s = rate
                     self._status.rx_frequency_hz = freqs["rx_frequency_hz"]
