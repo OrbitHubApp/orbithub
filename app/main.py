@@ -2960,8 +2960,8 @@ async def ic705_page(request: Request, satellite: str | None = None):
         selected_record = records_by_norad_id.get("25544")
 
     passes = []
+    observer = load_observer_settings().for_radio()
     if selected_record is not None:
-        observer = load_observer_settings().for_radio()
         predictor = PassPredictor(
             latitude_deg=observer.latitude_deg,
             longitude_deg=observer.longitude_deg,
@@ -2976,7 +2976,48 @@ async def ic705_page(request: Request, satellite: str | None = None):
         )
 
     now_utc = datetime.now(timezone.utc)
-    next_pass = next((p for p in passes if p.set_time > now_utc), None)
+    passes = [p for p in passes if p.set_time > now_utc]
+    next_pass = passes[0] if passes else None
+
+    # Funk-Horizont als Schatten im Polarplot (wie auf /passes)
+    horizon_shadow_segments = [
+        {"d": path}
+        for path in (
+            _horizon_shadow_path(
+                segment.azimuth_from_deg,
+                segment.azimuth_to_deg,
+                max(
+                    segment.minimum_elevation_deg,
+                    observer.default_minimum_elevation_deg,
+                ),
+            )
+            for segment in observer.horizon_segments
+        )
+        if path is not None
+    ]
+
+    passes_json = [
+        {
+            "rise": p.rise_time.isoformat(),
+            "culmination": p.culmination_time.isoformat(),
+            "set": p.set_time.isoformat(),
+            "max_el": round(p.max_elevation_deg, 1),
+            "rise_az": round(p.rise_azimuth_deg, 1),
+            "set_az": round(p.set_azimuth_deg, 1),
+            "duration": p.duration_seconds,
+            "track": [
+                {
+                    "t": tp.timestamp.isoformat(),
+                    "x": tp.polar_x,
+                    "y": tp.polar_y,
+                    "el": round(tp.elevation_deg, 1),
+                    "az": round(tp.azimuth_deg, 1),
+                }
+                for tp in p.track_points
+            ],
+        }
+        for p in passes
+    ]
 
     return templates.TemplateResponse(
         name="ic705.html",
@@ -2992,6 +3033,8 @@ async def ic705_page(request: Request, satellite: str | None = None):
             "satellite_not_found": satellite_not_found,
             "passes": passes,
             "next_pass": next_pass,
+            "passes_json": passes_json,
+            "horizon_shadow_segments": horizon_shadow_segments,
         },
     )
 

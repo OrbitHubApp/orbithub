@@ -608,43 +608,80 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
 </script>
 
 
-<section class="add-source-panel">
+<section class="ic705-pass-grid">
+<div class="add-source-panel">
 <div class="label">ÜBERFLÜGE · 24 STUNDEN</div>
 <h3>{{ selected_satellite.name | display_name }}</h3>
 {% if passes %}
+<p class="rig-control-note">Überflug anklicken, um ihn im Polarplot anzuzeigen.</p>
 <div class="table-scroll">
 <table class="mission-table">
 <thead>
 <tr>
 <th>{{ t('passes.col_date') }}</th>
-<th>{{ t('passes.rise_label') }}</th>
-<th>Maximum</th>
-<th>{{ t('passes.set_label') }}</th>
-<th>{{ t('passes.col_max_elevation') }}</th>
-<th>{{ t('passes.azimuth_rise_label') }}</th>
-<th>{{ t('passes.azimuth_set_label') }}</th>
+<th>AOS</th>
+<th>LOS</th>
+<th>Max.</th>
+<th>Dauer</th>
 </tr>
 </thead>
 <tbody>
 {% for pass in passes %}
-<tr>
+<tr class="pass-row ic705-pass-row{% if loop.first %} active{% endif %}" data-pass-index="{{ loop.index0 }}" tabindex="0">
 <td>{{ pass.rise_time | fmt_time("%d.%m.") }}</td>
-<td>{{ pass.rise_time | fmt_time("%H:%M:%S") }}</td>
-<td>{{ pass.culmination_time | fmt_time("%H:%M:%S") }}</td>
-<td>{{ pass.set_time | fmt_time("%H:%M:%S") }}</td>
-<td><strong>{{ "%.1f"|format(pass.max_elevation_deg) }}&deg;</strong></td>
-<td>{{ "%.1f"|format(pass.rise_azimuth_deg) }}&deg;</td>
-<td>{{ "%.1f"|format(pass.set_azimuth_deg) }}&deg;</td>
+<td>{{ pass.rise_time | fmt_time("%H:%M") }}</td>
+<td>{{ pass.set_time | fmt_time("%H:%M") }}</td>
+<td><strong class="ic705-el {% if pass.max_elevation_deg < 15 %}q-weak{% elif pass.max_elevation_deg < 35 %}q-ok{% else %}q-good{% endif %}">{{ "%.0f"|format(pass.max_elevation_deg) }}&deg;</strong></td>
+<td>{{ pass.duration_seconds // 60 }}:{{ "%02d"|format(pass.duration_seconds % 60) }}</td>
 </tr>
 {% endfor %}
 </tbody>
 </table>
 </div>
-<p class="rig-control-note"><a href="/passes?satellite={{ selected_satellite.norad_id }}">Polarplot und Karte auf der Seite Überflüge →</a></p>
+<p class="rig-control-note"><a href="/passes?satellite={{ selected_satellite.norad_id }}">Karte und Bodenspur auf der Seite Überflüge →</a></p>
 {% else %}
 <p class="rig-control-note">In den nächsten 24 Stunden kein Überflug über dem Funk-Horizont.</p>
 {% endif %}
+</div>
+
+<div class="add-source-panel">
+<div class="label">POLARPLOT · HÖRBARKEIT</div>
+<h3 id="ic705-plot-title">{% if passes %}{{ passes[0].rise_time | fmt_time("%d.%m. %H:%M") }} Uhr{% else %}Kein Überflug{% endif %}</h3>
+{% if passes %}
+<div class="ic705-audibility" id="ic705-audibility"></div>
+<div class="polarplot-card ic705-polar-card">
+<svg class="polarplot" viewBox="0 0 200 200" role="img" aria-label="Polarplot des ausgewählten Überflugs">
+<circle class="polarplot-horizon" cx="100" cy="100" r="90" />
+<circle class="polarplot-ring" cx="100" cy="100" r="60" />
+<circle class="polarplot-ring" cx="100" cy="100" r="30" />
+<line class="polarplot-axis" x1="100" y1="10" x2="100" y2="190" />
+<line class="polarplot-axis" x1="10" y1="100" x2="190" y2="100" />
+{% for segment in horizon_shadow_segments %}
+<path class="polarplot-shadow" d="{{ segment.d }}" />
+{% endfor %}
+<text class="polarplot-direction" x="100" y="7">N</text>
+<text class="polarplot-direction" x="193" y="104">O</text>
+<text class="polarplot-direction" x="100" y="199">S</text>
+<text class="polarplot-direction" x="7" y="104">W</text>
+<text class="polarplot-elevation" x="104" y="38">30&deg;</text>
+<text class="polarplot-elevation" x="104" y="68">60&deg;</text>
+<polyline id="ic705-track" class="polarplot-track" points="" />
+<circle id="ic705-max" class="ic705-max-dot" cx="100" cy="100" r="3" />
+<circle id="ic705-rise" class="polarplot-rise" cx="100" cy="100" r="4" />
+<circle id="ic705-set" class="polarplot-set" cx="100" cy="100" r="4" />
+<text id="ic705-aos-label" class="polarplot-marker-label" x="100" y="100">AOS</text>
+<text id="ic705-los-label" class="polarplot-marker-label" x="100" y="100">LOS</text>
+<circle id="ic705-now" class="ic705-now-dot" cx="100" cy="100" r="5" visibility="hidden" />
+</svg>
+</div>
+<dl class="ic705-pass-facts" id="ic705-pass-facts"></dl>
+<p class="rig-control-note">Schattierte Bereiche: dein Funk-Horizont (Einstellungen). Ringe: 30° und 60° Höhe, Mitte = senkrecht über dir.</p>
+{% endif %}
+</div>
 </section>
+{% if passes %}
+<script id="ic705-passes-data" type="application/json">{{ passes_json | tojson }}</script>
+{% endif %}
 {% else %}
 <section class="add-source-panel">
 <p>Kein Satellit ausgewählt. Bitte oben einen Satelliten aus der Merkliste wählen oder eine NORAD-ID eingeben.</p>
@@ -668,6 +705,26 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
 .ic705-dot.is-ok { background: #3fae54; box-shadow: 0 0 6px #3fae54; }
 .ic705-dot.is-bad { background: #c0392b; }
 .ic705-radio-lcd.is-offline .ic705-radio-freq { color: #3d5a45; text-shadow: none; }
+.ic705-pass-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
+.ic705-pass-grid > .add-source-panel { margin: 0; }
+@media (max-width: 1000px) { .ic705-pass-grid { grid-template-columns: 1fr; } }
+.ic705-pass-row:focus { outline: 1px solid rgba(68, 217, 230, 0.6); }
+.ic705-polar-card { min-height: 0; padding: 14px; }
+.ic705-max-dot { fill: #f2c14e; }
+.ic705-pass-grid .mission-table { min-width: 0; }
+.ic705-pass-grid .mission-table th, .ic705-pass-grid .mission-table td { white-space: nowrap; }
+.ic705-el.q-weak { color: #e0a63a !important; }
+.ic705-el.q-ok { color: #8fd36b !important; }
+.ic705-el.q-good { color: #3fe08a !important; }
+.ic705-now-dot { fill: #ff4fd8; stroke: #fff; stroke-width: 1.2; filter: drop-shadow(0 0 4px #ff4fd8); }
+.ic705-audibility { margin: 0.2em 0 0.8em; padding: 0.55em 0.9em; border-radius: 8px; font-weight: 600; border: 1px solid; }
+.ic705-audibility.q-weak { color: #e0a63a; border-color: rgba(224,166,58,0.5); background: rgba(224,166,58,0.08); }
+.ic705-audibility.q-ok { color: #8fd36b; border-color: rgba(143,211,107,0.5); background: rgba(143,211,107,0.08); }
+.ic705-audibility.q-good { color: #3fe08a; border-color: rgba(63,224,138,0.6); background: rgba(63,224,138,0.1); }
+.ic705-audibility small { display: block; font-weight: 400; opacity: 0.85; margin-top: 0.2em; }
+.ic705-pass-facts { display: grid; grid-template-columns: auto 1fr; gap: 0.25em 1em; margin: 0.8em 0 0.4em; font-size: 0.92em; }
+.ic705-pass-facts dt { opacity: 0.7; }
+.ic705-pass-facts dd { margin: 0; font-variant-numeric: tabular-nums; }
 .ic705-audio-health.is-ok { color: #3fae54; opacity: 1; }
 .ic705-audio-health.is-bad { color: #e0a63a; opacity: 1; }
 </style>
@@ -717,6 +774,105 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
   }
   pollRadio();
   setInterval(pollRadio, 3000);
+
+  // --- Ueberflug-Auswahl + Polarplot ---
+  var dataEl = document.getElementById("ic705-passes-data");
+  if (dataEl) {
+    var passList = JSON.parse(dataEl.textContent);
+    var rows = document.querySelectorAll(".ic705-pass-row");
+    var rigPanel = document.getElementById("rig-control-panel");
+    var track = document.getElementById("ic705-track");
+    var rise = document.getElementById("ic705-rise");
+    var set = document.getElementById("ic705-set");
+    var maxDot = document.getElementById("ic705-max");
+    var aosLabel = document.getElementById("ic705-aos-label");
+    var losLabel = document.getElementById("ic705-los-label");
+    var nowDot = document.getElementById("ic705-now");
+    var title = document.getElementById("ic705-plot-title");
+    var facts = document.getElementById("ic705-pass-facts");
+    var audibility = document.getElementById("ic705-audibility");
+    var selected = 0;
+
+    function hhmmss(iso) {
+      return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
+    function compass(az) {
+      var dirs = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+      return dirs[Math.round(az / 22.5) % 16];
+    }
+    function minutesAbove(p, el) {
+      var pts = p.track, total = 0;
+      for (var i = 1; i < pts.length; i++) {
+        if (pts[i].el >= el && pts[i - 1].el >= el) {
+          total += (new Date(pts[i].t) - new Date(pts[i - 1].t)) / 1000;
+        }
+      }
+      return total / 60;
+    }
+    function rate(p) {
+      var m = p.max_el;
+      if (m < 15) { return ["q-weak", "Flacher Überflug – schwierig", "Kurze, schwache Signale; nur mit freier Sicht zum Horizont in Richtung " + compass(p.rise_az) + "–" + compass(p.set_az) + "."]; }
+      if (m < 35) { return ["q-ok", "Mittlerer Überflug – gut hörbar", "Brauchbare Signale, am besten rund um das Maximum."]; }
+      return ["q-good", "Hoher Überflug – sehr gut hörbar", "Satellit steigt hoch auf, lange und kräftige Signale."];
+    }
+    function setLabel(el, x, y) { el.setAttribute("x", x); el.setAttribute("y", y - 7); }
+
+    function show(index) {
+      var p = passList[index];
+      if (!p) { return; }
+      selected = index;
+      rows.forEach(function (r) { r.classList.toggle("active", Number(r.dataset.passIndex) === index); });
+      var pts = p.track;
+      track.setAttribute("points", pts.map(function (q) { return q.x + "," + q.y; }).join(" "));
+      var first = pts[0], last = pts[pts.length - 1];
+      var top = pts.reduce(function (a, b) { return b.el > a.el ? b : a; }, first);
+      rise.setAttribute("cx", first.x); rise.setAttribute("cy", first.y);
+      set.setAttribute("cx", last.x); set.setAttribute("cy", last.y);
+      maxDot.setAttribute("cx", top.x); maxDot.setAttribute("cy", top.y);
+      setLabel(aosLabel, first.x, first.y);
+      setLabel(losLabel, last.x, last.y);
+      title.textContent = new Date(p.rise).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) + " " + hhmmss(p.rise).slice(0, 5) + " Uhr";
+      var r = rate(p);
+      audibility.className = "ic705-audibility " + r[0];
+      audibility.innerHTML = r[1] + "<small>" + r[2] + "</small>";
+      var dur = Math.round(p.duration / 60);
+      facts.innerHTML =
+        "<dt>AOS</dt><dd>" + hhmmss(p.rise) + " · " + p.rise_az.toFixed(0) + "° " + compass(p.rise_az) + "</dd>" +
+        "<dt>Maximum</dt><dd>" + hhmmss(p.culmination) + " · " + p.max_el.toFixed(1) + "° Höhe</dd>" +
+        "<dt>LOS</dt><dd>" + hhmmss(p.set) + " · " + p.set_az.toFixed(0) + "° " + compass(p.set_az) + "</dd>" +
+        "<dt>Dauer</dt><dd>" + dur + " min, davon " + minutesAbove(p, 20).toFixed(1) + " min über 20°</dd>";
+      // Countdown im Rig-Display folgt dem ausgewaehlten Ueberflug
+      if (rigPanel) { rigPanel.dataset.riseUtc = p.rise; rigPanel.dataset.setUtc = p.set; }
+      updateNow();
+    }
+
+    function updateNow() {
+      var p = passList[selected];
+      var now = Date.now(), pts = p.track;
+      if (now < new Date(p.rise).getTime() || now > new Date(p.set).getTime()) {
+        nowDot.setAttribute("visibility", "hidden");
+        return;
+      }
+      for (var i = 1; i < pts.length; i++) {
+        var t0 = new Date(pts[i - 1].t).getTime(), t1 = new Date(pts[i].t).getTime();
+        if (now >= t0 && now <= t1) {
+          var f = t1 > t0 ? (now - t0) / (t1 - t0) : 0;
+          nowDot.setAttribute("cx", pts[i - 1].x + (pts[i].x - pts[i - 1].x) * f);
+          nowDot.setAttribute("cy", pts[i - 1].y + (pts[i].y - pts[i - 1].y) * f);
+          nowDot.setAttribute("visibility", "visible");
+          return;
+        }
+      }
+      nowDot.setAttribute("visibility", "hidden");
+    }
+
+    rows.forEach(function (r) {
+      r.addEventListener("click", function () { show(Number(r.dataset.passIndex)); });
+      r.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); show(Number(r.dataset.passIndex)); } });
+    });
+    show(0);
+    setInterval(updateNow, 1000);
+  }
 
   var audioHealth = document.getElementById("ic705-audio-health");
   fetch("http://" + window.location.hostname + ":8766/health")
