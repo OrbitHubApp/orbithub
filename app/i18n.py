@@ -167,6 +167,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
     "source.spacetrack_description": {"de": "Offizieller Weltraumkatalog des US-Weltraumkommandos (eigene Anmeldung erforderlich)", "en": "Official space catalog of US Space Command (own registration required)"},
     "nav.passes": {"de": "Überflüge", "en": "Passes"},
     "nav.ic705": {"de": "IC-705", "en": "IC-705"},
+    "nav.amsat": {"de": "AMSAT Live", "en": "AMSAT Live"},
     "nav.visibility": {"de": "Visuell", "en": "Visual"},
     "visibility.eyebrow": {"de": "VISUELLE BEOBACHTUNG", "en": "VISUAL OBSERVATION"},
     "visibility.hero_heading": {"de": "Welche Satelliten sind mit blossem Auge sichtbar?", "en": "Which satellites are visible to the naked eye?"},

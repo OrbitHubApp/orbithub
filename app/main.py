@@ -61,6 +61,7 @@ from app.services.transponder_db import (
     load_transponders,
 )
 from app.services.rig_control import RigControlError, rig_control, rig_mode_for
+from app.services import amsat_status
 from app.services.rig_tracking import tracking_session
 from app.services.tinygs_aliases import (
     fetch_and_save_tinygs_aliases,
@@ -3037,6 +3038,115 @@ async def ic705_page(request: Request, satellite: str | None = None):
             "horizon_shadow_segments": horizon_shadow_segments,
         },
     )
+
+
+@app.get("/amsat")
+async def amsat_live_page(request: Request, hours: int = 24):
+    """AMSAT Live: aktuelle Hoerberichte von status.amsat.org mit naechstem Ueberflug."""
+    if hours not in (6, 12, 24, 48):
+        hours = 24
+    return templates.TemplateResponse(
+        name="amsat.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "version": VERSION,
+            "codename": CODENAME,
+            "hours": hours,
+        },
+    )
+
+
+@app.get("/api/amsat/live")
+async def amsat_live_data(hours: int = 24) -> dict:
+    """AMSAT-Berichte je Satellit/Betriebsart + IC-705-Frequenz + naechster Ueberflug."""
+    try:
+        reports = await amsat_status.fetch_reports(hours)
+    except (httpx.HTTPError, ValueError) as exc:
+        print(f"OrbitHub AMSAT-Status-Fehler: {exc!r}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"status.amsat.org nicht erreichbar: {exc}",
+        ) from exc
+
+    entries = amsat_status.summarize(reports)
+    records = await _get_all_tle_records()
+    records_by_norad_id = {record.norad_id: record for record in records}
+    all_transponders = load_transponders(SATNOGS_TRANSMITTERS_FILE)
+    name_index = None
+
+    observer = load_observer_settings().for_radio()
+    predictor = PassPredictor(
+        latitude_deg=observer.latitude_deg,
+        longitude_deg=observer.longitude_deg,
+        elevation_m=observer.elevation_m,
+    )
+    min_el = observer.default_minimum_elevation_deg
+    now_utc = datetime.now(timezone.utc)
+    next_pass_by_norad: dict[str, dict | None] = {}
+
+    for entry in entries:
+        entry["norad_from_name"] = False
+        if not entry["norad_id"]:
+            # AMSAT kennt fuer manche Satelliten (noch) keine NORAD-ID -> ueber den Namen suchen
+            if name_index is None:
+                name_index = amsat_status.build_name_index(
+                    records,
+                    load_satnogs_alt_names(SATNOGS_ALIASES_FILE),
+                    load_satnogs_aliases(SATNOGS_ALIASES_FILE),
+                )
+            found = name_index.get(amsat_status.normalize_name(entry["satellite"]))
+            if found:
+                entry["norad_id"] = found
+                entry["norad_from_name"] = True
+        norad_id = entry["norad_id"]
+        record = records_by_norad_id.get(norad_id) if norad_id else None
+        entry["has_tle"] = record is not None
+        entry["satellite_name"] = display_satellite_name(record.name) if record else None
+
+        match = amsat_status.match_transponder(entry["mode"], all_transponders.get(norad_id or "", []))
+        if match:
+            entry["transponder_uuid"] = match["transponder"].get("uuid")
+            entry["transponder_description"] = match["transponder"].get("description")
+            entry["rig_mode"] = match["rig_mode"]
+            entry["downlink_hz"] = match["downlink_hz"]
+            entry["uplink_hz"] = match["uplink_hz"]
+        else:
+            entry["transponder_uuid"] = None
+            entry["rig_mode"] = None
+            entry["downlink_hz"] = None
+            entry["uplink_hz"] = None
+
+        if record is not None and norad_id not in next_pass_by_norad:
+            passes = await _get_cached_satellite_passes(record, predictor, observer, 24, min_el)
+            upcoming = next((p for p in passes if p.set_time > now_utc), None)
+            next_pass_by_norad[norad_id] = (
+                {
+                    "rise": upcoming.rise_time.isoformat(),
+                    "culmination": upcoming.culmination_time.isoformat(),
+                    "set": upcoming.set_time.isoformat(),
+                    "max_el": round(upcoming.max_elevation_deg, 1),
+                    "rise_az": round(upcoming.rise_azimuth_deg, 0),
+                    "set_az": round(upcoming.set_azimuth_deg, 0),
+                }
+                if upcoming
+                else None
+            )
+        entry["next_pass"] = next_pass_by_norad.get(norad_id) if norad_id else None
+
+    def sort_key(entry: dict) -> tuple:
+        next_pass = entry.get("next_pass")
+        return (0 if next_pass else 1, next_pass["rise"] if next_pass else "", entry["name"])
+
+    entries.sort(key=sort_key)
+    return {
+        "entries": entries,
+        "hours": hours,
+        "report_count": len(reports),
+        "fetched_at": now_utc.isoformat(),
+        "source": "https://status.amsat.org/",
+    }
 
 
 @app.get("/api/rig/transponders")

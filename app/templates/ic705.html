@@ -418,6 +418,31 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     syncModeFromSelection();
   }
 
+  // Vorauswahl ueber die Adresse, z. B. vom Knopf auf "AMSAT Live":
+  // /ic705?satellite=25544&transponder=<uuid>&mode=FM&autostart=1&from=...
+  function applyUrlPreset() {
+    var params = new URLSearchParams(window.location.search);
+    var wanted = params.get("transponder");
+    if (wanted && transponderChoice) {
+      var found = Array.prototype.some.call(transponderChoice.options, function (o) { return o.value === wanted; });
+      if (found) { transponderChoice.value = wanted; syncModeFromSelection(); }
+    }
+    var mode = params.get("mode");
+    if (mode && modeChoice) { modeChoice.value = mode; }
+    var from = params.get("from");
+    if (from && transponderNote) {
+      transponderNote.hidden = false;
+      transponderNote.textContent = "Übernommen aus " + from + ".";
+    }
+    if (params.get("autostart") === "1") {
+      // Autostart nur einmal - beim Neuladen der Seite nicht erneut starten
+      params.delete("autostart");
+      var rest = params.toString();
+      window.history.replaceState(null, "", window.location.pathname + (rest ? "?" + rest : ""));
+      if (startBtn && !startBtn.disabled) { startBtn.click(); }
+    }
+  }
+
   function isManualSelected() {
     return !!(transponderChoice && transponderChoice.value === MANUAL_VALUE);
   }
@@ -439,7 +464,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     if (!noradId) { return; }
     fetch("/api/rig/transponders?norad_id=" + encodeURIComponent(noradId))
       .then(function (r) { return r.json(); })
-      .then(function (data) { populateTransponderOptions(data); })
+      .then(function (data) { populateTransponderOptions(data); applyUrlPreset(); })
       .catch(function () {
         if (transponderNote) {
           transponderNote.hidden = false;

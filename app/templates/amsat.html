@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}
+OrbitHub &middot; {{ t('nav.amsat') }}
+{% endblock %}
+
+{% block nav_amsat %}active{% endblock %}
+
+{% block page_heading %}
+{{ t('nav.amsat') }}
+{% endblock %}
+
+{% block content %}
+{# Diese Seite aktualisiert sich selbst per fetch - kein Auto-Reload (dashboard.js) #}
+<span data-pause-auto-refresh></span>
+
+<section class="mission-hero">
+<div>
+<div class="eyebrow">AMSAT LIVE OSCAR SATELLITE STATUS</div>
+<h2>Was sendet gerade wirklich?</h2>
+<p>
+Hörberichte von Funkamateuren weltweit (status.amsat.org): welcher Satellit in welcher Betriebsart
+zuletzt gehört wurde – mit deinem nächsten Überflug und direkter Übernahme von Frequenz und
+Betriebsart in den IC-705.
+</p>
+</div>
+</section>
+
+<section class="add-source-panel" id="amsat-panel" data-hours="{{ hours }}">
+<div class="amsat-toolbar">
+<div class="amsat-hours" role="group" aria-label="Zeitraum">
+<span class="rig-control-note">Berichte der letzten</span>
+{% for h in (6, 12, 24, 48) %}
+<a class="amsat-chip{% if h == hours %} is-active{% endif %}" href="/amsat?hours={{ h }}">{{ h }} h</a>
+{% endfor %}
+</div>
+<label class="amsat-toggle"><input type="checkbox" id="amsat-show-silent"> auch „nicht gehört“ anzeigen</label>
+</div>
+<p class="rig-control-note" id="amsat-meta">Lade Berichte von status.amsat.org und berechne Überflüge …</p>
+<p class="rig-control-error" id="amsat-error" hidden></p>
+
+<div class="table-scroll">
+<table class="mission-table amsat-table">
+<thead>
+<tr>
+<th>Satellit</th>
+<th>Betriebsart</th>
+<th>Status</th>
+<th>Zuletzt gemeldet</th>
+<th>Berichte</th>
+<th>Nächster Überflug</th>
+<th>IC-705</th>
+</tr>
+</thead>
+<tbody id="amsat-body">
+<tr><td colspan="7" class="rig-control-note">Lade …</td></tr>
+</tbody>
+</table>
+</div>
+<p class="rig-control-note amsat-legend">
+Status = letzter Bericht im Zeitraum. Berichte: ✓ gehört · ◐ nur Bake/Telemetrie · ✗ nicht gehört.
+Überflug-Höhe: <span class="amsat-el q-weak">flach</span> · <span class="amsat-el q-ok">mittel</span> · <span class="amsat-el q-good">hoch</span>.
+Der Knopf „IC-705“ öffnet die Funkgeräte-Seite mit passendem Transponder und Betriebsart und startet das Doppler-Tracking.
+Daten: <a href="https://status.amsat.org/" target="_blank" rel="noopener">status.amsat.org</a> (AMSAT).
+</p>
+</section>
+
+<style>
+.amsat-toolbar { display: flex; flex-wrap: wrap; gap: 0.8em 1.6em; align-items: center; justify-content: space-between; margin-bottom: 0.4em; }
+.amsat-hours { display: flex; gap: 0.4em; align-items: center; flex-wrap: wrap; }
+.amsat-chip { padding: 0.3em 0.8em; border-radius: 999px; border: 1px solid rgba(255,255,255,0.3); color: inherit; text-decoration: none; font-size: 0.9em; }
+.amsat-chip.is-active { border-color: #3fae54; color: #3fae54; background: rgba(63,255,130,0.12); font-weight: 600; }
+.amsat-toggle { font-size: 0.9em; display: flex; gap: 0.4em; align-items: center; cursor: pointer; }
+.amsat-table { min-width: 0; }
+.amsat-table td { vertical-align: middle; }
+.amsat-sat { font-weight: 700; }
+.amsat-sub { display: block; font-size: 0.78em; opacity: 0.65; }
+.amsat-mode { font-family: monospace; padding: 0.1em 0.5em; border-radius: 4px; border: 1px solid rgba(86,221,255,0.4); color: #56ddff; white-space: nowrap; }
+.amsat-badge { display: inline-block; padding: 0.15em 0.6em; border-radius: 999px; font-size: 0.82em; font-weight: 700; white-space: nowrap; }
+.amsat-badge.s-heard { background: rgba(63,224,138,0.15); color: #3fe08a; border: 1px solid rgba(63,224,138,0.5); }
+.amsat-badge.s-tlm { background: rgba(86,170,255,0.15); color: #7cbcff; border: 1px solid rgba(86,170,255,0.5); }
+.amsat-badge.s-silent { background: rgba(255,90,90,0.12); color: #ff8a8a; border: 1px solid rgba(255,90,90,0.45); }
+.amsat-counts { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.amsat-counts .c-h { color: #3fe08a; } .amsat-counts .c-t { color: #7cbcff; } .amsat-counts .c-n { color: #ff8a8a; }
+.amsat-pass { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.amsat-pass.is-live { color: #ff4fd8; font-weight: 700; }
+.amsat-el { font-weight: 700; }
+.amsat-el.q-weak { color: #e0a63a; } .amsat-el.q-ok { color: #8fd36b; } .amsat-el.q-good { color: #3fe08a; }
+.amsat-rig { white-space: nowrap; }
+.amsat-freq { font-family: monospace; font-size: 0.9em; display: block; opacity: 0.85; }
+.amsat-rig-btn { display: inline-block; margin-top: 0.25em; padding: 0.3em 0.8em; border-radius: 6px; border: 1px solid #3fae54; color: #3fae54; text-decoration: none; font-size: 0.85em; font-weight: 600; }
+.amsat-rig-btn:hover { background: rgba(63,255,130,0.12); }
+.amsat-rig-btn.is-manual { border-color: rgba(255,255,255,0.35); color: inherit; font-weight: 400; }
+.amsat-row-silent { opacity: 0.55; }
+.amsat-legend { margin-top: 0.8em; line-height: 1.6; }
+</style>
+
+<script>
+(function () {
+  var panel = document.getElementById("amsat-panel");
+  var body = document.getElementById("amsat-body");
+  var meta = document.getElementById("amsat-meta");
+  var errorEl = document.getElementById("amsat-error");
+  var showSilent = document.getElementById("amsat-show-silent");
+  var hours = panel.dataset.hours;
+  var entries = [];
+
+  try { showSilent.checked = localStorage.getItem("amsat-show-silent") === "1"; } catch (e) {}
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function hhmm(iso) { return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); }
+  function ago(iso) {
+    if (!iso) { return "–"; }
+    var min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (min < 1) { return "gerade eben"; }
+    if (min < 60) { return "vor " + min + " min"; }
+    var h = Math.floor(min / 60);
+    return "vor " + h + " h " + (min % 60 ? (min % 60) + " min" : "");
+  }
+  function until(iso) {
+    var min = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
+    if (min < 60) { return "in " + Math.max(min, 0) + " min"; }
+    return "in " + Math.floor(min / 60) + " h " + (min % 60) + " min";
+  }
+  function elClass(el) { return el < 15 ? "q-weak" : el < 35 ? "q-ok" : "q-good"; }
+  function badge(e) {
+    var cls = (e.status === "Heard" || e.status === "Crew Active") ? "s-heard" : e.status === "Telemetry Only" ? "s-tlm" : "s-silent";
+    return '<span class="amsat-badge ' + cls + '">' + esc(e.status_label) + "</span>";
+  }
+  function passCell(e) {
+    if (!e.norad_id) { return '<span class="rig-control-note">keine NORAD-ID</span>'; }
+    if (!e.has_tle) { return '<span class="rig-control-note">keine Bahndaten</span>'; }
+    var p = e.next_pass;
+    if (!p) { return '<span class="rig-control-note">kein Überflug in 24 h</span>'; }
+    var now = Date.now(), rise = new Date(p.rise).getTime(), set = new Date(p.set).getTime();
+    var el = '<span class="amsat-el ' + elClass(p.max_el) + '">' + Math.round(p.max_el) + "°</span>";
+    if (now >= rise && now <= set) {
+      return '<span class="amsat-pass is-live">● jetzt im Bereich · LOS ' + hhmm(p.set) + "</span><span class=\"amsat-sub\">max. " + el + "</span>";
+    }
+    return '<span class="amsat-pass">' + hhmm(p.rise) + " · " + el + '</span><span class="amsat-sub">' + until(p.rise) + "</span>";
+  }
+  function rigCell(e) {
+    if (!e.norad_id || !e.has_tle) { return "–"; }
+    var base = "/ic705?satellite=" + encodeURIComponent(e.norad_id);
+    if (!e.transponder_uuid) {
+      return '<a class="amsat-rig-btn is-manual" href="' + base + '">Frequenz wählen</a>';
+    }
+    var href = base + "&transponder=" + encodeURIComponent(e.transponder_uuid) +
+      "&mode=" + encodeURIComponent(e.rig_mode || "") + "&autostart=1&from=" + encodeURIComponent("AMSAT " + e.display_name);
+    var freq = (e.downlink_hz / 1e6).toFixed(3) + " MHz " + esc(e.rig_mode || "");
+    return '<span class="amsat-freq" title="' + esc(e.transponder_description || "") + '">' + freq + "</span>" +
+      '<a class="amsat-rig-btn" href="' + href + '">📻 IC-705</a>';
+  }
+
+  function render() {
+    var list = entries.filter(function (e) { return showSilent.checked || e.status !== "Not Heard"; });
+    if (!list.length) {
+      body.innerHTML = '<tr><td colspan="7" class="rig-control-note">Keine Berichte im gewählten Zeitraum.</td></tr>';
+      return;
+    }
+    body.innerHTML = list.map(function (e) {
+      var sat = esc(e.satellite) + (e.satellite_name && e.satellite_name.toUpperCase().indexOf(e.satellite.toUpperCase()) < 0 ? '<span class="amsat-sub">' + esc(e.satellite_name) + "</span>" : "");
+      var last = ago(e.latest_time) + '<span class="amsat-sub">' + esc(e.latest_callsign || "") + (e.latest_grid ? " · " + esc(e.latest_grid) : "") + "</span>";
+      if (e.status === "Not Heard" && e.last_heard_time) {
+        last += '<span class="amsat-sub">zuletzt gehört ' + ago(e.last_heard_time) + "</span>";
+      }
+      var counts = '<span class="amsat-counts"><span class="c-h">✓ ' + e.count_heard + '</span> · <span class="c-t">◐ ' + e.count_tlm + '</span> · <span class="c-n">✗ ' + e.count_not_heard + "</span></span>";
+      return '<tr class="' + (e.status === "Not Heard" ? "amsat-row-silent" : "") + '">' +
+        '<td><span class="amsat-sat">' + sat + "</span></td>" +
+        '<td><span class="amsat-mode">' + esc(e.mode) + "</span></td>" +
+        "<td>" + badge(e) + "</td>" +
+        "<td>" + last + "</td>" +
+        "<td>" + counts + "</td>" +
+        "<td>" + passCell(e) + "</td>" +
+        '<td class="amsat-rig">' + rigCell(e) + "</td></tr>";
+    }).join("");
+  }
+
+  function load() {
+    fetch("/api/amsat/live?hours=" + encodeURIComponent(hours))
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) { throw new Error(d.detail || "Fehler"); } return d; }); })
+      .then(function (d) {
+        entries = d.entries || [];
+        errorEl.hidden = true;
+        var active = entries.filter(function (e) { return e.status !== "Not Heard"; }).length;
+        meta.textContent = active + " aktive von " + entries.length + " Einträgen · " + d.report_count +
+          " Berichte der letzten " + d.hours + " h · Stand " + hhmm(d.fetched_at) + " Uhr";
+        render();
+      })
+      .catch(function (err) {
+        errorEl.hidden = false;
+        errorEl.textContent = "AMSAT-Daten konnten nicht geladen werden: " + err.message;
+      });
+  }
+
+  showSilent.addEventListener("change", function () {
+    try { localStorage.setItem("amsat-show-silent", showSilent.checked ? "1" : "0"); } catch (e) {}
+    render();
+  });
+
+  load();
+  setInterval(render, 30000);      // Countdowns/„vor x min“ aktuell halten
+  setInterval(load, 10 * 60000);   // Daten alle 10 min neu holen (Server-Cache ebenso 10 min)
+})();
+</script>
+{% endblock %}
