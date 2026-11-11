@@ -1127,6 +1127,17 @@ async def index(request: Request):
         context=context,
     )
 
+def _default_pass_record(records, favorite_norad_ids):
+    """Satellit fuer Ueberflug-Seiten ohne Auswahl: erster Eintrag der Merkliste
+    (wie auf /ic705), sonst die ISS, sonst der erste Katalog-Eintrag."""
+    records_by_norad_id = {record.norad_id: record for record in records}
+    for norad_id in favorite_norad_ids:
+        record = records_by_norad_id.get(norad_id.lstrip("0") or norad_id)
+        if record is not None:
+            return record
+    return records_by_norad_id.get("25544") or records[0]
+
+
 @app.get("/passes")
 async def passes_page(
     request: Request,
@@ -1181,7 +1192,7 @@ async def passes_page(
             )
 
         if selected_record is None:
-            selected_record = records[0]
+            selected_record = _default_pass_record(records, favorite_norad_ids)
 
         # Funk-Horizont-Profil fuer Ueberfluege (siehe ObserverSettings.for_radio)
         observer = load_observer_settings().for_radio()
@@ -1302,7 +1313,7 @@ async def passes_export_txt(
             )
 
         if selected_record is None:
-            selected_record = records[0]
+            selected_record = _default_pass_record(records, load_favorite_norad_ids())
 
         # Funk-Horizont-Profil fuer Ueberfluege (siehe ObserverSettings.for_radio)
         observer = load_observer_settings().for_radio()
