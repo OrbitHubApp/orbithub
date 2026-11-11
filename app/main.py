@@ -60,7 +60,7 @@ from app.services.transponder_db import (
     fetch_and_save_transponders,
     load_transponders,
 )
-from app.services.rig_control import rig_control, rig_mode_for
+from app.services.rig_control import RigControlError, rig_control, rig_mode_for
 from app.services.rig_tracking import tracking_session
 from app.services.tinygs_aliases import (
     fetch_and_save_tinygs_aliases,
@@ -2901,6 +2901,88 @@ async def rig_status() -> dict:
     """Prueft, ob rigctld (kappanhang/IC-705) aktuell erreichbar ist."""
     reachable = await asyncio.to_thread(rig_control.is_reachable)
     return {"reachable": reachable}
+
+
+@app.get("/api/rig/state")
+async def rig_state() -> dict:
+    """Aktuelle VFO-Frequenz und Betriebsart des IC-705 (fuer die Live-Anzeige auf /ic705)."""
+
+    def _read() -> dict:
+        try:
+            frequency_hz = rig_control.get_frequency()
+            mode, passband_hz = rig_control.get_mode()
+        except RigControlError as exc:
+            return {"reachable": False, "error": str(exc)}
+        return {
+            "reachable": True,
+            "frequency_hz": frequency_hz,
+            "mode": mode,
+            "passband_hz": passband_hz,
+        }
+
+    return await asyncio.to_thread(_read)
+
+
+@app.get("/ic705")
+async def ic705_page(request: Request, satellite: str | None = None):
+    """Eigene Seite fuer die IC-705-Steuerung (Doppler-Tracking, Transponder, Ton)."""
+    records = await _get_all_tle_records()
+    records_by_norad_id = {record.norad_id: record for record in records}
+
+    favorite_ids: list[str] = []
+    for norad_id in load_favorite_norad_ids():
+        normalized = norad_id.lstrip("0") or norad_id
+        if normalized in records_by_norad_id and normalized not in favorite_ids:
+            favorite_ids.append(normalized)
+    favorite_records = [records_by_norad_id[n] for n in favorite_ids]
+
+    satellite_not_found = None
+    selected_record = None
+    if satellite:
+        wanted = satellite.strip().lstrip("0") or satellite.strip()
+        selected_record = records_by_norad_id.get(wanted)
+        if selected_record is None:
+            satellite_not_found = satellite.strip()
+    if selected_record is None and favorite_records:
+        selected_record = favorite_records[0]
+    if selected_record is None:
+        selected_record = records_by_norad_id.get("25544")
+
+    passes = []
+    if selected_record is not None:
+        observer = load_observer_settings().for_radio()
+        predictor = PassPredictor(
+            latitude_deg=observer.latitude_deg,
+            longitude_deg=observer.longitude_deg,
+            elevation_m=observer.elevation_m,
+        )
+        passes = await _predict_async(
+            predictor,
+            selected_record,
+            hours=24,
+            minimum_elevation_deg=observer.default_minimum_elevation_deg,
+            observer_settings=observer,
+        )
+
+    now_utc = datetime.now(timezone.utc)
+    next_pass = next((p for p in passes if p.set_time > now_utc), None)
+
+    return templates.TemplateResponse(
+        name="ic705.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "version": VERSION,
+            "codename": CODENAME,
+            "selected_satellite": selected_record,
+            "favorite_records": favorite_records,
+            "favorite_ids": favorite_ids,
+            "satellite_not_found": satellite_not_found,
+            "passes": passes,
+            "next_pass": next_pass,
+        },
+    )
 
 
 @app.get("/api/rig/transponders")
