@@ -76,8 +76,14 @@ async def fetch_and_save_satnogs_aliases(path: Path) -> dict[str, Any]:
     aliases: dict[str, str] = {}
     launched: dict[str, str] = {}
     alt_names: dict[str, str] = {}
+    follow_ids: dict[str, str] = {}
     for satellite in satellites:
         norad_cat_id = satellite.get("norad_cat_id")
+        # Vorlaeufige SatNOGS-Nummern (meist 98xxx) zeigen per norad_follow_id
+        # auf die echte NORAD-Nummer, sobald diese vergeben ist.
+        follow_id = satellite.get("norad_follow_id")
+        if norad_cat_id is not None and follow_id and str(follow_id) != str(norad_cat_id):
+            follow_ids[str(norad_cat_id)] = str(follow_id)
         name = (satellite.get("name") or "").strip()
         launched_at = satellite.get("launched")
         if norad_cat_id is not None and launched_at:
@@ -96,6 +102,7 @@ async def fetch_and_save_satnogs_aliases(path: Path) -> dict[str, Any]:
         "aliases": aliases,
         "launched": launched,
         "alt_names": alt_names,
+        "follow_ids": follow_ids,
     }
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -199,3 +206,27 @@ def enrich_name_with_alias(name: str, norad_id: str, aliases: dict[str, str]) ->
         return name
 
     return f"{alias} ({name_stripped})"
+
+
+_follow_cache: dict[str, Any] = {"mtime": None, "value": {}}
+
+
+def load_satnogs_follow_ids(path: Path) -> dict[str, str]:
+    """Vorlaeufige SatNOGS-NORAD-Nummer -> echte NORAD-Nummer (norad_follow_id),
+    gecacht anhand der Datei-mtime. Leer, solange der Cache noch keine
+    follow_ids enthaelt (bis zum naechsten SatNOGS-Abgleich)."""
+    if not path.exists():
+        return {}
+    mtime = path.stat().st_mtime
+    if _follow_cache["mtime"] == mtime:
+        return _follow_cache["value"]
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        payload = {}
+    follow_ids = payload.get("follow_ids", {})
+    if not isinstance(follow_ids, dict):
+        follow_ids = {}
+    _follow_cache["mtime"] = mtime
+    _follow_cache["value"] = follow_ids
+    return follow_ids

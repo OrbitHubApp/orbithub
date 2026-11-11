@@ -148,6 +148,8 @@ def match_transponder(mode: str, candidates: list[dict[str, Any]]) -> dict[str, 
     """
     tag = (mode or "").strip()
     tag_upper = tag.upper()
+    if "DVB" in tag_upper or tag_upper in ("NB", "WB"):
+        return None  # Digital-TV bzw. QO-100: mit dem IC-705 nicht empfangbar
     usable = [
         t for t in candidates
         if t.get("downlink_low") and t["downlink_low"] <= IC705_MAX_HZ
@@ -268,18 +270,60 @@ def normalize_name(name: str) -> str:
     return re.sub(r"[^A-Z0-9]", "", (name or "").upper())
 
 
-def build_name_index(records: list[Any], alt_names: dict[str, str], aliases: dict[str, str]) -> dict[str, str]:
+# AMSAT-OSCAR-Bezeichnungen, die weder AMSAT (keine NORAD-ID im Bericht) noch
+# SatNOGS (fehlt in "names") einem Satelliten zuordnen. Ergaenzbar ueber
+# data/amsat-name-map.json, z. B. {"SO-127": "68446"}.
+AMSAT_NAME_OVERRIDES = {
+    "SO-127": "68446",  # HADES-SA (SpinnyONE), PocketQube, AMSAT-EA
+}
+
+
+def load_name_overrides(path: Any) -> dict[str, str]:
+    """Eingebaute Zuordnungen + optionale Datei (Datei hat Vorrang)."""
+    import json
+
+    merged = {normalize_name(k): str(v) for k, v in AMSAT_NAME_OVERRIDES.items()}
+    try:
+        if path is not None and path.exists():
+            extra = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(extra, dict):
+                merged.update({normalize_name(k): str(v) for k, v in extra.items()})
+    except (OSError, ValueError) as exc:
+        logger.warning("amsat-name-map.json nicht lesbar: %r", exc)
+    return merged
+
+
+def resolve_follow_id(norad_id: str | None, follow_ids: dict[str, str]) -> str | None:
+    """Vorlaeufige SatNOGS-Nummer (98xxx) -> echte NORAD-Nummer, falls bekannt."""
+    if not norad_id:
+        return norad_id
+    seen = set()
+    while norad_id in follow_ids and norad_id not in seen:
+        seen.add(norad_id)
+        norad_id = follow_ids[norad_id]
+    return norad_id
+
+
+def build_name_index(
+    records: list[Any],
+    alt_names: dict[str, str],
+    aliases: dict[str, str],
+    follow_ids: dict[str, str] | None = None,
+) -> dict[str, str]:
     """Normalisierter Satellitenname -> NORAD-ID (nur eindeutige Namen).
 
     Quellen: TLE-Katalogname (ohne Klammerzusatz), SatNOGS-Name und
     SatNOGS-Alternativnamen (z. B. Amateurfunk-Bezeichnungen wie "RS95S").
+    Vorlaeufige SatNOGS-Nummern werden vorher auf die echte Nummer umgesetzt,
+    damit z. B. "Marina" nicht wegen zweier Nummern als mehrdeutig gilt.
     """
     index: dict[str, set[str]] = defaultdict(set)
+    follow_ids = follow_ids or {}
 
     def add(name: str, norad_id: str) -> None:
         key = normalize_name(name)
         if len(key) >= 3:
-            index[key].add(norad_id)
+            index[key].add(resolve_follow_id(str(norad_id), follow_ids))
 
     for record in records:
         add(record.name.split("(")[0], record.norad_id)

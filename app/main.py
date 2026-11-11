@@ -53,6 +53,7 @@ from app.services.satnogs_aliases import (
     fetch_and_save_satnogs_aliases,
     load_satnogs_alt_names,
     load_satnogs_aliases,
+    load_satnogs_follow_ids,
     load_satnogs_launched,
 )
 from app.services.transponder_db import (
@@ -2784,6 +2785,19 @@ async def satellite_track(
     }
 
 
+def _transponders_for(norad_id: str | None, all_transponders: dict) -> list:
+    """SatNOGS-Transponder eines Satelliten - inklusive derer, die SatNOGS noch
+    unter einer vorlaeufigen Nummer (98xxx) fuehrt, die per norad_follow_id auf
+    diese NORAD-Nummer zeigt (z. B. Marina 98293 -> 69920)."""
+    if not norad_id:
+        return []
+    result = list(all_transponders.get(norad_id, []))
+    for temp_id, real_id in load_satnogs_follow_ids(SATNOGS_ALIASES_FILE).items():
+        if real_id == norad_id:
+            result.extend(all_transponders.get(temp_id, []))
+    return result
+
+
 _RIG_MIN_HZ = 30_000          # IC-705 Empfangsbereich: 30 kHz ...
 _RIG_MAX_HZ = 470_000_000     # ... bis 470 MHz
 
@@ -2851,7 +2865,7 @@ async def start_rig_tracking(request: Request) -> dict:
         )
 
     all_transponders = load_transponders(SATNOGS_TRANSMITTERS_FILE)
-    candidates = all_transponders.get(norad_id, [])
+    candidates = _transponders_for(norad_id, all_transponders)
     transponder_uuid = str(payload.get("transponder_uuid", "")).strip()
     transponder = None
     if transponder_uuid == "__manual__":
@@ -3086,26 +3100,39 @@ async def amsat_live_data(hours: int = 24) -> dict:
     now_utc = datetime.now(timezone.utc)
     next_pass_by_norad: dict[str, dict | None] = {}
 
+    follow_ids = load_satnogs_follow_ids(SATNOGS_ALIASES_FILE)
+    name_overrides = amsat_status.load_name_overrides(DATA_DIR / "amsat-name-map.json")
+
     for entry in entries:
         entry["norad_from_name"] = False
-        if not entry["norad_id"]:
+        sat_key = amsat_status.normalize_name(entry["satellite"])
+        if sat_key in name_overrides:
+            entry["norad_id"] = name_overrides[sat_key]
+            entry["norad_from_name"] = True
+        elif not entry["norad_id"]:
             # AMSAT kennt fuer manche Satelliten (noch) keine NORAD-ID -> ueber den Namen suchen
             if name_index is None:
                 name_index = amsat_status.build_name_index(
                     records,
                     load_satnogs_alt_names(SATNOGS_ALIASES_FILE),
                     load_satnogs_aliases(SATNOGS_ALIASES_FILE),
+                    follow_ids,
                 )
-            found = name_index.get(amsat_status.normalize_name(entry["satellite"]))
+            found = name_index.get(sat_key)
             if found:
                 entry["norad_id"] = found
                 entry["norad_from_name"] = True
+        # Vorlaeufige Nummer (98xxx) ohne Bahndaten -> echte NORAD-Nummer
+        if entry["norad_id"] and entry["norad_id"] not in records_by_norad_id:
+            resolved = amsat_status.resolve_follow_id(entry["norad_id"], follow_ids)
+            if resolved in records_by_norad_id:
+                entry["norad_id"] = resolved
         norad_id = entry["norad_id"]
         record = records_by_norad_id.get(norad_id) if norad_id else None
         entry["has_tle"] = record is not None
         entry["satellite_name"] = display_satellite_name(record.name) if record else None
 
-        match = amsat_status.match_transponder(entry["mode"], all_transponders.get(norad_id or "", []))
+        match = amsat_status.match_transponder(entry["mode"], _transponders_for(norad_id, all_transponders))
         if match:
             entry["transponder_uuid"] = match["transponder"].get("uuid")
             entry["transponder_description"] = match["transponder"].get("description")
@@ -3153,7 +3180,7 @@ async def amsat_live_data(hours: int = 24) -> dict:
 async def list_rig_transponders(norad_id: str) -> dict:
     """Liefert alle bekannten Transponder/Baken eines Satelliten (SatNOGS) fuer die Auswahl im Rig-Control-Panel."""
     all_transponders = load_transponders(SATNOGS_TRANSMITTERS_FILE)
-    candidates = all_transponders.get(norad_id, [])
+    candidates = _transponders_for(norad_id, all_transponders)
     recommended = best_downlink_transponder(candidates)
     recommended_uuid = recommended.get("uuid") if recommended else None
 
