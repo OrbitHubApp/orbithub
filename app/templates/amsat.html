@@ -34,7 +34,10 @@ Betriebsart in den IC-705.
 <a class="amsat-chip{% if h == hours %} is-active{% endif %}" href="/amsat?hours={{ h }}">{{ h }} h</a>
 {% endfor %}
 </div>
+<div class="amsat-toolbar-right">
 <label class="amsat-toggle"><input type="checkbox" id="amsat-show-silent"> auch „nicht gehört“ anzeigen</label>
+<a class="amsat-live-btn" href="/ic705?live=1&amp;hours={{ hours }}" title="Der IC-705 stellt automatisch jeden hier als gehört gemeldeten Satelliten ein, sobald er über 10° steht – bei mehreren den höchsten.">🎧 Live-Beobachtung</a>
+</div>
 </div>
 <p class="rig-control-note" id="amsat-meta">Lade Berichte von status.amsat.org und berechne Überflüge …</p>
 <p class="rig-control-error" id="amsat-error" hidden></p>
@@ -61,6 +64,7 @@ Betriebsart in den IC-705.
 Status = letzter Bericht im Zeitraum. Berichte: ✓ gehört · ◐ nur Bake/Telemetrie · ✗ nicht gehört.
 Überflug-Höhe: <span class="amsat-el q-weak">flach</span> · <span class="amsat-el q-ok">mittel</span> · <span class="amsat-el q-good">hoch</span>.
 Der Knopf „IC-705“ öffnet die Funkgeräte-Seite mit passendem Transponder und Betriebsart und startet das Doppler-Tracking.
+„Live-Beobachtung“ stellt automatisch jeden als gehört gemeldeten Satelliten ein, sobald er über 10° steht – bei mehreren den höchsten.
 Neue Satelliten ohne offizielle NORAD-Nummer werden automatisch über SatNOGS zugeordnet (vorläufige Nummer → echte Nummer, sonst SatNOGS-Bahndaten, markiert mit „Bahn: SatNOGS“).
 Daten: <a href="https://status.amsat.org/" target="_blank" rel="noopener">status.amsat.org</a> (AMSAT).
 </p>
@@ -71,6 +75,9 @@ Daten: <a href="https://status.amsat.org/" target="_blank" rel="noopener">status
 .amsat-hours { display: flex; gap: 0.4em; align-items: center; flex-wrap: wrap; }
 .amsat-chip { padding: 0.3em 0.8em; border-radius: 999px; border: 1px solid rgba(255,255,255,0.3); color: inherit; text-decoration: none; font-size: 0.9em; }
 .amsat-chip.is-active { border-color: #3fae54; color: #3fae54; background: rgba(63,255,130,0.12); font-weight: 600; }
+.amsat-toolbar-right { display: flex; flex-wrap: wrap; gap: 0.8em 1.2em; align-items: center; }
+.amsat-live-btn { display: inline-block; padding: 0.45em 1em; border-radius: 6px; border: 1px solid #ff4fd8; color: #ff4fd8; text-decoration: none; font-weight: 700; white-space: nowrap; }
+.amsat-live-btn:hover { background: rgba(255,79,216,0.12); }
 .amsat-toggle { font-size: 0.9em; display: flex; gap: 0.4em; align-items: center; cursor: pointer; }
 .amsat-table { min-width: 0; }
 .amsat-table td { vertical-align: middle; }

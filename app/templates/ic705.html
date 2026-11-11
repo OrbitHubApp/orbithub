@@ -65,6 +65,187 @@ Betriebsart und Empfangston – alles für den IC-705 an einem Ort.
 </div>
 </section>
 
+<section class="add-source-panel" id="ic705-live-panel">
+<div class="ic705-live-head">
+<div>
+<div class="label">LIVE-BEOBACHTUNG · AMSAT LIVE</div>
+<h3 id="ic705-live-title">Automatisch mithören</h3>
+</div>
+<div class="ic705-live-actions">
+<select id="ic705-live-hours" class="rig-select" aria-label="Zeitraum der AMSAT-Berichte">
+<option value="6">gehört in 6 h</option>
+<option value="12">gehört in 12 h</option>
+<option value="24" selected>gehört in 24 h</option>
+<option value="48">gehört in 48 h</option>
+</select>
+<button type="button" id="ic705-live-start" class="rig-control-btn ic705-live-start">🎧 Live-Beobachtung starten</button>
+<button type="button" id="ic705-live-stop" class="rig-control-btn ic705-live-stop" hidden>Beenden</button>
+</div>
+</div>
+<p class="rig-control-note" id="ic705-live-intro">
+Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisch eingestellt, sobald sie
+über 10° (und über deinem Funk-Horizont) stehen – bei mehreren der höchste. Der IC-705 kann so einfach laufen.
+</p>
+<div class="ic705-live-body" id="ic705-live-body" hidden>
+<div class="ic705-live-now" id="ic705-live-now"></div>
+<div class="ic705-live-list" id="ic705-live-list"></div>
+<p class="rig-control-note" id="ic705-live-meta"></p>
+</div>
+<p class="rig-control-error" id="ic705-live-error" hidden></p>
+</section>
+
+<style>
+#ic705-live-panel { margin-bottom: 1.2rem; }
+#ic705-live-panel.is-live { border-color: rgba(255,79,216,0.55); box-shadow: 0 0 0 1px rgba(255,79,216,0.25), 0 0 24px rgba(255,79,216,0.12); }
+.ic705-live-head { display: flex; flex-wrap: wrap; gap: 0.8em 1.2em; align-items: flex-start; justify-content: space-between; }
+.ic705-live-actions { display: flex; gap: 0.6em; align-items: center; flex-wrap: wrap; }
+.ic705-live-actions .rig-select { padding: 0.45em 0.6em; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); background: transparent; color: inherit; font: inherit; }
+.ic705-live-actions .rig-select option { color: #000; }
+#ic705-live-panel .rig-control-btn { padding: 0.5em 1.1em; border-radius: 6px; border: 1px solid currentColor; background: transparent; cursor: pointer; font: inherit; font-weight: 600; }
+#ic705-live-panel .rig-control-btn:disabled { opacity: 0.4; cursor: default; }
+.ic705-live-start { color: #ff4fd8; }
+.ic705-live-stop { color: #c0392b; }
+.ic705-live-now { display: flex; flex-wrap: wrap; gap: 0.4em 1.4em; align-items: baseline; padding: 0.8em 1em; border-radius: 10px; background: rgba(255,79,216,0.07); border: 1px solid rgba(255,79,216,0.3); margin: 0.6em 0; }
+.ic705-live-now.is-idle { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.15); }
+.ic705-live-sat { font-size: 1.35em; font-weight: 800; }
+.ic705-live-dot { display: inline-block; width: 0.65em; height: 0.65em; border-radius: 50%; background: #ff4fd8; margin-right: 0.4em; animation: ic705-live-pulse 1.4s infinite; }
+@keyframes ic705-live-pulse { 50% { opacity: 0.3; } }
+.ic705-live-mode { font-family: monospace; padding: 0.1em 0.5em; border-radius: 4px; border: 1px solid rgba(86,221,255,0.4); color: #56ddff; }
+.ic705-live-figs { font-variant-numeric: tabular-nums; opacity: 0.9; }
+.ic705-live-list { display: flex; flex-wrap: wrap; gap: 0.4em; margin: 0.3em 0 0.5em; }
+.ic705-live-chip { padding: 0.2em 0.7em; border-radius: 999px; border: 1px solid rgba(255,255,255,0.25); font-size: 0.85em; font-variant-numeric: tabular-nums; }
+.ic705-live-chip.is-current { border-color: #ff4fd8; color: #ff4fd8; }
+</style>
+
+<script>
+(function () {
+  var panel = document.getElementById("ic705-live-panel");
+  var startBtn = document.getElementById("ic705-live-start");
+  var stopBtn = document.getElementById("ic705-live-stop");
+  var hoursSel = document.getElementById("ic705-live-hours");
+  var body = document.getElementById("ic705-live-body");
+  var nowEl = document.getElementById("ic705-live-now");
+  var listEl = document.getElementById("ic705-live-list");
+  var metaEl = document.getElementById("ic705-live-meta");
+  var errEl = document.getElementById("ic705-live-error");
+  var title = document.getElementById("ic705-live-title");
+  var lastTrackingKey = null;
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function hhmm(iso) { return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); }
+  function until(iso) {
+    var min = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
+    if (min < 60) { return "in " + Math.max(min, 0) + " min"; }
+    return "in " + Math.floor(min / 60) + " h " + (min % 60) + " min";
+  }
+  function showError(msg) { errEl.hidden = !msg; errEl.textContent = msg || ""; }
+
+  function render(d) {
+    var s = d.status || {};
+    var active = !!s.active;
+    panel.classList.toggle("is-live", active);
+    startBtn.hidden = active;
+    hoursSel.disabled = active;
+    stopBtn.hidden = !active;
+    body.hidden = !active;
+    if (s.hours) { hoursSel.value = String(s.hours); }
+    title.textContent = active ? "Live-Beobachtung läuft" : "Automatisch mithören";
+    if (!active) { showError(null); return; }
+
+    var cur = s.current;
+    if (cur) {
+      nowEl.classList.remove("is-idle");
+      nowEl.innerHTML = '<span class="ic705-live-sat"><span class="ic705-live-dot"></span>' + esc(cur.name) + "</span>" +
+        '<span class="ic705-live-mode">' + esc(cur.mode) + "</span>" +
+        '<span class="ic705-live-figs">' + (cur.downlink_hz / 1e6).toFixed(3) + " MHz " + esc(cur.rig_mode || "") +
+        " · Elevation " + Math.round(cur.el) + "° · Azimut " + Math.round(cur.az) + "°" +
+        (cur.set ? " · LOS " + hhmm(cur.set) : "") + "</span>";
+    } else {
+      nowEl.classList.add("is-idle");
+      var n = s.next_up;
+      nowEl.innerHTML = n
+        ? '<span class="ic705-live-figs">Gerade ist kein gemeldeter Satellit hörbar. Als Nächstes: <b>' + esc(n.name) + "</b> " +
+          '<span class="ic705-live-mode">' + esc(n.mode) + "</span> um " + hhmm(n.rise) + " (" + until(n.rise) + "), max. " + Math.round(n.max_el) + "°</span>"
+        : '<span class="ic705-live-figs">Gerade ist kein gemeldeter Satellit hörbar – warte auf den nächsten Überflug …</span>';
+    }
+
+    var vis = s.visible || [];
+    listEl.innerHTML = vis.length > 1
+      ? vis.map(function (v) {
+          var isCur = cur && v.key === cur.key;
+          return '<span class="ic705-live-chip' + (isCur ? " is-current" : "") + '">' + esc(v.name) + " " + esc(v.mode) + " · " + Math.round(v.el) + "°</span>";
+        }).join("")
+      : "";
+
+    var meta = s.candidates_count + " gemeldete Satelliten mit IC-705-Frequenz (AMSAT Live, gehört in " + s.hours + " h)";
+    if (cur && s.next_up) { meta += " · danach: " + s.next_up.name + " um " + hhmm(s.next_up.rise); }
+    if (s.switches) { meta += " · " + s.switches + " Wechsel"; }
+    metaEl.textContent = meta;
+    var trErr = (d.tracking && d.tracking.active) ? d.tracking.error : null;
+    showError(s.error ? "Live-Beobachtung: " + s.error : trErr);
+
+    // Doppler-Panel informieren, wenn die Beobachtung den Satelliten gewechselt hat
+    var tr = d.tracking || {};
+    var key = tr.active ? tr.norad_id + "|" + tr.transponder_description : null;
+    if (key !== lastTrackingKey) {
+      lastTrackingKey = key;
+      document.dispatchEvent(new Event("rig-tracking-changed"));
+    }
+  }
+
+  function load() {
+    return fetch("/api/rig/live/status")
+      .then(function (r) { return r.json(); })
+      .then(render)
+      .catch(function () {});
+  }
+
+  function start(hours) {
+    startBtn.disabled = true;
+    startBtn.textContent = "Wird gestartet …";
+    showError(null);
+    return fetch("/api/rig/live/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hours: Number(hours) }),
+    })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) { throw new Error(d.detail || "Fehler"); } return d; }); })
+      .then(function () { return new Promise(function (res) { setTimeout(res, 2500); }); })
+      .then(load)
+      .catch(function (err) { showError("Start fehlgeschlagen: " + err.message); })
+      .then(function () { startBtn.disabled = false; startBtn.textContent = "🎧 Live-Beobachtung starten"; });
+  }
+
+  startBtn.addEventListener("click", function () { start(hoursSel.value); });
+  stopBtn.addEventListener("click", function () {
+    stopBtn.disabled = true;
+    fetch("/api/rig/live/stop", { method: "POST" })
+      .then(function (r) { return r.json(); })
+      .then(load)
+      .catch(function () {})
+      .then(function () { stopBtn.disabled = false; });
+  });
+
+  // Aufruf vom Knopf auf "AMSAT Live": /ic705?live=1&hours=24
+  var params = new URLSearchParams(window.location.search);
+  if (params.get("live") === "1") {
+    var h = params.get("hours") || "24";
+    params.delete("live");
+    params.delete("hours");
+    var rest = params.toString();
+    window.history.replaceState(null, "", window.location.pathname + (rest ? "?" + rest : ""));
+    start(h);
+  } else {
+    load();
+  }
+  setInterval(load, 5000);
+})();
+</script>
+
 {% if selected_satellite %}
 <section class="add-source-panel" id="rig-control-panel" data-norad-id="{{ selected_satellite.norad_id }}"
 {% if next_pass %} data-rise-utc="{{ next_pass.rise_time.isoformat() }}" data-set-utc="{{ next_pass.set_time.isoformat() }}"{% endif %}>
@@ -626,6 +807,8 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
   updateRigCountdown();
   setInterval(updateRigCountdown, 1000);
 
+  // Live-Beobachtung hat den Satelliten gewechselt -> Anzeige sofort aktualisieren
+  document.addEventListener("rig-tracking-changed", refreshStatus);
   refreshStatus();
   checkRigReachable();
   loadTransponderOptions();

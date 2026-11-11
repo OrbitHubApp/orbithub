@@ -67,6 +67,7 @@ from app.services import amsat_status
 from app.models.tle_record import TLERecord
 from app.services.satnogs_tle import fetch_and_save_satnogs_tles, load_satnogs_tles, satnogs_record
 from app.services.rig_tracking import tracking_session
+from app.services.live_observer import MIN_ELEVATION_DEG as LIVE_MIN_ELEVATION_DEG, live_observer
 from app.services.tinygs_aliases import (
     fetch_and_save_tinygs_aliases,
     load_tinygs_aliases,
@@ -1056,6 +1057,10 @@ async def startup_event() -> None:
     asyncio.create_task(periodic_tinygs_alias_refresh_loop())
     asyncio.create_task(periodic_bright_entries_prewarm_loop())
     asyncio.create_task(periodic_watchlist_passes_prewarm_loop())
+    # Live-Beobachtung nach einem Neustart fortsetzen
+    saved = live_observer.saved_state()
+    if saved.get("active"):
+        live_observer.start(int(saved.get("hours") or 24), _live_observer_candidates)
 
 
 @app.get("/")
@@ -2943,6 +2948,8 @@ async def start_rig_tracking(request: Request) -> dict:
         predictor.timescale,
     )
 
+    # Manuelles Tracking hat Vorrang vor der automatischen Live-Beobachtung
+    live_observer.stop(stop_tracking=False)
     tracking_session.start(
         norad_id=norad_id,
         satellite=satellite,
@@ -2955,7 +2962,8 @@ async def start_rig_tracking(request: Request) -> dict:
 
 @app.post("/api/rig/tracking/stop")
 async def stop_rig_tracking() -> dict:
-    """Stoppt eine laufende Doppler-Tracking-Sitzung."""
+    """Stoppt eine laufende Doppler-Tracking-Sitzung (und die Live-Beobachtung)."""
+    live_observer.stop(stop_tracking=False)
     tracking_session.stop()
     return {"ok": True, "status": asdict(tracking_session.status)}
 
@@ -3119,6 +3127,10 @@ async def amsat_live_page(request: Request, hours: int = 24):
 @app.get("/api/amsat/live")
 async def amsat_live_data(hours: int = 24) -> dict:
     """AMSAT-Berichte je Satellit/Betriebsart + IC-705-Frequenz + naechster Ueberflug."""
+    return await _amsat_live_entries(hours)
+
+
+async def _amsat_live_entries(hours: int) -> dict:
     try:
         reports = await amsat_status.fetch_reports(hours)
     except (httpx.HTTPError, ValueError) as exc:
@@ -3221,6 +3233,104 @@ async def amsat_live_data(hours: int = 24) -> dict:
         "report_count": len(reports),
         "fetched_at": now_utc.isoformat(),
         "source": "https://status.amsat.org/",
+    }
+
+
+async def _live_observer_candidates(hours: int) -> dict:
+    """Kandidaten fuer die Live-Beobachtung: AMSAT-Live-Eintraege, deren letzter
+    Bericht im Zeitraum nicht "nicht gehoert" ist, mit Transponder und Bahndaten.
+    Je Satellit zaehlt nur ein Eintrag (der zuletzt gehoerte)."""
+    data = await _amsat_live_entries(hours)
+    records = await _get_all_tle_records()
+    records_by_norad_id = {record.norad_id: record for record in records}
+    all_transponders = load_transponders(SATNOGS_TRANSMITTERS_FILE)
+
+    settings = load_observer_settings().for_radio()
+    predictor = PassPredictor(
+        latitude_deg=settings.latitude_deg,
+        longitude_deg=settings.longitude_deg,
+        elevation_m=settings.elevation_m,
+    )
+    min_el = max(LIVE_MIN_ELEVATION_DEG, settings.default_minimum_elevation_deg)
+
+    best_by_norad: dict[str, dict] = {}
+    for entry in data["entries"]:
+        if entry.get("status") == "Not Heard" or not entry.get("transponder_uuid"):
+            continue
+        if not entry.get("has_tle") or not entry.get("norad_id"):
+            continue
+        norad_id = entry["norad_id"]
+        previous = best_by_norad.get(norad_id)
+        if previous is None or (entry.get("latest_time") or "") > (previous.get("latest_time") or ""):
+            best_by_norad[norad_id] = entry
+
+    candidates = []
+    for norad_id, entry in best_by_norad.items():
+        record = _resolve_record(norad_id, records_by_norad_id)
+        if record is None:
+            continue
+        transponder = next(
+            (t for t in _transponders_for(norad_id, all_transponders) if t.get("uuid") == entry["transponder_uuid"]),
+            None,
+        )
+        if transponder is None:
+            continue
+        if entry.get("rig_mode"):
+            transponder = {**transponder, "mode": entry["rig_mode"]}
+        passes = await _get_cached_satellite_passes(record, predictor, settings, 24, min_el)
+        candidates.append(
+            {
+                "key": entry["name"],
+                "norad_id": norad_id,
+                "name": entry["satellite"],
+                "mode": entry["mode"],
+                "rig_mode": entry.get("rig_mode"),
+                "downlink_hz": entry.get("downlink_hz"),
+                "transponder": transponder,
+                "satellite": EarthSatellite(record.line1, record.line2, record.name, predictor.timescale),
+                "passes": [
+                    {"rise": p.rise_time, "set": p.set_time, "max_el": p.max_elevation_deg}
+                    for p in passes
+                ],
+            }
+        )
+    return {
+        "candidates": candidates,
+        "observer": predictor.observer,
+        "observer_settings": settings,
+        "timescale": predictor.timescale,
+    }
+
+
+@app.post("/api/rig/live/start")
+async def start_live_observation(request: Request) -> dict:
+    """Startet die Live-Beobachtung (AMSAT Live -> IC-705 automatisch)."""
+    try:
+        payload = await request.json()
+    except ValueError:
+        payload = {}
+    try:
+        hours = int(payload.get("hours", 24))
+    except (TypeError, ValueError):
+        hours = 24
+    if hours not in (6, 12, 24, 48):
+        hours = 24
+    live_observer.start(hours, _live_observer_candidates)
+    return {"ok": True, "status": asdict(live_observer.status)}
+
+
+@app.post("/api/rig/live/stop")
+async def stop_live_observation() -> dict:
+    """Beendet die Live-Beobachtung und haelt das Tracking an."""
+    live_observer.stop()
+    return {"ok": True, "status": asdict(live_observer.status)}
+
+
+@app.get("/api/rig/live/status")
+async def live_observation_status() -> dict:
+    return {
+        "status": asdict(live_observer.status),
+        "tracking": asdict(tracking_session.status),
     }
 
 

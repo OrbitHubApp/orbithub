@@ -21,7 +21,7 @@ At the heart of it is the question every satellite observer asks: when and where
 - **Statistics** – history of TLE updates and system load.
 - **Settings** – your own location, callsign, Maidenhead locator, and two separate horizon masks: one for radio (passes, watchlist, polar plot, exports) and one for visual observation (Visual page) – because radio signals often still reach you where trees or rooftops block the view.
 - **IC-705** – control of an ICOM IC-705 via the network (using [kappanhang](https://github.com/nonoo/kappanhang) as rigctld bridge): automatic Doppler correction, mode selection per transponder, manual frequency entry, live display of the radio, and receive audio streamed to the browser. Passes can be clicked to show a polar plot and an audibility rating.
-- **AMSAT Live** – current reception reports from [status.amsat.org](https://status.amsat.org/): which satellites were actually heard recently and in which mode, with your next pass and a button that sets the IC-705 to the matching frequency and mode. New satellites with temporary SatNOGS IDs are matched automatically.
+- **AMSAT Live** – current reception reports from [status.amsat.org](https://status.amsat.org/): which satellites were actually heard recently and in which mode, with your next pass and a button that sets the IC-705 to the matching frequency and mode. **Live observation** lets the IC-705 run unattended: every reported satellite is tuned automatically as soon as it rises above 10° – the highest one wins. New satellites with temporary SatNOGS IDs are matched automatically.
 - **History** – changelog of the application itself.
 
 ## Technology

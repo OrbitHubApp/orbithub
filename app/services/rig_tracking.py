@@ -33,6 +33,13 @@ from app.services.rig_control import RigControlError, rig_control, rig_mode_for
 logger = logging.getLogger(__name__)
 
 UPDATE_INTERVAL_SECONDS = 3.0
+# kappanhang beantwortet rigctld-Befehle auch dann, wenn die Verbindung zum
+# IC-705 weg ist (Geraet aus/WLAN getrennt) - "F" scheint zu klappen, "f"
+# liefert die letzte bekannte Frequenz. Deshalb wird nach jedem Setzen
+# zurueckgelesen: weicht die Frequenz mehrfach hintereinander ab, uebernimmt
+# das Funkgeraet die Werte offensichtlich nicht.
+READBACK_TOLERANCE_HZ = 500
+READBACK_MISMATCH_LIMIT = 3
 
 
 @dataclass
@@ -121,6 +128,8 @@ class TrackingSession:
             rig_mode, note = rig_mode_for(str(transponder.get("mode") or ""))
             self._status.mode_note = note
             mode_pending = True
+            mismatches = 0
+            previous_rx_hz: int | None = None
 
             while True:
                 try:
@@ -149,12 +158,27 @@ class TrackingSession:
                     rx_hz = round(freqs["rx_frequency_hz"])
 
                     await asyncio.to_thread(rig_control.set_frequency, rx_hz)
+                    actual_hz = await asyncio.to_thread(rig_control.get_frequency)
 
                     self._status.range_rate_km_s = rate
                     self._status.rx_frequency_hz = freqs["rx_frequency_hz"]
                     self._status.tx_frequency_hz = freqs["tx_frequency_hz"]
                     self._status.last_update_utc = datetime.now(timezone.utc).isoformat()
-                    self._status.error = None
+
+                    targets = [rx_hz] + ([previous_rx_hz] if previous_rx_hz else [])
+                    previous_rx_hz = rx_hz
+                    if min(abs(actual_hz - target) for target in targets) > READBACK_TOLERANCE_HZ:
+                        mismatches += 1
+                    else:
+                        mismatches = 0
+                    if mismatches >= READBACK_MISMATCH_LIMIT:
+                        self._status.error = (
+                            f"Der IC-705 übernimmt die Frequenz nicht (zeigt "
+                            f"{actual_hz / 1e6:.6f} MHz) – ist er eingeschaltet und "
+                            "im WLAN? Verfolgung versucht automatisch weiter."
+                        )
+                    else:
+                        self._status.error = None
                 except RigControlError as exc:
                     logger.warning("Doppler-Tracking: rigctld-Fehler: %r", exc)
                     message = str(exc)
