@@ -345,6 +345,7 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
 </div>
 <p id="rig-transponder-note" class="rig-control-note" hidden></p>
 <p id="rig-mode-note" class="rig-control-note rig-mode-note" hidden></p>
+<div class="rig-amsat-modes" id="rig-amsat-modes" hidden></div>
 
 <div class="rig-control-actions">
 <button type="button" id="rig-tracking-start" class="rig-control-btn rig-control-btn-start">Tracking starten</button>
@@ -393,6 +394,14 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
 #rig-control-panel .rig-transponder-select { display: flex; flex-direction: column; gap: 0.4em; margin: 0.6em 0; }
 #rig-control-panel .rig-select-row { display: flex; align-items: center; gap: 0.6em; }
 #rig-control-panel .rig-select-row .rig-control-note { min-width: 7.5em; }
+#rig-control-panel .rig-amsat-modes { display: flex; flex-wrap: wrap; gap: 0.5em; align-items: center; margin: 0.2em 0 0.6em; }
+#rig-control-panel .rig-amsat-label { font-size: 0.85em; opacity: 0.7; min-width: 7.5em; }
+#rig-control-panel .rig-amsat-btn { padding: 0.45em 0.9em; border-radius: 8px; border: 1px solid rgba(86,221,255,0.45); background: rgba(86,221,255,0.06); color: inherit; font: inherit; font-size: 0.92em; cursor: pointer; font-variant-numeric: tabular-nums; }
+#rig-control-panel .rig-amsat-btn b { color: #56ddff; }
+#rig-control-panel .rig-amsat-btn:hover { background: rgba(86,221,255,0.16); }
+#rig-control-panel .rig-amsat-btn.is-active { border-color: #3fae54; background: rgba(63,255,130,0.14); box-shadow: 0 0 0 1px rgba(63,174,84,0.4); }
+#rig-control-panel .rig-amsat-btn.is-active b { color: #3fe08a; }
+#rig-control-panel .rig-amsat-btn.is-silent { opacity: 0.6; }
 #rig-control-panel .rig-select { flex: 1; padding: 0.35em 0.6em; border-radius: 6px; border: 1px solid currentColor; background: transparent; color: inherit; font: inherit; }
 #rig-control-panel .rig-select:disabled { opacity: 0.5; }
 #rig-control-panel .rig-control-error { color: #c0392b; font-size: 0.9em; }
@@ -703,7 +712,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     if (!noradId) { return; }
     fetch("/api/rig/transponders?norad_id=" + encodeURIComponent(noradId))
       .then(function (r) { return r.json(); })
-      .then(function (data) { populateTransponderOptions(data); applyUrlPreset(); })
+      .then(function (data) { populateTransponderOptions(data); applyUrlPreset(); renderAmsatModes(); })
       .catch(function () {
         if (transponderNote) {
           transponderNote.hidden = false;
@@ -877,14 +886,235 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
   updateRigCountdown();
   setInterval(updateRigCountdown, 1000);
 
+  // Schnellwahl: laut AMSAT Live gehoerte Betriebsarten dieses Satelliten.
+  // Klick stellt Transponder + Modus ein; laeuft das Tracking, wird sofort
+  // umgestellt (Doppler laeuft mit), sonst wird es gestartet.
+  var amsatBox = document.getElementById("rig-amsat-modes");
+  var amsatModes = [];
+  function escHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function renderAmsatModes() {
+    if (!amsatBox) { return; }
+    var liveSteers = !!document.body.dataset.liveActive;
+    if (!amsatModes.length || liveSteers) { amsatBox.hidden = true; return; }
+    amsatBox.hidden = false;
+    var selUuid = transponderChoice ? transponderChoice.value : "";
+    var selMode = modeChoice ? modeChoice.value.toUpperCase() : "";
+    amsatBox.innerHTML = '<span class="rig-amsat-label">Laut AMSAT gehört:</span>' + amsatModes.map(function (m, i) {
+      var active = m.transponder_uuid === selUuid && (m.rig_mode || "").toUpperCase() === selMode;
+      return '<button type="button" class="rig-amsat-btn' + (active ? " is-active" : "") + (m.heard ? "" : " is-silent") + '" data-i="' + i + '"' +
+        ' title="' + escHtml(m.description) + (m.heard ? "" : " – zuletzt als nicht gehört gemeldet") + '">' +
+        "<b>" + escHtml(m.mode) + "</b> " + (m.downlink_hz / 1e6).toFixed(3) + " " + escHtml(m.rig_mode || "") + "</button>";
+    }).join("");
+  }
+  if (amsatBox) {
+    amsatBox.addEventListener("click", function (evt) {
+      var btn = evt.target.closest(".rig-amsat-btn");
+      if (!btn) { return; }
+      var m = amsatModes[Number(btn.dataset.i)];
+      if (!m || !transponderChoice) { return; }
+      var found = Array.prototype.some.call(transponderChoice.options, function (o) { return o.value === m.transponder_uuid; });
+      if (!found) { return; }
+      transponderChoice.value = m.transponder_uuid;
+      syncModeFromSelection();
+      if (modeChoice && m.rig_mode) { modeChoice.value = m.rig_mode; }
+      renderAmsatModes();
+      if (trackingActive) { retuneIfTracking(); }
+      else if (!startBtn.disabled) { startBtn.click(); }
+    });
+  }
+  function loadAmsatModes() {
+    if (!noradId || !amsatBox) { return; }
+    fetch("/api/amsat/modes?norad_id=" + encodeURIComponent(noradId))
+      .then(function (r) { return r.json(); })
+      .then(function (d) { amsatModes = d.modes || []; renderAmsatModes(); })
+      .catch(function () {});
+  }
+  if (transponderChoice) { transponderChoice.addEventListener("change", renderAmsatModes); }
+  if (modeChoice) { modeChoice.addEventListener("change", renderAmsatModes); }
+  document.addEventListener("rig-tracking-changed", renderAmsatModes);
+  setInterval(loadAmsatModes, 10 * 60000);
+
   // Live-Beobachtung hat den Satelliten gewechselt -> Anzeige sofort aktualisieren
   document.addEventListener("rig-tracking-changed", refreshStatus);
   refreshStatus();
   checkRigReachable();
   loadTransponderOptions();
+  loadAmsatModes();
 })();
 </script>
 
+
+<section class="add-source-panel" id="ic705-waterfall-panel">
+<div class="ic705-wf-head">
+<div>
+<div class="label">WASSERFALL · EMPFANGSSIGNAL</div>
+<h3>Signale sehen</h3>
+</div>
+<div class="ic705-wf-actions">
+<label class="ic705-wf-ctl">Bereich
+<select id="ic705-wf-span" class="rig-select">
+<option value="3000">0–3 kHz (SSB/CW)</option>
+<option value="6000">0–6 kHz</option>
+<option value="12000">0–12 kHz (FM)</option>
+</select>
+</label>
+<label class="ic705-wf-ctl">Empfindlichkeit
+<input type="range" id="ic705-wf-gain" min="-130" max="-70" step="2" value="-105">
+</label>
+<button type="button" id="ic705-wf-toggle" class="rig-control-btn ic705-wf-btn">▶ Wasserfall starten</button>
+</div>
+</div>
+<div class="ic705-wf-scale" id="ic705-wf-scale"></div>
+<canvas id="ic705-wf-canvas" class="ic705-wf-canvas" height="260"></canvas>
+<p class="rig-control-note" id="ic705-wf-note">
+Zeigt das Empfangssignal des IC-705 (Audio aus dem Durchlassbereich) als laufendes Spektrum: neue Zeilen oben,
+Frequenz von links nach rechts. Träger und Baken erscheinen als helle Linien – auch wenn sie kaum hörbar sind.
+Bei SSB/CW wandert ein Signal durch den Doppler schräg durchs Bild. Der Ton bleibt dabei, wo er ist (Lautsprecher oder Mac).
+</p>
+<p class="rig-control-error" id="ic705-wf-error" hidden></p>
+</section>
+
+<style>
+#ic705-waterfall-panel { margin-bottom: 1.2rem; }
+.ic705-wf-head { display: flex; flex-wrap: wrap; gap: 0.8em 1.2em; align-items: flex-start; justify-content: space-between; }
+.ic705-wf-actions { display: flex; flex-wrap: wrap; gap: 0.6em 1em; align-items: center; }
+.ic705-wf-ctl { display: flex; gap: 0.5em; align-items: center; font-size: 0.88em; opacity: 0.9; }
+.ic705-wf-ctl .rig-select { padding: 0.4em 0.5em; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); background: transparent; color: inherit; font: inherit; }
+.ic705-wf-ctl .rig-select option { color: #000; }
+.ic705-wf-btn { padding: 0.5em 1.1em; border-radius: 6px; border: 1px solid #56ddff; color: #56ddff; background: transparent; cursor: pointer; font: inherit; font-weight: 600; }
+.ic705-wf-btn.is-on { border-color: #c0392b; color: #ff8a8a; }
+.ic705-wf-canvas { display: block; width: 100%; height: 260px; background: #020611; border-radius: 0 0 8px 8px; border: 1px solid rgba(86,221,255,0.25); border-top: none; image-rendering: pixelated; }
+.ic705-wf-scale { position: relative; height: 1.4em; margin-top: 0.8em; border: 1px solid rgba(86,221,255,0.25); border-bottom: none; border-radius: 8px 8px 0 0; background: rgba(86,221,255,0.05); font-size: 0.75em; font-variant-numeric: tabular-nums; overflow: hidden; }
+.ic705-wf-scale span { position: absolute; top: 0.15em; transform: translateX(-50%); opacity: 0.75; white-space: nowrap; }
+.ic705-wf-scale span::before { content: ""; position: absolute; left: 50%; top: 1.25em; width: 1px; height: 0.4em; background: rgba(86,221,255,0.6); }
+</style>
+
+<script>
+(function () {
+  var canvas = document.getElementById("ic705-wf-canvas");
+  var toggle = document.getElementById("ic705-wf-toggle");
+  var spanSel = document.getElementById("ic705-wf-span");
+  var gain = document.getElementById("ic705-wf-gain");
+  var scale = document.getElementById("ic705-wf-scale");
+  var errEl = document.getElementById("ic705-wf-error");
+  var streamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
+  var ctx2d = canvas.getContext("2d");
+  var audio = null, actx = null, analyser = null, bins = null, timer = null, rowImg = null;
+
+  try { spanSel.value = localStorage.getItem("ic705-wf-span") || "3000"; } catch (e) {}
+  try { gain.value = localStorage.getItem("ic705-wf-gain") || "-105"; } catch (e) {}
+
+  function showError(msg) { errEl.hidden = !msg; errEl.textContent = msg || ""; }
+
+  // Farbskala: dunkelblau -> blau -> tuerkis -> gelb -> rot -> weiss
+  var stops = [[2, 6, 17], [10, 30, 110], [20, 140, 200], [90, 230, 180], [250, 230, 60], [255, 90, 40], [255, 255, 255]];
+  var palette = [];
+  for (var i = 0; i < 256; i++) {
+    var pos = i / 255 * (stops.length - 1), k = Math.floor(pos), f = pos - k;
+    var a = stops[k], b = stops[Math.min(k + 1, stops.length - 1)];
+    palette.push([0, 1, 2].map(function (c) { return Math.round(a[c] + (b[c] - a[c]) * f); }));
+  }
+
+  function resize() {
+    var w = Math.max(200, Math.round(canvas.clientWidth));
+    if (canvas.width !== w) {
+      canvas.width = w;
+      ctx2d.fillStyle = "#020611";
+      ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+      rowImg = ctx2d.createImageData(w, 1);
+    }
+    drawScale();
+  }
+  function drawScale() {
+    var span = Number(spanSel.value), step = span <= 3000 ? 500 : span <= 6000 ? 1000 : 2000, html = "";
+    for (var f = step; f < span; f += step) {
+      html += '<span style="left:' + (f / span * 100) + '%">' + (f / 1000).toLocaleString("de-DE") + " kHz</span>";
+    }
+    scale.innerHTML = html;
+  }
+
+  function drawRow() {
+    if (!analyser) { return; }
+    analyser.getByteFrequencyData(bins);
+    var w = canvas.width, h = canvas.height;
+    // Bild eine Zeile nach unten schieben, neue Zeile oben
+    ctx2d.drawImage(canvas, 0, 0, w, h - 1, 0, 1, w, h - 1);
+    var nyquist = actx.sampleRate / 2, span = Number(spanSel.value);
+    var maxBin = Math.min(bins.length - 1, Math.floor(span / nyquist * bins.length));
+    var data = rowImg.data;
+    for (var x = 0; x < w; x++) {
+      // mehrere FFT-Bins pro Pixel: Maximum nehmen, damit schmale Traeger sichtbar bleiben
+      var b0 = Math.floor(x / w * maxBin), b1 = Math.max(b0 + 1, Math.floor((x + 1) / w * maxBin));
+      var v = 0;
+      for (var bi = b0; bi < b1; bi++) { if (bins[bi] > v) { v = bins[bi]; } }
+      var c = palette[v], o = x * 4;
+      data[o] = c[0]; data[o + 1] = c[1]; data[o + 2] = c[2]; data[o + 3] = 255;
+    }
+    ctx2d.putImageData(rowImg, 0, 0);
+  }
+
+  function start() {
+    showError(null);
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      audio = new Audio();
+      audio.crossOrigin = "anonymous";
+      audio.src = streamUrl + "?wf=" + Date.now();
+      var source = actx.createMediaElementSource(audio);
+      analyser = actx.createAnalyser();
+      analyser.fftSize = 8192;
+      analyser.smoothingTimeConstant = 0.2;
+      analyser.minDecibels = Number(gain.value);
+      analyser.maxDecibels = Number(gain.value) + 70;
+      bins = new Uint8Array(analyser.frequencyBinCount);
+      var mute = actx.createGain();
+      mute.gain.value = 0; // nur ansehen - Ton kommt ueber den gewaehlten Weg
+      source.connect(analyser);
+      analyser.connect(mute);
+      mute.connect(actx.destination);
+      actx.resume();
+      audio.play().catch(function (err) {
+        showError("Stream konnte nicht gestartet werden: " + err.message);
+        stop();
+      });
+      audio.addEventListener("error", function () {
+        if (audio) { showError("Audio-Stream (Port 8766) nicht erreichbar – läuft audio-stream.service?"); stop(); }
+      });
+    } catch (err) {
+      showError("Wasserfall nicht möglich: " + err.message);
+      stop();
+      return;
+    }
+    resize();
+    timer = setInterval(drawRow, 60);
+    toggle.textContent = "■ Wasserfall stoppen";
+    toggle.classList.add("is-on");
+  }
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (audio) { var a = audio; audio = null; a.pause(); a.removeAttribute("src"); a.load(); }
+    analyser = null;
+    toggle.textContent = "▶ Wasserfall starten";
+    toggle.classList.remove("is-on");
+  }
+
+  toggle.addEventListener("click", function () { if (timer) { stop(); } else { start(); } });
+  spanSel.addEventListener("change", function () {
+    try { localStorage.setItem("ic705-wf-span", spanSel.value); } catch (e) {}
+    drawScale();
+  });
+  gain.addEventListener("input", function () {
+    try { localStorage.setItem("ic705-wf-gain", gain.value); } catch (e) {}
+    if (analyser) { analyser.minDecibels = Number(gain.value); analyser.maxDecibels = Number(gain.value) + 70; }
+  });
+  window.addEventListener("resize", resize);
+  resize();
+})();
+</script>
 
 <section class="ic705-pass-grid">
 <div class="add-source-panel">

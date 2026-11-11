@@ -3371,6 +3371,45 @@ async def live_observation_status() -> dict:
     }
 
 
+@app.get("/api/amsat/modes")
+async def amsat_modes_for_satellite(norad_id: str, hours: int = 24) -> dict:
+    """Laut AMSAT Live gehoerte Betriebsarten eines Satelliten - fuer die
+    Schnellwahl im Doppler-Tracking-Panel auf /ic705."""
+    if hours not in (6, 12, 24, 48):
+        hours = 24
+    wanted = norad_id.strip().lstrip("0") or norad_id.strip()
+    try:
+        data = await _amsat_live_entries(hours)
+    except HTTPException:
+        return {"modes": [], "error": "status.amsat.org nicht erreichbar"}
+    modes: list[dict] = []
+    for entry in sorted(data["entries"], key=lambda e: e.get("latest_time") or "", reverse=True):
+        if entry.get("norad_id") != wanted or not entry.get("transponder_uuid"):
+            continue
+        same = next(
+            (m for m in modes
+             if m["downlink_hz"] == entry.get("downlink_hz") and m["rig_mode"] == entry.get("rig_mode")),
+            None,
+        )
+        heard = entry.get("status") != "Not Heard"
+        if same is not None:
+            same["mode"] += " · " + entry["mode"]
+            same["heard"] = same["heard"] or heard
+            continue
+        modes.append(
+            {
+                "mode": entry["mode"],
+                "transponder_uuid": entry["transponder_uuid"],
+                "rig_mode": entry.get("rig_mode"),
+                "downlink_hz": entry.get("downlink_hz"),
+                "description": entry.get("transponder_description") or "",
+                "heard": heard,
+                "last_heard_time": entry.get("last_heard_time"),
+            }
+        )
+    return {"modes": modes, "hours": hours}
+
+
 @app.get("/api/rig/transponders")
 async def list_rig_transponders(norad_id: str) -> dict:
     """Liefert alle bekannten Transponder/Baken eines Satelliten (SatNOGS) fuer die Auswahl im Rig-Control-Panel."""
