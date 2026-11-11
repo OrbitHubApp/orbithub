@@ -80,6 +80,8 @@ Betriebsart und Empfangston – alles für den IC-705 an einem Ort.
 </select>
 <button type="button" id="ic705-live-start" class="rig-control-btn ic705-live-start">🎧 Live-Beobachtung starten</button>
 <button type="button" id="ic705-live-stop" class="rig-control-btn ic705-live-stop" hidden>Beenden</button>
+<label class="ic705-bell-toggle" title="Glocke im Browser, sobald ein Satellit hörbar wird und der IC-705 umstellt"><input type="checkbox" id="ic705-bell-on"> 🔔 Ton</label>
+<button type="button" id="ic705-bell-test" class="ic705-bell-test" title="Glocke testen (schaltet den Ton im Browser frei)">Test</button>
 </div>
 </div>
 <p class="rig-control-note" id="ic705-live-intro">
@@ -104,6 +106,8 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
 #ic705-live-panel .rig-control-btn { padding: 0.5em 1.1em; border-radius: 6px; border: 1px solid currentColor; background: transparent; cursor: pointer; font: inherit; font-weight: 600; }
 #ic705-live-panel .rig-control-btn:disabled { opacity: 0.4; cursor: default; }
 .ic705-live-start { color: #ff4fd8; }
+.ic705-bell-toggle { display: flex; gap: 0.35em; align-items: center; font-size: 0.9em; cursor: pointer; }
+.ic705-bell-test { padding: 0.35em 0.7em; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); background: transparent; color: inherit; font: inherit; font-size: 0.85em; cursor: pointer; }
 .ic705-live-stop { color: #c0392b; }
 .ic705-live-now { display: flex; flex-wrap: wrap; gap: 0.4em 1.4em; align-items: baseline; padding: 0.8em 1em; border-radius: 10px; background: rgba(255,79,216,0.07); border: 1px solid rgba(255,79,216,0.3); margin: 0.6em 0; }
 .ic705-live-now.is-idle { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.15); }
@@ -139,6 +143,55 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
   var errEl = document.getElementById("ic705-live-error");
   var title = document.getElementById("ic705-live-title");
   var lastTrackingKey = null;
+  var lastNorad = null, firstRender = true;
+
+  // ---- Glocke: Ton im Browser, wenn ein Satellit hoerbar wird ----------
+  // Browser erlauben Ton erst nach einer Interaktion mit der Seite - jeder
+  // Klick (z. B. auf "Test") schaltet ihn frei.
+  var bellOn = document.getElementById("ic705-bell-on");
+  var bellTest = document.getElementById("ic705-bell-test");
+  var bellCtx = null, titleTimer = null, baseTitle = document.title;
+  try { bellOn.checked = localStorage.getItem("ic705-bell") !== "0"; } catch (e) { bellOn.checked = true; }
+  function audioCtx() {
+    if (!bellCtx) {
+      try { bellCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+    }
+    if (bellCtx.state === "suspended") { bellCtx.resume(); }
+    return bellCtx;
+  }
+  document.addEventListener("click", audioCtx);
+  function strike(c, t0, freq, vol) {
+    // Glockenklang: Grundton + unharmonische Obertoene, schnell an, lang aus
+    [[1, 1], [2.76, 0.45], [5.4, 0.2]].forEach(function (p) {
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = "sine";
+      o.frequency.value = freq * p[0];
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol * p[1], t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.8 / p[0] + 0.4);
+      o.connect(g); g.connect(c.destination);
+      o.start(t0); o.stop(t0 + 2.4);
+    });
+  }
+  window.ic705Chime = function (label, force) {
+    if (!force && !bellOn.checked) { return; }
+    var c = audioCtx();
+    if (c) {
+      var t0 = c.currentTime + 0.05;
+      strike(c, t0, 784, 0.35);         // G5
+      strike(c, t0 + 0.32, 1047, 0.32); // C6
+    }
+    if (label) {
+      document.title = "🔔 " + label + " – " + baseTitle;
+      if (titleTimer) { clearTimeout(titleTimer); }
+      titleTimer = setTimeout(function () { document.title = baseTitle; }, 60000);
+    }
+  };
+  bellOn.addEventListener("change", function () {
+    try { localStorage.setItem("ic705-bell", bellOn.checked ? "1" : "0"); } catch (e) {}
+  });
+  bellTest.addEventListener("click", function () { window.ic705Chime(null, true); });
+  window.addEventListener("focus", function () { document.title = baseTitle; });
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -243,6 +296,14 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
     var trErr = (d.tracking && d.tracking.active) ? d.tracking.error : null;
     showError(s.error ? "Live-Beobachtung: " + s.error : trErr);
 
+    // Glocke, sobald die Beobachtung einen (neuen) Satelliten einstellt
+    var curNorad = cur ? cur.norad_id : null;
+    if (!firstRender && curNorad && curNorad !== lastNorad) {
+      window.ic705Chime(cur.name + " hörbar");
+    }
+    lastNorad = curNorad;
+    firstRender = false;
+
     // Doppler-Panel informieren, wenn die Beobachtung den Satelliten gewechselt hat
     var tr = d.tracking || {};
     var key = tr.active ? tr.norad_id + "|" + tr.transponder_description : null;
@@ -302,7 +363,7 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
 </script>
 
 {% if selected_satellite %}
-<section class="add-source-panel" id="rig-control-panel" data-norad-id="{{ selected_satellite.norad_id }}"
+<section class="add-source-panel" id="rig-control-panel" data-norad-id="{{ selected_satellite.norad_id }}" data-sat-name="{{ selected_satellite.name | display_name }}"
 {% if next_pass %} data-rise-utc="{{ next_pass.rise_time.isoformat() }}" data-set-utc="{{ next_pass.set_time.isoformat() }}"{% endif %}>
 <div class="label">DOPPLER-TRACKING</div>
 <h3>{{ selected_satellite.name | display_name }}</h3>
@@ -863,6 +924,15 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     var s = Math.max(0, Math.floor(ms / 1000));
     return pad2(Math.floor(s / 3600)) + ":" + pad2(Math.floor((s % 3600) / 60)) + ":" + pad2(s % 60);
   }
+  // Manuelles Tracking: Glocke bei AOS (die Live-Beobachtung laeutet selbst)
+  var lastPhase = null;
+  function aosChime(phase) {
+    if (lastPhase === "before" && phase === "live" && trackingActive &&
+        !document.body.dataset.liveActive && window.ic705Chime) {
+      window.ic705Chime((panel.dataset.satName || "Satellit") + " hörbar");
+    }
+    lastPhase = phase;
+  }
   function updateRigCountdown() {
     var rise = new Date(panel.dataset.riseUtc || "");
     var set = new Date(panel.dataset.setUtc || "");
@@ -872,6 +942,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       return;
     }
     var now = new Date();
+    aosChime(now < rise ? "before" : now < set ? "live" : "after");
     if (now < rise) {
       countdownLabel.textContent = "Nächster Überflug in";
       countdownValue.textContent = fmtDur(rise - now);
