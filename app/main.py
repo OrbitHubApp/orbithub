@@ -2968,6 +2968,80 @@ async def stop_rig_tracking() -> dict:
     return {"ok": True, "status": asdict(tracking_session.status)}
 
 
+@app.post("/api/rig/tracking/mode")
+async def change_rig_tracking_mode(request: Request) -> dict:
+    """Betriebsart waehrend des Trackings umstellen (Doppler laeuft weiter)."""
+    payload = await request.json()
+    mode = str(payload.get("mode", "")).strip()
+    if not mode:
+        raise HTTPException(status_code=400, detail="Keine Betriebsart angegeben.")
+    if not tracking_session.status.active:
+        raise HTTPException(status_code=409, detail="Es läuft gerade kein Tracking.")
+    rig_mode = tracking_session.change_mode(mode)
+    return {"ok": True, "rig_mode": rig_mode, "status": asdict(tracking_session.status)}
+
+
+@app.get("/api/rig/tracking/sky")
+async def rig_tracking_sky() -> dict:
+    """Himmelsposition des gerade verfolgten Satelliten + Bahn des aktuellen
+    (oder unmittelbar folgenden) Ueberflugs fuer den Polarplot auf /ic705."""
+    context = tracking_session.sky_context
+    if context is None:
+        return {"active": False}
+    satellite, observer, timescale = context
+    settings = load_observer_settings().for_radio()
+
+    def _compute() -> dict:
+        from math import cos, radians, sin
+
+        now = datetime.now(timezone.utc)
+        step = 15
+        times = [now.timestamp() + s for s in range(-20 * 60, 25 * 60 + 1, step)]
+        t = timescale.from_datetimes([datetime.fromtimestamp(x, timezone.utc) for x in times])
+        alt, az, _ = (satellite - observer).at(t).altaz()
+        els, azs = alt.degrees, az.degrees
+        now_index = 20 * 60 // step
+        # zusammenhaengendes Stueck ueber dem Horizont um "jetzt" (oder das naechste)
+        start = now_index
+        if els[start] < 0:
+            while start < len(els) and els[start] < 0:
+                start += 1
+        track = []
+        if start < len(els):
+            first = start
+            while first > 0 and els[first - 1] >= 0:
+                first -= 1
+            last = start
+            while last < len(els) - 1 and els[last + 1] >= 0:
+                last += 1
+            for i in range(first, last + 1):
+                r = 90 * (90 - max(els[i], 0)) / 90
+                track.append(
+                    {
+                        "t": datetime.fromtimestamp(times[i], timezone.utc).isoformat(),
+                        "x": round(100 + r * sin(radians(azs[i])), 2),
+                        "y": round(100 - r * cos(radians(azs[i])), 2),
+                        "el": round(float(els[i]), 1),
+                    }
+                )
+        el_now, az_now = float(els[now_index]), float(azs[now_index])
+        r_now = 90 * (90 - max(el_now, 0)) / 90
+        return {
+            "active": True,
+            "norad_id": tracking_session.status.norad_id,
+            "name": tracking_session.status.satellite_name,
+            "el": round(el_now, 1),
+            "az": round(az_now, 1),
+            "x": round(100 + r_now * sin(radians(az_now)), 2),
+            "y": round(100 - r_now * cos(radians(az_now)), 2),
+            "above_horizon": el_now >= 0,
+            "min_el": round(settings.minimum_elevation_at(az_now), 1),
+            "track": track,
+        }
+
+    return await asyncio.to_thread(_compute)
+
+
 @app.get("/api/rig/tracking/status")
 async def rig_tracking_status() -> dict:
     """Liefert den aktuellen Status der Doppler-Tracking-Sitzung."""

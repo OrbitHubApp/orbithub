@@ -407,6 +407,16 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
 <p id="rig-transponder-note" class="rig-control-note" hidden></p>
 <p id="rig-mode-note" class="rig-control-note rig-mode-note" hidden></p>
 <div class="rig-amsat-modes" id="rig-amsat-modes" hidden></div>
+<div class="rig-mode-quick" id="rig-mode-quick">
+<span class="rig-amsat-label">Betriebsart:</span>
+<button type="button" class="rig-mode-btn" data-mode="FM">FM</button>
+<button type="button" class="rig-mode-btn" data-mode="USB">USB</button>
+<button type="button" class="rig-mode-btn" data-mode="LSB">LSB</button>
+<button type="button" class="rig-mode-btn" data-mode="CW">CW</button>
+<button type="button" class="rig-mode-btn" data-mode="AM">AM</button>
+<button type="button" class="rig-mode-btn" data-mode="PKTUSB">DATA-USB</button>
+<span class="rig-control-note rig-mode-quick-hint">läuft sofort weiter – auch während der Live-Beobachtung</span>
+</div>
 
 <div class="rig-control-actions">
 <button type="button" id="rig-tracking-start" class="rig-control-btn rig-control-btn-start">Tracking starten</button>
@@ -455,6 +465,11 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
 #rig-control-panel .rig-transponder-select { display: flex; flex-direction: column; gap: 0.4em; margin: 0.6em 0; }
 #rig-control-panel .rig-select-row { display: flex; align-items: center; gap: 0.6em; }
 #rig-control-panel .rig-select-row .rig-control-note { min-width: 7.5em; }
+#rig-control-panel .rig-mode-quick { display: flex; flex-wrap: wrap; gap: 0.4em; align-items: center; margin: 0.2em 0 0.6em; }
+#rig-control-panel .rig-mode-btn { padding: 0.4em 0.85em; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: transparent; color: inherit; font: inherit; font-size: 0.9em; font-weight: 600; cursor: pointer; }
+#rig-control-panel .rig-mode-btn:hover { background: rgba(255,255,255,0.08); }
+#rig-control-panel .rig-mode-btn.is-active { border-color: #3fae54; color: #3fe08a; background: rgba(63,255,130,0.14); }
+#rig-control-panel .rig-mode-quick-hint { font-size: 0.8em; }
 #rig-control-panel .rig-amsat-modes { display: flex; flex-wrap: wrap; gap: 0.5em; align-items: center; margin: 0.2em 0 0.6em; }
 #rig-control-panel .rig-amsat-label { font-size: 0.85em; opacity: 0.7; min-width: 7.5em; }
 #rig-control-panel .rig-amsat-btn { padding: 0.45em 0.9em; border-radius: 8px; border: 1px solid rgba(86,221,255,0.45); background: rgba(86,221,255,0.06); color: inherit; font: inherit; font-size: 0.92em; cursor: pointer; font-variant-numeric: tabular-nums; }
@@ -652,7 +667,8 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     // Wechsel stellt sofort um (ausser die Live-Beobachtung steuert gerade)
     var liveSteers = active && !!document.body.dataset.liveActive;
     if (transponderChoice) { transponderChoice.disabled = liveSteers || !transponderChoice.options.length; }
-    if (modeChoice) { modeChoice.disabled = liveSteers; }
+    if (modeChoice) { modeChoice.disabled = false; } // Betriebsart immer umschaltbar
+    markModeButtons(active ? status.rig_mode : (modeChoice ? modeChoice.value : ""));
     if (manualRx) { manualRx.disabled = active; }
     if (manualTx) { manualTx.disabled = active; }
     freqDisplay.classList.toggle("is-live", active);
@@ -787,7 +803,39 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     transponderChoice.addEventListener("change", retuneIfTracking);
   }
   if (modeChoice) {
-    modeChoice.addEventListener("change", retuneIfTracking);
+    modeChoice.addEventListener("change", function () { applyMode(modeChoice.value); });
+  }
+
+  // Betriebsart: waehrend des Trackings ohne Neustart umstellen (auch in der
+  // Live-Beobachtung), sonst nur fuer den naechsten Start vormerken.
+  var modeQuick = document.getElementById("rig-mode-quick");
+  function markModeButtons(mode) {
+    if (!modeQuick) { return; }
+    mode = (mode || "").toUpperCase();
+    Array.prototype.forEach.call(modeQuick.querySelectorAll(".rig-mode-btn"), function (b) {
+      b.classList.toggle("is-active", b.dataset.mode === mode);
+    });
+  }
+  function applyMode(mode) {
+    mode = (mode || "").trim().toUpperCase();
+    if (!mode) { return; }
+    if (modeChoice) { modeChoice.value = mode; }
+    markModeButtons(mode);
+    if (!trackingActive) { return; }
+    fetch("/api/rig/tracking/mode", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: mode }),
+    })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) { throw new Error(d.detail || "Fehler"); } return d; }); })
+      .then(function (d) { renderStatus(d.status); setTimeout(refreshStatus, 3500); })
+      .catch(function (err) { showError("Betriebsart nicht umgestellt: " + err.message); });
+  }
+  if (modeQuick) {
+    modeQuick.addEventListener("click", function (evt) {
+      var b = evt.target.closest(".rig-mode-btn");
+      if (b) { applyMode(b.dataset.mode); }
+    });
   }
 
   // Waehrend eines laufenden (manuellen) Trackings auf anderen Transponder
@@ -1227,6 +1275,7 @@ Bei SSB/CW wandert ein Signal durch den Doppler schräg durchs Bild. Der Ton ble
 <div class="label">POLARPLOT · HÖRBARKEIT</div>
 <h3 id="ic705-plot-title">{% if passes %}{{ passes[0].rise_time | fmt_time("%d.%m. %H:%M") }} Uhr{% else %}Kein Überflug{% endif %}</h3>
 {% if passes %}
+<div class="ic705-live-sky" id="ic705-live-sky" hidden></div>
 <div class="ic705-audibility" id="ic705-audibility"></div>
 <div class="polarplot-card ic705-polar-card">
 <svg class="polarplot" viewBox="0 0 200 200" role="img" aria-label="Polarplot des ausgewählten Überflugs">
@@ -1250,7 +1299,9 @@ Bei SSB/CW wandert ein Signal durch den Doppler schräg durchs Bild. Der Ton ble
 <circle id="ic705-set" class="polarplot-set" cx="100" cy="100" r="4" />
 <text id="ic705-aos-label" class="polarplot-marker-label" x="100" y="100">AOS</text>
 <text id="ic705-los-label" class="polarplot-marker-label" x="100" y="100">LOS</text>
+<polyline id="ic705-live-track" class="ic705-live-track" points="" visibility="hidden" />
 <circle id="ic705-now" class="ic705-now-dot" cx="100" cy="100" r="5" visibility="hidden" />
+<text id="ic705-now-label" class="ic705-now-label" x="100" y="100" visibility="hidden"></text>
 </svg>
 </div>
 <dl class="ic705-pass-facts" id="ic705-pass-facts"></dl>
@@ -1289,6 +1340,10 @@ Bei SSB/CW wandert ein Signal durch den Doppler schräg durchs Bild. Der Ton ble
 @media (max-width: 1000px) { .ic705-pass-grid { grid-template-columns: 1fr; } }
 .ic705-pass-row:focus { outline: 1px solid rgba(68, 217, 230, 0.6); }
 .ic705-polar-card { min-height: 0; padding: 14px; }
+.ic705-live-track { fill: none; stroke: #ff4fd8; stroke-width: 2; stroke-dasharray: 4 3; opacity: 0.9; }
+.ic705-now-label { fill: #ff4fd8; font-size: 8px; font-weight: 700; text-anchor: middle; paint-order: stroke; stroke: #020611; stroke-width: 2px; }
+.ic705-live-sky { margin: 0 0 0.6em; padding: 0.55em 0.8em; border-radius: 8px; border: 1px solid rgba(255,79,216,0.45); background: rgba(255,79,216,0.08); font-variant-numeric: tabular-nums; }
+.ic705-live-sky b { color: #ff4fd8; }
 .ic705-max-dot { fill: #f2c14e; }
 .ic705-pass-grid .mission-table { min-width: 0; }
 .ic705-pass-grid .mission-table th, .ic705-pass-grid .mission-table td { white-space: nowrap; }
@@ -1425,7 +1480,48 @@ Bei SSB/CW wandert ein Signal durch den Doppler schräg durchs Bild. Der Ton ble
       updateNow();
     }
 
+    // Live: Position des gerade verfolgten Satelliten (Live-Beobachtung oder
+    // Tracking) - unabhaengig davon, welcher Ueberflug unten ausgewaehlt ist.
+    var liveTrack = document.getElementById("ic705-live-track");
+    var nowLabel = document.getElementById("ic705-now-label");
+    var liveSky = document.getElementById("ic705-live-sky");
+    var sky = null;
+    function pollSky() {
+      fetch("/api/rig/tracking/sky")
+        .then(function (r) { return r.json(); })
+        .then(function (d) { sky = d && d.active ? d : null; drawSky(); })
+        .catch(function () {});
+    }
+    function drawSky() {
+      if (!sky) {
+        liveTrack.setAttribute("visibility", "hidden");
+        nowLabel.setAttribute("visibility", "hidden");
+        liveSky.hidden = true;
+        updateNow();
+        return;
+      }
+      liveTrack.setAttribute("points", (sky.track || []).map(function (q) { return q.x + "," + q.y; }).join(" "));
+      liveTrack.setAttribute("visibility", sky.track && sky.track.length ? "visible" : "hidden");
+      liveSky.hidden = false;
+      if (sky.above_horizon) {
+        nowDot.setAttribute("cx", sky.x); nowDot.setAttribute("cy", sky.y);
+        nowDot.setAttribute("visibility", "visible");
+        nowLabel.textContent = sky.name.split(" (")[0];
+        nowLabel.setAttribute("x", sky.x); nowLabel.setAttribute("y", sky.y - 8);
+        nowLabel.setAttribute("visibility", "visible");
+        liveSky.innerHTML = "Jetzt: <b>" + sky.name + "</b> · Elevation " + Math.round(sky.el) + "° · Azimut " +
+          Math.round(sky.az) + "° " + compass(sky.az) + (sky.el < sky.min_el ? " · noch unter deinem Funk-Horizont" : "");
+      } else {
+        nowDot.setAttribute("visibility", "hidden");
+        nowLabel.setAttribute("visibility", "hidden");
+        var t0 = sky.track && sky.track.length ? sky.track[0].t : null;
+        liveSky.innerHTML = "Verfolgt: <b>" + sky.name + "</b> · noch unter dem Horizont" +
+          (t0 ? " · Aufgang " + hhmmss(t0).slice(0, 5) + " Uhr (gestrichelte Bahn)" : "");
+      }
+    }
+
     function updateNow() {
+      if (sky) { return; } // Live-Position hat Vorrang
       var p = passList[selected];
       var now = Date.now(), pts = p.track;
       if (now < new Date(p.rise).getTime() || now > new Date(p.set).getTime()) {
@@ -1451,6 +1547,8 @@ Bei SSB/CW wandert ein Signal durch den Doppler schräg durchs Bild. Der Ton ble
     });
     show(0);
     setInterval(updateNow, 1000);
+    pollSky();
+    setInterval(pollSky, 3000);
   }
 
   var audioHealth = document.getElementById("ic705-audio-health");

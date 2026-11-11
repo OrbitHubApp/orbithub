@@ -28,7 +28,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.services.doppler import corrected_transponder_frequencies, range_rate_km_s
-from app.services.rig_control import RigControlError, rig_control, rig_mode_for
+from app.services.rig_control import RIG_MODES, RigControlError, rig_control, rig_mode_for
+
+RIG_MODES_SET = set(RIG_MODES) | {"PKT" + m for m in RIG_MODES}
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +73,26 @@ class TrackingSession:
     def __init__(self) -> None:
         self._task: asyncio.Task[None] | None = None
         self._status = TrackingStatus()
+        # Gewuenschte Betriebsart (aenderbar waehrend des Trackings)
+        self._wanted_mode: str | None = None
+        # Fuer die Himmelsposition (Polarplot) des verfolgten Satelliten
+        self._satellite: Any = None
+        self._observer: Any = None
+        self._timescale: Any = None
+
+    @property
+    def sky_context(self) -> tuple[Any, Any, Any] | None:
+        if not self._status.active or self._satellite is None:
+            return None
+        return self._satellite, self._observer, self._timescale
+
+    def change_mode(self, mode: str) -> str:
+        """Stellt waehrend des Trackings auf eine andere Betriebsart um
+        (ohne Neustart, Doppler laeuft weiter). Gibt den IC-705-Modus zurueck."""
+        rig_mode, note = rig_mode_for(mode)
+        self._wanted_mode = rig_mode
+        self._status.mode_note = note
+        return rig_mode
 
     @property
     def status(self) -> TrackingStatus:
@@ -87,6 +109,8 @@ class TrackingSession:
     ) -> None:
         """Startet eine neue Tracking-Sitzung; eine laufende wird zuvor gestoppt."""
         self.stop()
+        self._satellite, self._observer, self._timescale = satellite, observer, timescale
+        self._wanted_mode = None
         self._status = TrackingStatus(
             active=True,
             norad_id=norad_id,
@@ -105,6 +129,8 @@ class TrackingSession:
             self._task.cancel()
         self._task = None
         self._status = TrackingStatus(active=False)
+        self._satellite = None
+        self._wanted_mode = None
 
     async def _loop(
         self,
@@ -127,12 +153,20 @@ class TrackingSession:
 
             rig_mode, note = rig_mode_for(str(transponder.get("mode") or ""))
             self._status.mode_note = note
+            self._wanted_mode = rig_mode
             mode_pending = True
+            # Erst wenn das Geraet den Modus einmal bestaetigt hat, gelten
+            # spaetere Abweichungen als Absicht (am IC-705 umgestellt).
+            mode_confirmed = False
             mismatches = 0
             previous_rx_hz: int | None = None
 
             while True:
                 try:
+                    if self._wanted_mode and self._wanted_mode != rig_mode:
+                        rig_mode = self._wanted_mode  # in OrbitHub umgestellt
+                        mode_pending = True
+                        mode_confirmed = False
                     if mode_pending:
                         try:
                             await asyncio.to_thread(rig_control.set_mode, rig_mode)
@@ -162,9 +196,18 @@ class TrackingSession:
                     # Modus ebenfalls zuruecklesen: war das Geraet beim ersten
                     # Setzen nicht verbunden, hat kappanhang "M" scheinbar
                     # angenommen - dann im naechsten Durchlauf erneut setzen.
+                    # Wurde am IC-705 selbst umgestellt (nach Bestaetigung),
+                    # wird das uebernommen statt zurueckgestellt.
                     if self._status.rig_mode:
                         actual_mode, _ = await asyncio.to_thread(rig_control.get_mode)
-                        if actual_mode and actual_mode != self._status.rig_mode:
+                        if actual_mode == self._status.rig_mode:
+                            mode_confirmed = True
+                        elif actual_mode and mode_confirmed and actual_mode in RIG_MODES_SET:
+                            rig_mode = actual_mode
+                            self._wanted_mode = actual_mode
+                            self._status.rig_mode = actual_mode
+                            self._status.mode_note = f"Am IC-705 auf {actual_mode} umgestellt"
+                        elif actual_mode:
                             mode_pending = True
 
                     self._status.range_rate_km_s = rate
