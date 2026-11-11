@@ -95,6 +95,14 @@ async def fetch_and_save_satnogs_aliases(path: Path) -> dict[str, Any]:
             continue
         aliases[str(norad_cat_id)] = name
 
+    # Neue Satelliten: SatNOGS fuehrt Name/Zweitnamen/Startdatum oft nur unter
+    # der vorlaeufigen Nummer. Damit der TLE-Katalog (echte NORAD-Nummer) sie
+    # trotzdem bekommt, werden sie auf die echte Nummer uebertragen.
+    for temp_id, real_id in follow_ids.items():
+        for table in (aliases, alt_names, launched):
+            if temp_id in table and real_id not in table:
+                table[real_id] = table[temp_id]
+
     payload = {
         "fetched_utc": started_utc.isoformat(),
         "source": SATNOGS_SATELLITES_URL,

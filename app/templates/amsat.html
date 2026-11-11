@@ -61,6 +61,7 @@ Betriebsart in den IC-705.
 Status = letzter Bericht im Zeitraum. Berichte: ✓ gehört · ◐ nur Bake/Telemetrie · ✗ nicht gehört.
 Überflug-Höhe: <span class="amsat-el q-weak">flach</span> · <span class="amsat-el q-ok">mittel</span> · <span class="amsat-el q-good">hoch</span>.
 Der Knopf „IC-705“ öffnet die Funkgeräte-Seite mit passendem Transponder und Betriebsart und startet das Doppler-Tracking.
+Neue Satelliten ohne offizielle NORAD-Nummer werden automatisch über SatNOGS zugeordnet (vorläufige Nummer → echte Nummer, sonst SatNOGS-Bahndaten, markiert mit „Bahn: SatNOGS“).
 Daten: <a href="https://status.amsat.org/" target="_blank" rel="noopener">status.amsat.org</a> (AMSAT).
 </p>
 </section>
@@ -92,6 +93,7 @@ Daten: <a href="https://status.amsat.org/" target="_blank" rel="noopener">status
 .amsat-rig-btn:hover { background: rgba(63,255,130,0.12); }
 .amsat-rig-btn.is-manual { border-color: rgba(255,255,255,0.35); color: inherit; font-weight: 400; }
 .amsat-row-silent { opacity: 0.55; }
+.amsat-src { color: #e0a63a; }
 .amsat-legend { margin-top: 0.8em; line-height: 1.6; }
 </style>
 
@@ -132,16 +134,19 @@ Daten: <a href="https://status.amsat.org/" target="_blank" rel="noopener">status
     return '<span class="amsat-badge ' + cls + '">' + esc(e.status_label) + "</span>";
   }
   function passCell(e) {
-    if (!e.norad_id) { return '<span class="rig-control-note">keine NORAD-ID</span>'; }
-    if (!e.has_tle) { return '<span class="rig-control-note">keine Bahndaten</span>'; }
+    if (!e.norad_id) {
+      return '<span class="rig-control-note" title="Weder AMSAT, SatNOGS noch der TLE-Katalog kennen eine Zuordnung. Ergänzbar in data/amsat-name-map.json, z. B. {&quot;' + esc(e.satellite) + '&quot;: &quot;NORAD-Nr.&quot;}">nicht zugeordnet ⓘ</span>';
+    }
+    if (!e.has_tle) { return '<span class="rig-control-note" title="NORAD ' + esc(e.norad_id) + ': weder im TLE-Katalog noch aktuelle SatNOGS-Bahndaten (verglüht?)">keine Bahndaten</span>'; }
     var p = e.next_pass;
     if (!p) { return '<span class="rig-control-note">kein Überflug in 24 h</span>'; }
     var now = Date.now(), rise = new Date(p.rise).getTime(), set = new Date(p.set).getTime();
     var el = '<span class="amsat-el ' + elClass(p.max_el) + '">' + Math.round(p.max_el) + "°</span>";
+    var src = e.tle_source ? ' <span class="amsat-src" title="Noch nicht im Haupt-TLE-Katalog – Bahndaten von SatNOGS">· Bahn: ' + esc(e.tle_source) + "</span>" : "";
     if (now >= rise && now <= set) {
       return '<span class="amsat-pass is-live">● jetzt im Bereich · LOS ' + hhmm(p.set) + "</span><span class=\"amsat-sub\">max. " + el + "</span>";
     }
-    return '<span class="amsat-pass">' + hhmm(p.rise) + " · " + el + '</span><span class="amsat-sub">' + until(p.rise) + "</span>";
+    return '<span class="amsat-pass">' + hhmm(p.rise) + " · " + el + '</span><span class="amsat-sub">' + until(p.rise) + src + "</span>";
   }
   function rigCell(e) {
     if (!e.norad_id || !e.has_tle) { return "–"; }

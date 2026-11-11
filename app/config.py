@@ -16,6 +16,7 @@ SPACETRACK_CREDENTIALS_FILE = DATA_DIR / "spacetrack-credentials.json"
 HISTORY_FILE = DATA_DIR / "history.json"
 SATNOGS_ALIASES_FILE = DATA_DIR / "satnogs-aliases.json"
 SATNOGS_TRANSMITTERS_FILE = DATA_DIR / "satnogs-transmitters.json"
+SATNOGS_TLE_FILE = DATA_DIR / "satnogs-tle.json"
 TINYGS_ALIASES_FILE = DATA_DIR / "tinygs-aliases.json"
 NEW_SATELLITES_FILE = DATA_DIR / "new-satellites.json"
 

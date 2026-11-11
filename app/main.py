@@ -29,6 +29,7 @@ from app.config import (
     HISTORY_FILE,
     SATNOGS_ALIASES_FILE,
     SATNOGS_TRANSMITTERS_FILE,
+    SATNOGS_TLE_FILE,
     TINYGS_ALIASES_FILE,
     NEW_SATELLITES_FILE,
     SOURCE_SETTINGS_FILE,
@@ -63,6 +64,8 @@ from app.services.transponder_db import (
 )
 from app.services.rig_control import RigControlError, rig_control, rig_mode_for
 from app.services import amsat_status
+from app.models.tle_record import TLERecord
+from app.services.satnogs_tle import fetch_and_save_satnogs_tles, load_satnogs_tles, satnogs_record
 from app.services.rig_tracking import tracking_session
 from app.services.tinygs_aliases import (
     fetch_and_save_tinygs_aliases,
@@ -757,6 +760,10 @@ async def update_satnogs_aliases() -> None:
         await fetch_and_save_satnogs_aliases(SATNOGS_ALIASES_FILE)
     except Exception as exc:
         print(f"OrbitHub SatNOGS-Alias-Fehler: {exc!r}")
+    try:
+        await fetch_and_save_satnogs_tles(SATNOGS_TLE_FILE)
+    except Exception as exc:
+        print(f"OrbitHub SatNOGS-TLE-Fehler: {exc!r}")
 
 
 async def periodic_satnogs_alias_refresh_loop() -> None:
@@ -1193,6 +1200,11 @@ async def passes_page(
                 None,
             )
 
+        if selected_record is None and satellite:
+            # neuer Satellit? -> echte Nummer / SatNOGS-Ersatzbahn
+            selected_record = _resolve_record(
+                satellite, {record.norad_id: record for record in records}
+            )
         if selected_record is None:
             selected_record = _default_pass_record(records, favorite_norad_ids)
 
@@ -2785,6 +2797,38 @@ async def satellite_track(
     }
 
 
+def _resolve_record(norad_id: str | None, records_by_norad_id: dict):
+    """Findet die Bahndaten zu einer NORAD-Nummer - auch fuer neue Satelliten.
+
+    Feste Reihenfolge fuer neue/unbekannte Satelliten:
+    1. Haupt-TLE-Katalog (z. B. Space-Track)
+    2. vorlaeufige SatNOGS-Nummer (98xxx) -> echte NORAD-Nummer (norad_follow_id)
+    3. Ersatz-Bahndaten von SatNOGS (fuer echte oder vorlaeufige Nummer,
+       nur wenn nicht aelter als 30 Tage)
+    """
+    if not norad_id:
+        return None
+    norad_id = str(norad_id).strip()
+    norad_id = norad_id.lstrip("0") or norad_id
+    record = records_by_norad_id.get(norad_id)
+    if record is not None:
+        return record
+    follow = amsat_status.resolve_follow_id(norad_id, load_satnogs_follow_ids(SATNOGS_ALIASES_FILE))
+    if follow and follow != norad_id and follow in records_by_norad_id:
+        return records_by_norad_id[follow]
+    for candidate in dict.fromkeys((follow, norad_id)):
+        record = satnogs_record(candidate, SATNOGS_TLE_FILE)
+        if record is not None:
+            # SatNOGS-TLEs heissen oft nur "OBJECT E" - Satellitennamen voranstellen
+            name = load_satnogs_aliases(SATNOGS_ALIASES_FILE).get(candidate)
+            if name and name.upper() not in record.name.upper():
+                record = TLERecord(
+                    name=f"{name} ({record.name})", line1=record.line1, line2=record.line2
+                )
+            return record
+    return None
+
+
 def _transponders_for(norad_id: str | None, all_transponders: dict) -> list:
     """SatNOGS-Transponder eines Satelliten - inklusive derer, die SatNOGS noch
     unter einer vorlaeufigen Nummer (98xxx) fuehrt, die per norad_follow_id auf
@@ -2857,7 +2901,7 @@ async def start_rig_tracking(request: Request) -> dict:
 
     records = await _get_all_tle_records()
     records_by_norad_id = {record.norad_id: record for record in records}
-    record = records_by_norad_id.get(norad_id)
+    record = _resolve_record(norad_id, records_by_norad_id)
     if record is None:
         raise HTTPException(
             status_code=404,
@@ -2966,7 +3010,7 @@ async def ic705_page(request: Request, satellite: str | None = None):
     selected_record = None
     if satellite:
         wanted = satellite.strip().lstrip("0") or satellite.strip()
-        selected_record = records_by_norad_id.get(wanted)
+        selected_record = _resolve_record(wanted, records_by_norad_id)
         if selected_record is None:
             satellite_not_found = satellite.strip()
     if selected_record is None and favorite_records:
@@ -3117,19 +3161,23 @@ async def amsat_live_data(hours: int = 24) -> dict:
                     load_satnogs_alt_names(SATNOGS_ALIASES_FILE),
                     load_satnogs_aliases(SATNOGS_ALIASES_FILE),
                     follow_ids,
+                    {n: item.get("name", "") for n, item in load_satnogs_tles(SATNOGS_TLE_FILE).items()},
                 )
             found = name_index.get(sat_key)
             if found:
                 entry["norad_id"] = found
                 entry["norad_from_name"] = True
-        # Vorlaeufige Nummer (98xxx) ohne Bahndaten -> echte NORAD-Nummer
-        if entry["norad_id"] and entry["norad_id"] not in records_by_norad_id:
-            resolved = amsat_status.resolve_follow_id(entry["norad_id"], follow_ids)
-            if resolved in records_by_norad_id:
-                entry["norad_id"] = resolved
+        # Bahndaten: Hauptkatalog -> echte Nummer -> SatNOGS-Ersatzbahn
+        record = _resolve_record(entry["norad_id"], records_by_norad_id)
+        if record is not None:
+            entry["norad_id"] = record.norad_id
         norad_id = entry["norad_id"]
-        record = records_by_norad_id.get(norad_id) if norad_id else None
         entry["has_tle"] = record is not None
+        entry["tle_source"] = (
+            "SatNOGS"
+            if record is not None and records_by_norad_id.get(record.norad_id) is not record
+            else None
+        )
         entry["satellite_name"] = display_satellite_name(record.name) if record else None
 
         match = amsat_status.match_transponder(entry["mode"], _transponders_for(norad_id, all_transponders))

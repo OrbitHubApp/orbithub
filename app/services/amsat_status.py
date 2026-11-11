@@ -309,6 +309,7 @@ def build_name_index(
     alt_names: dict[str, str],
     aliases: dict[str, str],
     follow_ids: dict[str, str] | None = None,
+    extra_names: dict[str, str] | None = None,
 ) -> dict[str, str]:
     """Normalisierter Satellitenname -> NORAD-ID (nur eindeutige Namen).
 
@@ -327,6 +328,8 @@ def build_name_index(
 
     for record in records:
         add(record.name.split("(")[0], record.norad_id)
+    for norad_id, name in (extra_names or {}).items():
+        add(str(name).split("(")[0], str(norad_id))
     for norad_id, name in (aliases or {}).items():
         add(str(name), str(norad_id))
     for norad_id, raw in (alt_names or {}).items():
