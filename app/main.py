@@ -3095,10 +3095,12 @@ async def ic705_page(request: Request, satellite: str | None = None):
         selected_record = _resolve_record(wanted, records_by_norad_id)
         if selected_record is None:
             satellite_not_found = satellite.strip()
-    if selected_record is None and favorite_records:
-        selected_record = favorite_records[0]
-    if selected_record is None:
-        selected_record = records_by_norad_id.get("25544")
+    # Ohne Auswahl folgt die Seite dem gerade verfolgten Satelliten (Live-
+    # Beobachtung oder Tracking) - kein fest voreingestellter Satellit mehr.
+    if selected_record is None and not satellite and tracking_session.status.active:
+        tracked = tracking_session.status.norad_id
+        if tracked:
+            selected_record = _resolve_record(str(tracked), records_by_norad_id)
 
     passes = []
     observer = load_observer_settings().for_radio()
@@ -3482,6 +3484,110 @@ async def amsat_modes_for_satellite(norad_id: str, hours: int = 24) -> dict:
             }
         )
     return {"modes": modes, "hours": hours}
+
+
+@app.get("/api/ic705/overview")
+async def ic705_overview() -> dict:
+    """Uebersicht fuer /ic705: AMSAT-Berichte der letzten 60 Minuten (wie die
+    Kaestchen auf status.amsat.org) und gemeldete Satelliten mit IC-705-Frequenz,
+    die in den kommenden 60 Minuten aufgehen (oder gerade im Bereich sind).
+    Dazu die Angaben fuer das vorausgefuellte AMSAT-Meldeformular."""
+    from datetime import timedelta
+
+    settings = load_observer_settings()
+    now = datetime.now(timezone.utc)
+    result: dict = {
+        "now": now.isoformat(),
+        "recent": [],
+        "upcoming": [],
+        "amsat_names": [],
+        "norad_names": {},
+        "callsign": settings.callsign,
+        "locator": settings.locator,
+        "submit_url": amsat_status.AMSAT_SUBMIT_URL,
+        "error": None,
+    }
+    try:
+        recent = await _amsat_live_entries(1)
+        day = await _amsat_live_entries(24)
+        raw_recent = await amsat_status.fetch_reports(1)
+    except HTTPException as exc:
+        result["error"] = exc.detail
+        return result
+    result["amsat_names"] = await amsat_status.fetch_satellite_names()
+
+    slots = amsat_status.recent_slots(raw_recent, now)
+    for entry in sorted(recent["entries"], key=lambda e: e.get("latest_time") or "", reverse=True):
+        result["recent"].append(
+            {
+                key: entry.get(key)
+                for key in (
+                    "name", "satellite", "mode", "status", "status_label", "latest_time",
+                    "latest_callsign", "latest_grid", "count_heard", "count_tlm",
+                    "count_not_heard", "count_total", "norad_id", "satellite_name",
+                    "transponder_uuid", "rig_mode", "downlink_hz", "next_pass",
+                )
+            }
+            | {"slots": slots.get(entry["name"], [None, None, None, None])}
+        )
+
+    # AMSAT-Namen je NORAD-Nummer (fuer "Gehoert? Melden" beim verfolgten Satelliten)
+    for entry in day["entries"]:
+        if entry.get("norad_id"):
+            names = result["norad_names"].setdefault(entry["norad_id"], [])
+            if entry["name"] not in [n["name"] for n in names]:
+                names.append(
+                    {
+                        "name": entry["name"],
+                        "mode": entry["mode"],
+                        "transponder_uuid": entry.get("transponder_uuid"),
+                        "transponder_description": entry.get("transponder_description"),
+                        "rig_mode": entry.get("rig_mode"),
+                    }
+                )
+
+    horizon = now + timedelta(minutes=60)
+    by_norad: dict[str, dict] = {}
+    for entry in day["entries"]:
+        next_pass = entry.get("next_pass")
+        if not next_pass or not entry.get("norad_id"):
+            continue
+        rise = datetime.fromisoformat(next_pass["rise"])
+        if rise > horizon:
+            continue
+        item = by_norad.setdefault(
+            entry["norad_id"],
+            {
+                "norad_id": entry["norad_id"],
+                "satellite": entry["satellite"],
+                "satellite_name": entry.get("satellite_name"),
+                "next_pass": next_pass,
+                "in_range": rise <= now,
+                "modes": [],
+            },
+        )
+        item["modes"].append(
+            {
+                "name": entry["name"],
+                "mode": entry["mode"],
+                "status": entry.get("status"),
+                "status_label": entry.get("status_label"),
+                "last_heard_time": entry.get("last_heard_time"),
+                "transponder_uuid": entry.get("transponder_uuid"),
+                "rig_mode": entry.get("rig_mode"),
+                "downlink_hz": entry.get("downlink_hz"),
+            }
+        )
+    upcoming = list(by_norad.values())
+    for item in upcoming:
+        # gehoerte Betriebsarten mit IC-705-Frequenz zuerst
+        item["modes"].sort(
+            key=lambda m: (m["status"] == "Not Heard", m["downlink_hz"] is None, m["mode"])
+        )
+        item["usable"] = any(m["downlink_hz"] and m["status"] != "Not Heard" for m in item["modes"])
+    upcoming.sort(key=lambda i: i["next_pass"]["rise"])
+    result["upcoming"] = upcoming
+    return result
 
 
 @app.get("/api/rig/transponders")

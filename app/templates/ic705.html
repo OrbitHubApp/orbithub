@@ -14,120 +14,585 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 {# Diese Seite aktualisiert sich selbst per fetch - kein Auto-Reload (dashboard.js) #}
 <span data-pause-auto-refresh></span>
 
-<section class="mission-hero">
-<div>
-<div class="eyebrow">ICOM IC-705 · RIG-CONTROL</div>
-<h2>Funkgerät steuern</h2>
-<p>
-Doppler-korrigierte Frequenznachführung für Satellitenüberflüge, Transponder- oder Frequenzwahl,
-Betriebsart und Empfangston – alles für den IC-705 an einem Ort.
-</p>
-</div>
+<div class="icom" id="rig-control-panel"
+ data-norad-id="{{ selected_satellite.norad_id if selected_satellite else '' }}"
+ data-sat-name="{{ (selected_satellite.name | display_name) if selected_satellite else '' }}"
+{% if next_pass %} data-rise-utc="{{ next_pass.rise_time.isoformat() }}" data-set-utc="{{ next_pass.set_time.isoformat() }}"{% endif %}>
+
+<!-- ============ Das Funkgeraet ============ -->
+<section class="icom-radio" aria-label="IC-705">
+  <div class="icom-radio-top">
+    <span class="icom-logo">ICOM</span>
+    <span class="icom-model">IC-705</span>
+    <span class="icom-tag">HF/50/144/430 MHz ALL MODE TRANSCEIVER · SAT CONTROL</span>
+    <span class="icom-pwr"><span class="ic705-dot" id="ic705-dot"></span>POWER</span>
+  </div>
+
+  <div class="icom-radio-face">
+    <div class="icom-screen ic705-radio-lcd">
+      <div class="icom-statusbar">
+        <span class="icom-chip">VFO A</span>
+        <span class="icom-chip icom-chip-mode" id="ic705-radio-mode">--</span>
+        <span class="icom-chip" id="icom-chip-state">MANUELL</span>
+        <span class="icom-statusbar-spacer"></span>
+        <span class="icom-chip" id="icom-chip-audio">AF ▸ SPK</span>
+        <span class="icom-clock" id="icom-clock">--:--:-- UTC</span>
+      </div>
+
+      <div class="icom-main-freq">
+        <span class="ic705-radio-freq" id="ic705-radio-freq">---.---.---</span>
+        <span class="ic705-radio-unit">MHz</span>
+      </div>
+      <div class="ic705-radio-meta" id="ic705-radio-meta">Verbinde …</div>
+
+      <div class="rig-freq-display" id="rig-freq-display">
+        <div class="icom-sub-head">
+          <span class="rig-freq-live-dot" id="rig-freq-live-dot"></span>
+          <span id="rig-freq-meta-text">Doppler aus</span>
+        </div>
+        <div class="icom-sub-grid">
+          <div class="icom-sub-cell" id="rig-freq-row-countdown">
+            <span class="icom-sub-label" id="rig-countdown-label">Nächster Überflug in</span>
+            <span class="icom-sub-value rig-countdown-digits" id="rig-countdown-value">—:—:—</span>
+          </div>
+          <div class="icom-sub-cell icom-sub-rx" id="rig-freq-row-rx">
+            <span class="icom-sub-label">RX · Downlink</span>
+            <span class="icom-sub-value"><span class="rig-freq-digits" id="rig-freq-rx-digits">---.---.---</span></span>
+          </div>
+          <div class="icom-sub-cell icom-sub-tx" id="rig-freq-row-tx" hidden>
+            <span class="icom-sub-label">TX · Uplink</span>
+            <span class="icom-sub-value"><span class="rig-freq-digits" id="rig-freq-tx-digits">---.---.---</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="icom-scope">
+        <div class="icom-scope-bar">
+          <span class="icom-scope-title">SCOPE · NF</span>
+          <label class="icom-scope-ctl" title="Darstellungsbereich">SPAN
+            <select id="ic705-wf-span">
+              <option value="3000">3 kHz SSB/CW</option>
+              <option value="6000">6 kHz</option>
+              <option value="12000">12 kHz FM</option>
+            </select>
+          </label>
+          <label class="icom-scope-ctl" title="Empfindlichkeit">REF
+            <input type="range" id="ic705-wf-gain" min="-130" max="-70" step="2" value="-105">
+          </label>
+          <span class="icom-scope-help" title="Zeigt das Empfangssignal des IC-705 (Audio aus dem Durchlassbereich) als laufendes Spektrum: neue Zeilen oben, Frequenz von links nach rechts. Träger und Baken erscheinen als helle Linien – auch wenn sie kaum hörbar sind. Bei SSB/CW wandert ein Signal durch den Doppler schräg durchs Bild. Der Ton bleibt, wo er ist.">?</span>
+        </div>
+        <div class="ic705-wf-scale" id="ic705-wf-scale"></div>
+        <canvas id="ic705-wf-canvas" class="ic705-wf-canvas" height="150"></canvas>
+      </div>
+      <p class="icom-screen-msg rig-control-error" id="ic705-wf-error" hidden></p>
+      <p class="icom-screen-msg rig-control-error" id="rig-tracking-error" hidden></p>
+    </div>
+
+    <div class="icom-keys">
+      <div class="icom-keygroup">
+        <div class="icom-keygroup-label">MODE</div>
+        <div class="icom-keygrid rig-mode-quick" id="rig-mode-quick" title="Betriebsart – wirkt sofort, auch während der Live-Beobachtung">
+          <button type="button" class="icom-key rig-mode-btn" data-mode="FM">FM</button>
+          <button type="button" class="icom-key rig-mode-btn" data-mode="USB">USB</button>
+          <button type="button" class="icom-key rig-mode-btn" data-mode="LSB">LSB</button>
+          <button type="button" class="icom-key rig-mode-btn" data-mode="CW">CW</button>
+          <button type="button" class="icom-key rig-mode-btn" data-mode="AM">AM</button>
+          <button type="button" class="icom-key rig-mode-btn" data-mode="PKTUSB">DATA</button>
+        </div>
+      </div>
+      <div class="icom-keygroup">
+        <div class="icom-keygroup-label">DOPPLER</div>
+        <div class="icom-keygrid icom-keygrid-2">
+          <button type="button" id="rig-tracking-start" class="icom-key icom-key-go">▶ Doppler an</button>
+          <button type="button" id="rig-tracking-stop" class="icom-key icom-key-stop" disabled>■ Doppler aus</button>
+        </div>
+      </div>
+      <div class="icom-keygroup" id="rig-audio-actions">
+        <div class="icom-keygroup-label">AF OUT</div>
+        <div class="icom-keygrid icom-keygrid-2">
+          <button type="button" id="rig-audio-radio" class="icom-key rig-audio-btn is-active" aria-pressed="true" title="Ton aus dem IC-705-Lautsprecher">SPEAKER</button>
+          <button type="button" id="rig-audio-mac" class="icom-key rig-audio-btn" aria-pressed="false" title="Ton als Stream im Browser (Mac)">MAC</button>
+        </div>
+      </div>
+      <div class="icom-keygroup">
+        <div class="icom-keygroup-label">SCOPE</div>
+        <div class="icom-keygrid icom-keygrid-1">
+          <button type="button" id="ic705-wf-toggle" class="icom-key">▶ Scope an</button>
+        </div>
+      </div>
+      <div class="icom-keygroup">
+        <div class="icom-keygroup-label">AMSAT</div>
+        <div class="icom-keygrid icom-keygrid-1">
+          <button type="button" id="icom-report-btn" class="icom-key icom-key-amsat" title="Gehört? Bericht für status.amsat.org vorausfüllen – absenden machst du dort selbst">✎ Gehört – melden</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <audio id="rig-audio-player" preload="none" hidden></audio>
+  <span id="rig-refresh-pause" data-pause-auto-refresh hidden></span>
 </section>
 
-<section class="ic705-top-grid">
-<div class="add-source-panel" id="ic705-radio-card">
-<div class="label">FUNKGERÄT</div>
-<h3>IC-705 live</h3>
-<div class="ic705-radio-lcd">
-<div class="ic705-radio-row">
-<span class="ic705-dot" id="ic705-dot"></span>
-<span class="ic705-radio-freq" id="ic705-radio-freq">---.---.---</span>
-<span class="ic705-radio-unit">MHz</span>
-<span class="ic705-radio-mode" id="ic705-radio-mode">--</span>
-</div>
-<div class="ic705-radio-meta" id="ic705-radio-meta">Verbinde …</div>
-</div>
-<p class="rig-control-note ic705-audio-health" id="ic705-audio-health">Audio-Stream: wird geprüft …</p>
-</div>
+<!-- ============ Bedienung ============ -->
+<section class="icom-panels">
+  <div class="icom-menu" id="ic705-satellite-card">
+    <div class="icom-menu-bar"><span>SATELLIT · TRANSPONDER</span><span class="icom-menu-note" id="rig-reachable-note"></span></div>
+    <div class="icom-menu-body">
+      <h3 id="rig-sat-title">{{ (selected_satellite.name | display_name) if selected_satellite else 'Kein Satellit gewählt' }}</h3>
+      <div class="icom-field">
+        <span class="icom-field-label">Satellit</span>
+        <select id="ic705-satellite-choice" class="icom-input">
+          <option value=""{% if not selected_satellite %} selected{% endif %}>– aus der Merkliste wählen –</option>
+          {% if selected_satellite and selected_satellite.norad_id not in favorite_ids %}
+          <option value="{{ selected_satellite.norad_id }}" selected>{{ selected_satellite.name | display_name }} · {{ selected_satellite.norad_id }}</option>
+          {% endif %}
+          {% for rec in favorite_records %}
+          <option value="{{ rec.norad_id }}"{% if selected_satellite and rec.norad_id == selected_satellite.norad_id %} selected{% endif %}>{{ rec.name | display_name }} · {{ rec.norad_id }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <form class="icom-field" method="get" action="/ic705">
+        <span class="icom-field-label">NORAD-ID</span>
+        <input type="text" name="satellite" class="icom-input" inputmode="numeric" placeholder="z. B. 7530" autocomplete="off">
+        <button type="submit" class="icom-btn">Wählen</button>
+      </form>
+      {% if satellite_not_found %}
+      <p class="rig-control-error">NORAD-ID {{ satellite_not_found }} wurde im Katalog nicht gefunden.</p>
+      {% endif %}
 
-<div class="add-source-panel" id="ic705-satellite-card">
-<div class="label">SATELLIT</div>
-<h3>Auswahl</h3>
-<div class="ic705-select-row">
-<select id="ic705-satellite-choice" class="rig-select">
-{% if selected_satellite and selected_satellite.norad_id not in favorite_ids %}
-<option value="{{ selected_satellite.norad_id }}" selected>{{ selected_satellite.name | display_name }} · {{ selected_satellite.norad_id }}</option>
+      <div class="rig-transponder-select" id="rig-transponder-select">
+        <div class="icom-field">
+          <span class="icom-field-label">Transponder</span>
+          <select id="rig-transponder-choice" class="icom-input"></select>
+        </div>
+        <div class="rig-manual-freq" id="rig-manual-freq" hidden>
+          <div class="icom-field">
+            <span class="icom-field-label">RX MHz</span>
+            <input type="text" inputmode="decimal" id="rig-manual-rx" class="icom-input" placeholder="z. B. 145.800" autocomplete="off">
+          </div>
+          <div class="icom-field">
+            <span class="icom-field-label">TX MHz</span>
+            <input type="text" inputmode="decimal" id="rig-manual-tx" class="icom-input" placeholder="optional, z. B. 437.800" autocomplete="off">
+          </div>
+          <p class="icom-hint">Nominalfrequenz eingeben – den Doppler rechnet OrbitHub.</p>
+        </div>
+        <div class="icom-field">
+          <span class="icom-field-label">Modus</span>
+          <input list="rig-mode-options" id="rig-mode-choice" class="icom-input" autocomplete="off">
+          <datalist id="rig-mode-options">
+            <option value="FM"></option><option value="USB"></option><option value="LSB"></option>
+            <option value="CW"></option><option value="CW-R"></option><option value="AM"></option>
+            <option value="RTTY"></option><option value="WFM"></option><option value="DV"></option>
+            <option value="PKTFM"></option><option value="PKTUSB"></option>
+          </datalist>
+        </div>
+      </div>
+      <div class="rig-amsat-modes" id="rig-amsat-modes" hidden></div>
+      <p id="rig-transponder-note" class="icom-hint" hidden></p>
+      <p id="rig-mode-note" class="icom-hint rig-mode-note" hidden></p>
+      <p class="icom-hint ic705-audio-health" id="ic705-audio-health">Audio-Stream: wird geprüft …</p>
+    </div>
+  </div>
+
+  <section class="icom-menu" id="ic705-live-panel">
+    <div class="icom-menu-bar"><span>LIVE-BEOBACHTUNG · AMSAT LIVE</span></div>
+    <div class="icom-menu-body">
+      <div class="ic705-live-head">
+        <h3 id="ic705-live-title">Automatisch mithören</h3>
+        <div class="ic705-live-actions">
+          <select id="ic705-live-hours" class="icom-input" aria-label="Zeitraum der AMSAT-Berichte">
+            <option value="6">gehört in 6 h</option>
+            <option value="12">gehört in 12 h</option>
+            <option value="24" selected>gehört in 24 h</option>
+            <option value="48">gehört in 48 h</option>
+          </select>
+          <button type="button" id="ic705-live-start" class="icom-btn icom-btn-live">🎧 Starten</button>
+          <button type="button" id="ic705-live-stop" class="icom-btn icom-btn-stop" hidden>Beenden</button>
+          <label class="ic705-bell-toggle" title="Glocke im Browser, sobald ein Satellit hörbar wird"><input type="checkbox" id="ic705-bell-on"> 🔔</label>
+          <button type="button" id="ic705-bell-test" class="icom-btn icom-btn-small" title="Glocke testen (schaltet den Ton im Browser frei)">Test</button>
+        </div>
+      </div>
+      <p class="icom-hint" id="ic705-live-intro">
+        Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisch eingestellt, sobald sie über 10°
+        (und über deinem Funk-Horizont) stehen – bei mehreren der höchste.
+      </p>
+      <div class="ic705-live-body" id="ic705-live-body" hidden>
+        <div class="ic705-live-now" id="ic705-live-now"></div>
+        <div class="ic705-live-list" id="ic705-live-list"></div>
+        <p class="icom-hint" id="ic705-live-meta"></p>
+      </div>
+      <p class="rig-control-error" id="ic705-live-error" hidden></p>
+    </div>
+  </section>
+</section>
+
+<!-- ============ Ueberblick +-60 Minuten ============ -->
+<section class="icom-overview">
+  <div class="icom-menu">
+    <div class="icom-menu-bar"><span>AMSAT LIVE · LETZTE 60 MIN</span><a href="https://status.amsat.org/" target="_blank" rel="noopener">status.amsat.org ↗</a></div>
+    <div class="icom-menu-body">
+      <div class="icom-legend">
+        <span><i class="icom-slot s-heard"></i>aktiv</span><span><i class="icom-slot s-tlm"></i>nur Bake</span>
+        <span><i class="icom-slot s-not_heard"></i>nicht gehört</span><span><i class="icom-slot s-conflict"></i>widersprüchlich</span>
+        <span class="icom-legend-note">je 15 min, links = jetzt</span>
+      </div>
+      <div class="icom-list" id="ic705-recent-list"><p class="icom-empty">Lade …</p></div>
+      <p class="icom-hint" id="ic705-recent-meta"></p>
+    </div>
+  </div>
+
+  <div class="icom-menu">
+    <div class="icom-menu-bar"><span>KOMMENDE 60 MIN</span><span class="icom-menu-note" id="ic705-upcoming-meta"></span></div>
+    <div class="icom-menu-body">
+      <div class="icom-list" id="ic705-upcoming-list"><p class="icom-empty">Lade …</p></div>
+      <p class="icom-hint">📻 stellt den IC-705 ein (Doppler läuft), ✎ füllt den AMSAT-Bericht vor.</p>
+    </div>
+  </div>
+
+  <div class="icom-menu">
+    <div class="icom-menu-bar"><span>POLARPLOT · HÖRBARKEIT</span>{% if selected_satellite %}<a href="/passes?satellite={{ selected_satellite.norad_id }}">Karte ↗</a>{% endif %}</div>
+    <div class="icom-menu-body">
+      <h3 id="ic705-plot-title">–</h3>
+      <div class="ic705-live-sky" id="ic705-live-sky" hidden></div>
+      <p class="icom-empty" id="ic705-plot-empty" hidden></p>
+      <div id="ic705-plot-wrap" hidden>
+        <div class="ic705-audibility" id="ic705-audibility"></div>
+        <div class="ic705-polar-card">
+          <svg class="polarplot" viewBox="0 0 200 200" role="img" aria-label="Polarplot des Überflugs">
+            <circle class="polarplot-horizon" cx="100" cy="100" r="90" />
+            <circle class="polarplot-ring" cx="100" cy="100" r="60" />
+            <circle class="polarplot-ring" cx="100" cy="100" r="30" />
+            <line class="polarplot-axis" x1="100" y1="10" x2="100" y2="190" />
+            <line class="polarplot-axis" x1="10" y1="100" x2="190" y2="100" />
+            {% for segment in horizon_shadow_segments %}
+            <path class="polarplot-shadow" d="{{ segment.d }}" />
+            {% endfor %}
+            <text class="polarplot-direction" x="100" y="7">N</text>
+            <text class="polarplot-direction" x="193" y="104">O</text>
+            <text class="polarplot-direction" x="100" y="199">S</text>
+            <text class="polarplot-direction" x="7" y="104">W</text>
+            <text class="polarplot-elevation" x="104" y="38">30&deg;</text>
+            <text class="polarplot-elevation" x="104" y="68">60&deg;</text>
+            <polyline id="ic705-track" class="polarplot-track" points="" />
+            <circle id="ic705-max" class="ic705-max-dot" cx="100" cy="100" r="3" />
+            <circle id="ic705-rise" class="polarplot-rise" cx="100" cy="100" r="4" />
+            <circle id="ic705-set" class="polarplot-set" cx="100" cy="100" r="4" />
+            <text id="ic705-aos-label" class="polarplot-marker-label" x="100" y="100">AOS</text>
+            <text id="ic705-los-label" class="polarplot-marker-label" x="100" y="100">LOS</text>
+            <circle id="ic705-now" class="ic705-now-dot" cx="100" cy="100" r="5" visibility="hidden" />
+            <text id="ic705-now-label" class="ic705-now-label" x="100" y="100" visibility="hidden"></text>
+          </svg>
+        </div>
+        <dl class="ic705-pass-facts" id="ic705-pass-facts"></dl>
+        <p class="icom-hint">Schattiert: dein Funk-Horizont. Ringe 30°/60°, Mitte = senkrecht über dir.</p>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+{% if passes %}
+<script id="ic705-passes-data" type="application/json">{{ passes_json | tojson }}</script>
 {% endif %}
-{% for rec in favorite_records %}
-<option value="{{ rec.norad_id }}"{% if selected_satellite and rec.norad_id == selected_satellite.norad_id %} selected{% endif %}>{{ rec.name | display_name }} · {{ rec.norad_id }}</option>
-{% endfor %}
-</select>
-</div>
-<form class="ic705-select-row" method="get" action="/ic705">
-<input type="text" name="satellite" class="rig-select" inputmode="numeric" placeholder="Andere NORAD-ID, z. B. 7530" autocomplete="off">
-<button type="submit" class="rig-control-btn ic705-go-btn">Wählen</button>
-</form>
-<p class="rig-control-note">Die Liste zeigt deine Merkliste („Meine Satelliten“ auf der Seite Überflüge).</p>
-{% if satellite_not_found %}
-<p class="rig-control-error">NORAD-ID {{ satellite_not_found }} wurde im Katalog nicht gefunden.</p>
-{% endif %}
-</div>
-</section>
 
-<section class="add-source-panel" id="ic705-live-panel">
-<div class="ic705-live-head">
-<div>
-<div class="label">LIVE-BEOBACHTUNG · AMSAT LIVE</div>
-<h3 id="ic705-live-title">Automatisch mithören</h3>
-</div>
-<div class="ic705-live-actions">
-<select id="ic705-live-hours" class="rig-select" aria-label="Zeitraum der AMSAT-Berichte">
-<option value="6">gehört in 6 h</option>
-<option value="12">gehört in 12 h</option>
-<option value="24" selected>gehört in 24 h</option>
-<option value="48">gehört in 48 h</option>
-</select>
-<button type="button" id="ic705-live-start" class="rig-control-btn ic705-live-start">🎧 Live-Beobachtung starten</button>
-<button type="button" id="ic705-live-stop" class="rig-control-btn ic705-live-stop" hidden>Beenden</button>
-<label class="ic705-bell-toggle" title="Glocke im Browser, sobald ein Satellit hörbar wird und der IC-705 umstellt"><input type="checkbox" id="ic705-bell-on"> 🔔 Ton</label>
-<button type="button" id="ic705-bell-test" class="ic705-bell-test" title="Glocke testen (schaltet den Ton im Browser frei)">Test</button>
-</div>
-</div>
-<p class="rig-control-note" id="ic705-live-intro">
-Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisch eingestellt, sobald sie
-über 10° (und über deinem Funk-Horizont) stehen – bei mehreren der höchste. Der IC-705 kann so einfach laufen.
-</p>
-<div class="ic705-live-body" id="ic705-live-body" hidden>
-<div class="ic705-live-now" id="ic705-live-now"></div>
-<div class="ic705-live-list" id="ic705-live-list"></div>
-<p class="rig-control-note" id="ic705-live-meta"></p>
-</div>
-<p class="rig-control-error" id="ic705-live-error" hidden></p>
-</section>
+<!-- ============ AMSAT-Bericht (nur vorausfuellen) ============ -->
+<dialog id="amsat-report-dialog" class="icom-dialog">
+  <form id="amsat-report-form" method="get" action="https://status.amsat.org/submit.php" target="_blank">
+    <div class="icom-menu-bar"><span>BERICHT FÜR STATUS.AMSAT.ORG</span></div>
+    <div class="icom-menu-body">
+      <p class="icom-dialog-sat" id="amsat-f-sat"></p>
+      <input type="hidden" name="SatSubmit" value="yes">
+      <input type="hidden" name="SatYear" id="amsat-f-year">
+      <input type="hidden" name="SatMonth" id="amsat-f-month">
+      <input type="hidden" name="SatDay" id="amsat-f-day">
+      <div class="icom-field">
+        <span class="icom-field-label">Satellit</span>
+        <select name="SatName" id="amsat-f-name" class="icom-input"></select>
+      </div>
+      <p class="icom-hint rig-mode-note" id="amsat-f-hint" hidden>Bitte Satellit und Betriebsart wählen – so, wie AMSAT sie führt.</p>
+      <div class="icom-field icom-field-radios">
+        <span class="icom-field-label">Status</span>
+        <label><input type="radio" name="SatReport" value="Heard" checked> aktiv gehört</label>
+        <label><input type="radio" name="SatReport" value="Telemetry Only"> nur Bake/TLM</label>
+        <label><input type="radio" name="SatReport" value="Not Heard"> nicht gehört</label>
+      </div>
+      <div class="icom-field">
+        <span class="icom-field-label">Datum UTC</span>
+        <input type="date" id="amsat-f-date" class="icom-input" required>
+        <span class="icom-field-label icom-field-label-short">Zeit</span>
+        <input type="text" name="SatTime" id="amsat-f-time" class="icom-input icom-input-time" pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]" placeholder="HH:MM" required>
+      </div>
+      <div class="icom-field">
+        <span class="icom-field-label">Rufzeichen</span>
+        <input type="text" name="SatCall" id="amsat-f-call" class="icom-input" required>
+        <span class="icom-field-label icom-field-label-short">Locator</span>
+        <input type="text" name="SatGridSquare" id="amsat-f-grid" class="icom-input">
+      </div>
+      <p class="icom-hint">
+        Öffnet die Kontrollseite von AMSAT in einem neuen Tab. Gemeldet wird erst, wenn du dort auf <b>„Yes“</b> klickst –
+        OrbitHub sendet nichts selbst.
+      </p>
+      <div class="icom-dialog-actions">
+        <button type="button" class="icom-btn" id="amsat-f-cancel">Abbrechen</button>
+        <button type="submit" class="icom-btn icom-btn-go">Bei AMSAT eintragen ↗</button>
+      </div>
+    </div>
+  </form>
+</dialog>
 
 <style>
-#ic705-live-panel { margin-bottom: 1.2rem; }
-#ic705-live-panel.is-live { border-color: rgba(255,79,216,0.55); box-shadow: 0 0 0 1px rgba(255,79,216,0.25), 0 0 24px rgba(255,79,216,0.12); }
-.ic705-live-head { display: flex; flex-wrap: wrap; gap: 0.8em 1.2em; align-items: flex-start; justify-content: space-between; }
-.ic705-live-actions { display: flex; gap: 0.6em; align-items: center; flex-wrap: wrap; }
-.ic705-live-actions .rig-select { padding: 0.45em 0.6em; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); background: transparent; color: inherit; font: inherit; }
-.ic705-live-actions .rig-select option { color: #000; }
-#ic705-live-panel .rig-control-btn { padding: 0.5em 1.1em; border-radius: 6px; border: 1px solid currentColor; background: transparent; cursor: pointer; font: inherit; font-weight: 600; }
-#ic705-live-panel .rig-control-btn:disabled { opacity: 0.4; cursor: default; }
-.ic705-live-start { color: #ff4fd8; }
-.ic705-bell-toggle { display: flex; gap: 0.35em; align-items: center; font-size: 0.9em; cursor: pointer; }
-.ic705-bell-test { padding: 0.35em 0.7em; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); background: transparent; color: inherit; font: inherit; font-size: 0.85em; cursor: pointer; }
-.ic705-live-stop { color: #c0392b; }
-.ic705-live-now { display: flex; flex-wrap: wrap; gap: 0.4em 1.4em; align-items: baseline; padding: 0.8em 1em; border-radius: 10px; background: rgba(255,79,216,0.07); border: 1px solid rgba(255,79,216,0.3); margin: 0.6em 0; }
-.ic705-live-now.is-idle { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.15); }
-.ic705-live-sat { font-size: 1.35em; font-weight: 800; }
-.ic705-live-dot { display: inline-block; width: 0.65em; height: 0.65em; border-radius: 50%; background: #ff4fd8; margin-right: 0.4em; animation: ic705-live-pulse 1.4s infinite; }
-@keyframes ic705-live-pulse { 50% { opacity: 0.3; } }
-.ic705-live-mode { font-family: monospace; padding: 0.1em 0.5em; border-radius: 4px; border: 1px solid rgba(86,221,255,0.4); color: #56ddff; }
-.ic705-live-figs { font-variant-numeric: tabular-nums; opacity: 0.9; }
+/* ===== IC-705-Seite im Stil des Funkgeraets ===== */
+.icom {
+  --icom-case-hi: #3a3d42;
+  --icom-case: #26282c;
+  --icom-case-lo: #17181b;
+  --icom-screen: #05070a;
+  --icom-line: #2c3138;
+  --icom-text: #eef2f6;
+  --icom-dim: #8a96a3;
+  --icom-cyan: #38c8ff;
+  --icom-amber: #ffad1f;
+  --icom-red: #ff4d3d;
+  --icom-green: #3ce07a;
+  --icom-mono: "SF Mono", "SFMono-Regular", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+}
+.icom [hidden], .icom-dialog [hidden] { display: none !important; }
+
+/* --- Gehaeuse --- */
+.icom-radio {
+  background: linear-gradient(180deg, var(--icom-case-hi) 0%, var(--icom-case) 18%, var(--icom-case-lo) 100%);
+  border-radius: 22px;
+  padding: 14px 18px 18px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.12) inset, 0 -2px 0 rgba(0,0,0,0.5) inset, 0 18px 40px rgba(0,0,0,0.45);
+  border: 1px solid #0d0e10;
+  margin-bottom: 1.2rem;
+}
+.icom-radio-top { display: flex; align-items: baseline; gap: 0.9em; padding: 2px 6px 12px; flex-wrap: wrap; }
+.icom-logo { font-weight: 900; font-size: 1.35rem; letter-spacing: 0.08em; color: #f4f6f8; font-style: italic; }
+.icom-model { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.06em; color: #d9dde2; }
+.icom-tag { font-size: 0.66rem; letter-spacing: 0.14em; color: var(--icom-dim); }
+.icom-pwr { margin-left: auto; display: flex; align-items: center; gap: 0.45em; font-size: 0.66rem; letter-spacing: 0.14em; color: var(--icom-dim); }
+.icom .ic705-dot { width: 9px; height: 9px; border-radius: 50%; background: #444; display: inline-block; }
+.icom .ic705-dot.is-ok { background: var(--icom-green); box-shadow: 0 0 6px var(--icom-green); }
+.icom .ic705-dot.is-bad { background: var(--icom-red); box-shadow: 0 0 6px var(--icom-red); }
+
+.icom-radio-face { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 16px; align-items: stretch; }
+@media (max-width: 980px) { .icom-radio-face { grid-template-columns: 1fr; } }
+
+/* --- Display (Touchscreen) --- */
+.icom-screen {
+  background: radial-gradient(ellipse at 50% -20%, #121a24 0%, var(--icom-screen) 60%);
+  border-radius: 8px;
+  border: 3px solid #0a0b0d;
+  box-shadow: 0 0 0 1px #45494f, inset 0 0 30px rgba(0,0,0,0.8);
+  padding: 8px 12px 10px;
+  color: var(--icom-text);
+  min-width: 0;
+}
+.icom-statusbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-bottom: 6px; border-bottom: 1px solid var(--icom-line); }
+.icom-statusbar-spacer { flex: 1; }
+.icom-chip {
+  font-family: var(--icom-mono); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+  padding: 1px 7px; border-radius: 3px; border: 1px solid #5d646d; background: #161a1f; color: #e6eaee;
+}
+.icom-chip-mode { background: #e9edf1; color: #05070a; border-color: #e9edf1; min-width: 3.2em; text-align: center; }
+.icom-chip.is-live { background: rgba(56,200,255,0.18); border-color: var(--icom-cyan); color: var(--icom-cyan); }
+.icom-chip.is-track { background: rgba(255,173,31,0.16); border-color: var(--icom-amber); color: var(--icom-amber); }
+.icom-clock { font-family: var(--icom-mono); font-size: 0.78rem; color: var(--icom-dim); font-variant-numeric: tabular-nums; }
+
+.icom-main-freq { display: flex; align-items: baseline; justify-content: flex-end; gap: 0.35em; padding: 10px 4px 0; }
+.icom .ic705-radio-freq {
+  font-family: var(--icom-mono); font-weight: 700; font-variant-numeric: tabular-nums;
+  font-size: clamp(2.2rem, 5.6vw, 3.6rem); letter-spacing: 0.02em; line-height: 1;
+  color: #ffffff; text-shadow: 0 0 10px rgba(200,230,255,0.25);
+}
+.icom .ic705-radio-unit { font-size: 0.9rem; color: var(--icom-dim); }
+.icom .ic705-radio-lcd.is-offline .ic705-radio-freq { color: #3b434c; text-shadow: none; }
+.icom .ic705-radio-meta { text-align: right; font-size: 0.72rem; color: var(--icom-dim); padding: 2px 4px 8px; }
+
+/* Sub-Anzeige: Doppler */
+.icom .rig-freq-display { border-top: 1px solid var(--icom-line); border-bottom: 1px solid var(--icom-line); padding: 7px 2px 8px; }
+.icom-sub-head { display: flex; align-items: center; gap: 0.5em; font-size: 0.8rem; color: var(--icom-dim); min-height: 1.3em; }
+.icom .rig-freq-display.is-live .icom-sub-head { color: var(--icom-text); }
+.icom .rig-freq-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #333a42; flex-shrink: 0; }
+.icom .rig-freq-display.is-live .rig-freq-live-dot { background: var(--icom-amber); box-shadow: 0 0 6px var(--icom-amber); animation: icom-blink 1.4s ease-in-out infinite; }
+@keyframes icom-blink { 50% { opacity: 0.3; } }
+.icom-sub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 4px 14px; margin-top: 5px; }
+.icom-sub-cell { display: flex; flex-direction: column; min-width: 0; }
+.icom-sub-label { font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--icom-cyan); opacity: 0.85; }
+.icom-sub-value { font-family: var(--icom-mono); font-variant-numeric: tabular-nums; font-size: 1.35rem; font-weight: 700; color: #59636e; white-space: nowrap; }
+.icom .rig-freq-display.is-live .icom-sub-rx .icom-sub-value { color: #ffffff; }
+.icom .rig-freq-display.is-live .icom-sub-tx .icom-sub-value { color: var(--icom-red); }
+.icom .rig-freq-display.is-live .rig-countdown-digits, .icom .rig-countdown-digits { color: var(--icom-amber); }
+.icom .rig-freq-digits.rig-freq-flash { animation: icom-flash 0.3s ease-out; }
+@keyframes icom-flash { 0% { filter: brightness(1.8); } 100% { filter: brightness(1); } }
+
+/* Scope / Wasserfall */
+.icom-scope { margin-top: 8px; }
+.icom-scope-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.68rem; letter-spacing: 0.1em; color: var(--icom-dim); padding-bottom: 4px; }
+.icom-scope-title { color: var(--icom-cyan); font-weight: 700; }
+.icom-scope-ctl { display: flex; align-items: center; gap: 6px; }
+.icom-scope-ctl select { background: #11161c; color: var(--icom-text); border: 1px solid #3d444c; border-radius: 3px; font: inherit; font-size: 0.72rem; letter-spacing: 0; padding: 1px 4px; }
+.icom-scope-ctl input[type="range"] { width: 110px; accent-color: var(--icom-cyan); }
+.icom-scope-help { margin-left: auto; width: 1.5em; height: 1.5em; border-radius: 50%; border: 1px solid #4a525b; display: inline-flex; align-items: center; justify-content: center; cursor: help; }
+.icom .ic705-wf-scale { position: relative; height: 1.3em; border: 1px solid #263240; border-bottom: none; background: #0a1018; font-size: 0.66rem; font-variant-numeric: tabular-nums; overflow: hidden; color: var(--icom-dim); }
+.icom .ic705-wf-scale span { position: absolute; top: 0.15em; transform: translateX(-50%); white-space: nowrap; }
+.icom .ic705-wf-canvas { display: block; width: 100%; height: 150px; background: #020611; border: 1px solid #263240; border-top: none; image-rendering: pixelated; }
+.icom-screen-msg { margin: 6px 0 0; font-size: 0.8rem; }
+.icom .rig-control-error { color: #ff8a7a; }
+
+/* --- Tasten --- */
+.icom-keys { display: flex; flex-direction: column; gap: 10px; }
+.icom-keygroup-label { font-size: 0.62rem; letter-spacing: 0.16em; color: var(--icom-dim); margin: 0 0 4px 2px; }
+.icom-keygrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.icom-keygrid-2 { grid-template-columns: repeat(2, 1fr); }
+.icom-keygrid-1 { grid-template-columns: 1fr; }
+.icom-key {
+  position: relative; padding: 9px 4px 7px; border-radius: 6px; cursor: pointer;
+  font: inherit; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.05em; color: #e9ecef;
+  background: linear-gradient(180deg, #4a4e54 0%, #33363b 55%, #2a2c30 100%);
+  border: 1px solid #0f1012;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 2px 0 #0c0d0f, 0 3px 6px rgba(0,0,0,0.35);
+}
+.icom-key::before { content: ""; position: absolute; left: 30%; right: 30%; top: 3px; height: 2px; border-radius: 2px; background: #1c1e21; }
+.icom-key:hover:not(:disabled) { background: linear-gradient(180deg, #555a61 0%, #3a3d43 55%, #2e3034 100%); }
+.icom-key:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 rgba(255,255,255,0.1) inset, 0 1px 0 #0c0d0f; }
+.icom-key:disabled { opacity: 0.45; cursor: default; }
+.icom-key.is-active { color: #fff; }
+.icom-key.is-active::before { background: var(--icom-amber); box-shadow: 0 0 6px var(--icom-amber); }
+.icom-key-go { color: #b6f5c9; }
+.icom-key-go:disabled::before { background: var(--icom-green); box-shadow: 0 0 6px var(--icom-green); }
+.icom-key-stop { color: #ffb4ab; }
+.icom #ic705-wf-toggle.is-on::before { background: var(--icom-cyan); box-shadow: 0 0 6px var(--icom-cyan); }
+.icom-key-amsat { color: #ffd38a; }
+
+/* --- Menue-Karten (wie die Menues im IC-705-Display) --- */
+.icom-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.2rem; margin-bottom: 1.2rem; align-items: start; }
+.icom-overview { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
+@media (max-width: 1250px) { .icom-overview { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 820px) { .icom-overview { grid-template-columns: 1fr; } }
+.icom-menu, .icom-dialog { background: #07090c; border: 1px solid #2f353c; border-radius: 10px; overflow: hidden; color: var(--icom-text); box-shadow: 0 8px 22px rgba(0,0,0,0.3); }
+.icom-menu-bar {
+  display: flex; justify-content: space-between; align-items: center; gap: 1em;
+  padding: 6px 12px; background: linear-gradient(180deg, #2a3442, #1b222c); border-bottom: 1px solid #36404d;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; color: #dfe7ef;
+}
+.icom-menu-bar a { color: var(--icom-cyan); text-decoration: none; letter-spacing: 0.04em; font-weight: 600; }
+.icom-menu-note { font-weight: 500; letter-spacing: 0.02em; color: var(--icom-dim); }
+.icom-menu-body { padding: 12px 14px 14px; }
+.icom-menu-body h3 { margin: 0 0 10px; font-size: 1.15rem; }
+.icom-field { display: flex; align-items: center; gap: 8px; margin: 6px 0; flex-wrap: wrap; }
+.icom-field-label { min-width: 6.6em; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--icom-dim); }
+.icom-field-label-short { min-width: 0; }
+.icom-input { flex: 1; min-width: 8em; padding: 6px 8px; border-radius: 4px; border: 1px solid #3a424b; background: #0f141a; color: var(--icom-text); font: inherit; font-size: 0.92rem; }
+.icom-input:focus { outline: none; border-color: var(--icom-cyan); box-shadow: 0 0 0 1px var(--icom-cyan); }
+.icom-input:disabled { opacity: 0.5; }
+.icom-input-time { flex: 0 0 5.5em; min-width: 0; font-family: var(--icom-mono); }
+select.icom-input option { color: #000; }
+.icom-btn { padding: 6px 12px; border-radius: 5px; border: 1px solid #4a535d; background: linear-gradient(180deg, #353a40, #24272b); color: #e9ecef; font: inherit; font-size: 0.86rem; font-weight: 600; cursor: pointer; }
+.icom-btn:hover:not(:disabled) { border-color: var(--icom-cyan); }
+.icom-btn:disabled { opacity: 0.45; cursor: default; }
+.icom-btn-small { padding: 4px 8px; font-size: 0.78rem; }
+.icom-btn-live { color: var(--icom-cyan); }
+.icom-btn-stop { color: #ff8a7a; }
+.icom-btn-go { color: #0b0d10; background: linear-gradient(180deg, #ffd27a, #ffad1f); border-color: #ffad1f; }
+.icom-hint { font-size: 0.8rem; color: var(--icom-dim); margin: 8px 0 0; }
+.icom .rig-mode-note { color: var(--icom-amber); }
+.icom .ic705-audio-health.is-ok { color: var(--icom-green); }
+.icom .ic705-audio-health.is-bad { color: var(--icom-amber); }
+.icom .rig-manual-freq { display: flex; flex-direction: column; }
+
+/* AMSAT-Schnellwahl im Transponder-Menue */
+.icom .rig-amsat-modes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0 0; }
+.icom .rig-amsat-label { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--icom-dim); min-width: 6.6em; }
+.icom .rig-amsat-btn { padding: 4px 9px; border-radius: 4px; border: 1px solid #3a4f63; background: #0e1720; color: inherit; font: inherit; font-size: 0.82rem; cursor: pointer; font-variant-numeric: tabular-nums; }
+.icom .rig-amsat-btn b { color: var(--icom-cyan); }
+.icom .rig-amsat-btn.is-active { border-color: var(--icom-amber); box-shadow: 0 0 0 1px rgba(255,173,31,0.4); }
+.icom .rig-amsat-btn.is-active b { color: var(--icom-amber); }
+.icom .rig-amsat-btn.is-silent { opacity: 0.55; }
+
+/* Live-Beobachtung */
+#ic705-live-panel.is-live { border-color: var(--icom-cyan); box-shadow: 0 0 0 1px rgba(56,200,255,0.3), 0 0 22px rgba(56,200,255,0.12); }
+#ic705-live-panel.is-live .icom-menu-bar { background: linear-gradient(180deg, #0f4a63, #0b3346); }
+.ic705-live-head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+.ic705-live-head h3 { margin: 0; }
+.ic705-live-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ic705-live-actions .icom-input { flex: 0 0 auto; min-width: 0; }
+.ic705-bell-toggle { display: flex; gap: 0.3em; align-items: center; cursor: pointer; }
+.ic705-live-now { display: flex; flex-wrap: wrap; gap: 0.4em 1.2em; align-items: baseline; padding: 0.7em 0.9em; border-radius: 6px; background: rgba(56,200,255,0.07); border: 1px solid rgba(56,200,255,0.35); margin: 0.6em 0; }
+.ic705-live-now.is-idle { background: rgba(255,255,255,0.03); border-color: #2f353c; }
+.ic705-live-sat { font-size: 1.25em; font-weight: 800; }
+.ic705-live-dot { display: inline-block; width: 0.6em; height: 0.6em; border-radius: 50%; background: var(--icom-cyan); margin-right: 0.4em; animation: icom-blink 1.4s infinite; }
+.ic705-live-mode { font-family: var(--icom-mono); font-size: 0.85em; padding: 0 0.45em; border-radius: 3px; background: #e9edf1; color: #05070a; }
+.ic705-live-figs { font-variant-numeric: tabular-nums; }
 .ic705-tick { font-variant-numeric: tabular-nums; white-space: nowrap; }
-.ic705-variants { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 0.5em; align-items: center; margin-top: 0.5em; }
-.ic705-variants-label { font-size: 0.85em; opacity: 0.7; }
-.ic705-variant-btn { padding: 0.45em 0.9em; border-radius: 8px; border: 1px solid rgba(86,221,255,0.45); background: rgba(86,221,255,0.06); color: inherit; font: inherit; font-size: 0.92em; cursor: pointer; font-variant-numeric: tabular-nums; }
-.ic705-variant-btn b { color: #56ddff; }
-.ic705-variant-btn:hover:not(:disabled) { background: rgba(86,221,255,0.16); }
-.ic705-variant-btn.is-active { border-color: #ff4fd8; background: rgba(255,79,216,0.16); box-shadow: 0 0 0 1px rgba(255,79,216,0.35); }
-.ic705-variant-btn.is-active b { color: #ff4fd8; }
-.ic705-variant-btn:disabled { cursor: progress; }
-.ic705-live-list { display: flex; flex-wrap: wrap; gap: 0.4em; margin: 0.3em 0 0.5em; }
-.ic705-live-chip { padding: 0.2em 0.7em; border-radius: 999px; border: 1px solid rgba(255,255,255,0.25); font-size: 0.85em; font-variant-numeric: tabular-nums; }
-.ic705-live-chip.is-current { border-color: #ff4fd8; color: #ff4fd8; }
+.ic705-variants { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 0.4em; }
+.ic705-variants-label { font-size: 0.8em; color: var(--icom-dim); }
+.ic705-variant-btn { padding: 4px 9px; border-radius: 4px; border: 1px solid #3a4f63; background: #0e1720; color: inherit; font: inherit; font-size: 0.85em; cursor: pointer; font-variant-numeric: tabular-nums; }
+.ic705-variant-btn b { color: var(--icom-cyan); }
+.ic705-variant-btn.is-active { border-color: var(--icom-amber); }
+.ic705-variant-btn.is-active b { color: var(--icom-amber); }
+.ic705-live-list { display: flex; flex-wrap: wrap; gap: 0.4em; margin: 0.3em 0 0.4em; }
+.ic705-live-chip { padding: 0.15em 0.6em; border-radius: 3px; border: 1px solid #3a424b; font-size: 0.82em; font-variant-numeric: tabular-nums; }
+.ic705-live-chip.is-current { border-color: var(--icom-cyan); color: var(--icom-cyan); }
+
+/* Ueberblick-Listen */
+.icom-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.72rem; color: var(--icom-dim); margin-bottom: 8px; align-items: center; }
+.icom-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.icom-legend-note { margin-left: auto; }
+.icom-list { display: flex; flex-direction: column; max-height: 420px; overflow-y: auto; }
+.icom-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 4px; border-bottom: 1px solid #1b2027; }
+.icom-row:last-child { border-bottom: none; }
+.icom-row.is-now { background: rgba(255,173,31,0.07); box-shadow: inset 3px 0 0 var(--icom-amber); }
+.icom-row.is-dim { opacity: 0.55; }
+.icom-row-main { min-width: 0; }
+.icom-row-main small { display: block; color: var(--icom-dim); font-size: 0.76rem; margin-top: 1px; }
+.icom-row-time { display: flex; flex-direction: column; align-items: flex-start; min-width: 4.6em; font-family: var(--icom-mono); font-variant-numeric: tabular-nums; }
+.icom-row-time small { font-size: 0.72rem; color: var(--icom-dim); }
+.icom-now { color: var(--icom-amber); font-family: inherit; }
+.icom-row-freq { font-family: var(--icom-mono); font-size: 0.8rem; color: var(--icom-dim); }
+.icom-tagmode { display: inline-block; font-family: var(--icom-mono); font-size: 0.72rem; padding: 0 5px; border-radius: 3px; border: 1px solid #45505c; color: #dbe3ea; margin: 1px 0; }
+.icom-tagmode.is-silent { border-style: dashed; opacity: 0.6; }
+.icom-tagmode.is-nofreq { opacity: 0.6; }
+.icom-modes { display: block; margin-top: 2px; }
+.icom-el { font-size: 0.76rem; margin-left: 4px; }
+.icom-el.q-weak { color: #e0a63a; } .icom-el.q-ok { color: #8fd36b; } .icom-el.q-good { color: var(--icom-green); }
+.icom-row-actions { display: flex; gap: 4px; }
+.icom-mini { width: 2.1em; height: 2.1em; border-radius: 5px; border: 1px solid #3a424b; background: linear-gradient(180deg, #2c3036, #1d2024); color: inherit; cursor: pointer; font-size: 0.9rem; }
+.icom-mini:hover { border-color: var(--icom-cyan); }
+.icom-mini-report { color: #ffd38a; }
+.icom-slots { display: flex; gap: 2px; }
+.icom-slot { display: inline-block; width: 12px; height: 16px; border-radius: 2px; background: #161b21; border: 1px solid #252c34; }
+.icom-legend .icom-slot { width: 10px; height: 10px; }
+.icom-slot.s-heard { background: #648fff; border-color: #648fff; }
+.icom-slot.s-tlm { background: #ffb000; border-color: #ffb000; }
+.icom-slot.s-not_heard { background: #dc267f; border-color: #dc267f; }
+.icom-slot.s-conflict { background: #fe6100; border-color: #fe6100; }
+.icom-empty { color: var(--icom-dim); font-size: 0.86rem; margin: 6px 0; }
+
+/* Polarplot */
+.icom .ic705-polar-card { padding: 4px; }
+.icom .ic705-polar-card svg { width: 100%; max-width: 330px; display: block; margin: 0 auto; }
+.icom .ic705-max-dot { fill: #f2c14e; }
+.icom .ic705-now-dot { fill: var(--icom-amber); stroke: #fff; stroke-width: 1.2; filter: drop-shadow(0 0 4px var(--icom-amber)); }
+.icom .ic705-now-label { fill: var(--icom-amber); font-size: 8px; font-weight: 700; text-anchor: middle; paint-order: stroke; stroke: #020611; stroke-width: 2px; }
+.icom .ic705-live-sky { margin: 0 0 8px; padding: 6px 9px; border-radius: 5px; border: 1px solid rgba(255,173,31,0.45); background: rgba(255,173,31,0.07); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.icom .ic705-live-sky b { color: var(--icom-amber); }
+.icom .ic705-audibility { margin: 0 0 8px; padding: 6px 9px; border-radius: 5px; font-weight: 600; border: 1px solid; font-size: 0.9rem; }
+.icom .ic705-audibility.q-weak { color: #e0a63a; border-color: rgba(224,166,58,0.5); background: rgba(224,166,58,0.08); }
+.icom .ic705-audibility.q-ok { color: #8fd36b; border-color: rgba(143,211,107,0.5); background: rgba(143,211,107,0.08); }
+.icom .ic705-audibility.q-good { color: var(--icom-green); border-color: rgba(60,224,122,0.55); background: rgba(60,224,122,0.08); }
+.icom .ic705-audibility small { display: block; font-weight: 400; opacity: 0.85; margin-top: 2px; }
+.icom .ic705-pass-facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 8px 0 0; font-size: 0.84rem; }
+.icom .ic705-pass-facts dt { color: var(--icom-dim); }
+.icom .ic705-pass-facts dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+/* Melde-Dialog */
+.icom-dialog { --icom-text: #eef2f6; --icom-dim: #8a96a3; --icom-cyan: #38c8ff; --icom-amber: #ffad1f; --icom-mono: "SF Mono", Menlo, Consolas, monospace; padding: 0; width: min(560px, 94vw); }
+.icom-dialog::backdrop { background: rgba(0,0,0,0.6); }
+.icom-dialog .icom-field-label { color: var(--icom-dim); }
+.icom-dialog-sat { margin: 0 0 6px; font-weight: 700; color: var(--icom-amber); }
+.icom-field-radios label { display: inline-flex; gap: 4px; align-items: center; margin-right: 10px; font-size: 0.9rem; }
+.icom-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.icom-dialog .rig-mode-note { color: var(--icom-amber); }
 </style>
 
 <script>
@@ -251,6 +716,7 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
   });
 
   function render(d) {
+    document.dispatchEvent(new CustomEvent("ic705-live-status", { detail: d }));
     var s = d.status || {};
     var active = !!s.active;
     panel.classList.toggle("is-live", active);
@@ -333,7 +799,7 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
       .then(function () { return new Promise(function (res) { setTimeout(res, 2500); }); })
       .then(load)
       .catch(function (err) { showError("Start fehlgeschlagen: " + err.message); })
-      .then(function () { startBtn.disabled = false; startBtn.textContent = "🎧 Live-Beobachtung starten"; });
+      .then(function () { startBtn.disabled = false; startBtn.textContent = "🎧 Starten"; });
   }
 
   startBtn.addEventListener("click", function () { start(hoursSel.value); });
@@ -362,249 +828,16 @@ Alle Satelliten, die auf AMSAT Live als gehört gemeldet sind, werden automatisc
 })();
 </script>
 
-{% if selected_satellite %}
-<section class="add-source-panel" id="rig-control-panel" data-norad-id="{{ selected_satellite.norad_id }}" data-sat-name="{{ selected_satellite.name | display_name }}"
-{% if next_pass %} data-rise-utc="{{ next_pass.rise_time.isoformat() }}" data-set-utc="{{ next_pass.set_time.isoformat() }}"{% endif %}>
-<div class="label">DOPPLER-TRACKING</div>
-<h3>{{ selected_satellite.name | display_name }}</h3>
-<p id="rig-reachable-note" class="rig-control-note"></p>
-<div class="rig-transponder-select" id="rig-transponder-select">
-  <div class="rig-select-row">
-    <span class="rig-control-note">Transponder/Bake</span>
-    <select id="rig-transponder-choice" class="rig-select"></select>
-  </div>
-  <div class="rig-manual-freq" id="rig-manual-freq" hidden>
-    <div class="rig-select-row">
-      <span class="rig-control-note">RX (Downlink)</span>
-      <input type="text" inputmode="decimal" id="rig-manual-rx" class="rig-select" placeholder="z. B. 145.800" autocomplete="off">
-      <span class="rig-control-note rig-unit">MHz</span>
-    </div>
-    <div class="rig-select-row">
-      <span class="rig-control-note">TX (Uplink)</span>
-      <input type="text" inputmode="decimal" id="rig-manual-tx" class="rig-select" placeholder="optional, z. B. 437.800" autocomplete="off">
-      <span class="rig-control-note rig-unit">MHz</span>
-    </div>
-    <p class="rig-control-note rig-manual-hint">Nominalfrequenz des Satelliten eingeben – die Doppler-Korrektur rechnet OrbitHub selbst.</p>
-  </div>
-  <div class="rig-select-row">
-    <span class="rig-control-note">Modus</span>
-    <input list="rig-mode-options" id="rig-mode-choice" class="rig-select" autocomplete="off">
-    <datalist id="rig-mode-options">
-      <option value="FM"></option>
-      <option value="USB"></option>
-      <option value="LSB"></option>
-      <option value="CW"></option>
-      <option value="CW-R"></option>
-      <option value="AM"></option>
-      <option value="RTTY"></option>
-      <option value="WFM"></option>
-      <option value="DV"></option>
-      <option value="PKTFM"></option>
-      <option value="PKTUSB"></option>
-    </datalist>
-  </div>
-</div>
-<p id="rig-transponder-note" class="rig-control-note" hidden></p>
-<p id="rig-mode-note" class="rig-control-note rig-mode-note" hidden></p>
-<div class="rig-amsat-modes" id="rig-amsat-modes" hidden></div>
-<div class="rig-mode-quick" id="rig-mode-quick">
-<span class="rig-amsat-label">Betriebsart:</span>
-<button type="button" class="rig-mode-btn" data-mode="FM">FM</button>
-<button type="button" class="rig-mode-btn" data-mode="USB">USB</button>
-<button type="button" class="rig-mode-btn" data-mode="LSB">LSB</button>
-<button type="button" class="rig-mode-btn" data-mode="CW">CW</button>
-<button type="button" class="rig-mode-btn" data-mode="AM">AM</button>
-<button type="button" class="rig-mode-btn" data-mode="PKTUSB">DATA-USB</button>
-<span class="rig-control-note rig-mode-quick-hint">läuft sofort weiter – auch während der Live-Beobachtung</span>
-</div>
-
-<div class="rig-control-actions">
-<button type="button" id="rig-tracking-start" class="rig-control-btn rig-control-btn-start">Tracking starten</button>
-<button type="button" id="rig-tracking-stop" class="rig-control-btn rig-control-btn-stop" disabled>Stoppen</button>
-</div>
-
-<div class="rig-audio-actions" id="rig-audio-actions">
-<span class="rig-audio-label">🔊 Ton hören über</span>
-<button type="button" id="rig-audio-radio" class="rig-audio-btn is-active" aria-pressed="true">IC-705-Lautsprecher</button>
-<button type="button" id="rig-audio-mac" class="rig-audio-btn" aria-pressed="false">Mac (Browser)</button>
-</div>
-<audio id="rig-audio-player" preload="none" hidden></audio>
-
-<div class="rig-freq-display" id="rig-freq-display">
-<div class="rig-freq-row rig-freq-row-countdown" id="rig-freq-row-countdown">
-<span class="rig-freq-tag small" id="rig-countdown-label">Nächster Überflug in</span>
-<span class="rig-freq-digits rig-countdown-digits" id="rig-countdown-value">—:—:—</span>
-</div>
-<div class="rig-freq-row" id="rig-freq-row-rx">
-<span class="rig-freq-tag">RX<small>Downlink</small></span>
-<span class="rig-freq-digits" id="rig-freq-rx-digits">---.---.---</span>
-<span class="rig-freq-mhz">MHz</span>
-</div>
-<div class="rig-freq-row rig-freq-row-tx" id="rig-freq-row-tx" hidden>
-<span class="rig-freq-tag">TX<small>Uplink</small></span>
-<span class="rig-freq-digits" id="rig-freq-tx-digits">---.---.---</span>
-<span class="rig-freq-mhz">MHz</span>
-</div>
-<div class="rig-freq-meta">
-<span class="rig-freq-live-dot" id="rig-freq-live-dot"></span>
-<span id="rig-freq-meta-text">Tracking inaktiv</span>
-</div>
-</div>
-
-<p id="rig-tracking-error" class="rig-control-error" hidden></p>
-<span id="rig-refresh-pause" data-pause-auto-refresh hidden></span>
-</section>
-
-<style>
-#rig-control-panel .rig-control-note { opacity: 0.75; font-size: 0.9em; }
-#rig-control-panel .rig-control-actions { display: flex; gap: 0.6em; margin: 0.6em 0; }
-#rig-control-panel .rig-control-btn { padding: 0.5em 1.1em; border-radius: 6px; border: 1px solid currentColor; background: transparent; cursor: pointer; font: inherit; }
-#rig-control-panel .rig-control-btn:disabled { opacity: 0.4; cursor: default; }
-#rig-control-panel .rig-control-btn-start { color: #3fae54; }
-#rig-control-panel .rig-control-btn-stop { color: #c0392b; }
-#rig-control-panel .rig-transponder-select { display: flex; flex-direction: column; gap: 0.4em; margin: 0.6em 0; }
-#rig-control-panel .rig-select-row { display: flex; align-items: center; gap: 0.6em; }
-#rig-control-panel .rig-select-row .rig-control-note { min-width: 7.5em; }
-#rig-control-panel .rig-mode-quick { display: flex; flex-wrap: wrap; gap: 0.4em; align-items: center; margin: 0.2em 0 0.6em; }
-#rig-control-panel .rig-mode-btn { padding: 0.4em 0.85em; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: transparent; color: inherit; font: inherit; font-size: 0.9em; font-weight: 600; cursor: pointer; }
-#rig-control-panel .rig-mode-btn:hover { background: rgba(255,255,255,0.08); }
-#rig-control-panel .rig-mode-btn.is-active { border-color: #3fae54; color: #3fe08a; background: rgba(63,255,130,0.14); }
-#rig-control-panel .rig-mode-quick-hint { font-size: 0.8em; }
-#rig-control-panel .rig-amsat-modes { display: flex; flex-wrap: wrap; gap: 0.5em; align-items: center; margin: 0.2em 0 0.6em; }
-#rig-control-panel .rig-amsat-label { font-size: 0.85em; opacity: 0.7; min-width: 7.5em; }
-#rig-control-panel .rig-amsat-btn { padding: 0.45em 0.9em; border-radius: 8px; border: 1px solid rgba(86,221,255,0.45); background: rgba(86,221,255,0.06); color: inherit; font: inherit; font-size: 0.92em; cursor: pointer; font-variant-numeric: tabular-nums; }
-#rig-control-panel .rig-amsat-btn b { color: #56ddff; }
-#rig-control-panel .rig-amsat-btn:hover { background: rgba(86,221,255,0.16); }
-#rig-control-panel .rig-amsat-btn.is-active { border-color: #3fae54; background: rgba(63,255,130,0.14); box-shadow: 0 0 0 1px rgba(63,174,84,0.4); }
-#rig-control-panel .rig-amsat-btn.is-active b { color: #3fe08a; }
-#rig-control-panel .rig-amsat-btn.is-silent { opacity: 0.6; }
-#rig-control-panel .rig-select { flex: 1; padding: 0.35em 0.6em; border-radius: 6px; border: 1px solid currentColor; background: transparent; color: inherit; font: inherit; }
-#rig-control-panel .rig-select:disabled { opacity: 0.5; }
-#rig-control-panel .rig-control-error { color: #c0392b; font-size: 0.9em; }
-#rig-control-panel .rig-manual-freq { display: flex; flex-direction: column; gap: 0.4em; }
-#rig-control-panel .rig-select-row .rig-unit { min-width: 0; }
-#rig-control-panel .rig-manual-hint { margin: 0; font-size: 0.8em; }
-#rig-control-panel .rig-mode-note { color: #e0a63a; opacity: 1; }
-#rig-control-panel .rig-audio-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6em; margin: 0.4em 0 0.9em 0; font-size: 1em; }
-#rig-control-panel .rig-audio-label { font-weight: 600; margin-right: 0.2em; }
-#rig-control-panel .rig-audio-btn { padding: 0.5em 1.2em; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.05); color: inherit; cursor: pointer; font: inherit; }
-#rig-control-panel .rig-audio-btn:hover { border-color: #3fae54; }
-#rig-control-panel .rig-audio-btn.is-active { background: rgba(63, 255, 130, 0.16); border-color: #3fae54; color: #3fae54; font-weight: 600; }
-#rig-control-panel [hidden] { display: none !important; }
-
-#rig-control-panel .rig-freq-display {
-  margin: 0.9em 0;
-  border-radius: 12px;
-  background: radial-gradient(ellipse at 30% 0%, #10241a 0%, #050b08 75%);
-  border: 1px solid rgba(63, 255, 130, 0.18);
-  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.65), inset 0 0 2px rgba(63, 255, 130, 0.15);
-  padding: 1.1em 1.3em 0.9em;
-  transition: border-color 0.4s ease, box-shadow 0.4s ease;
-}
-#rig-control-panel .rig-freq-display.is-live {
-  border-color: rgba(63, 255, 130, 0.45);
-  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.65), 0 0 22px rgba(63, 255, 130, 0.12);
-}
-#rig-control-panel .rig-freq-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.7em;
-}
-#rig-control-panel .rig-freq-row + .rig-freq-row { margin-top: 0.15em; }
-#rig-control-panel .rig-freq-tag {
-  min-width: 4.6em;
-  font-size: 0.62em;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #6fe38a;
-  opacity: 0.8;
-}
-#rig-control-panel .rig-freq-tag small {
-  display: block;
-  font-size: 0.8em;
-  letter-spacing: 0.04em;
-  text-transform: none;
-  opacity: 0.65;
-}
-#rig-control-panel .rig-freq-row-countdown {
-  padding-bottom: 0.55em;
-  margin-bottom: 0.15em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-#rig-control-panel .rig-countdown-digits {
-  font-size: clamp(1rem, 2.4vw, 1.35rem);
-  color: rgba(255, 255, 255, 0.55);
-  text-shadow: none;
-}
-#rig-control-panel .rig-freq-display.is-live .rig-countdown-digits {
-  color: #9fe6b0;
-}
-#rig-control-panel .rig-freq-digits {
-  font-family: "DejaVu Sans Mono", Consolas, "SFMono-Regular", Menlo, monospace;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.03em;
-  font-size: clamp(1.7rem, 5.2vw, 2.7rem);
-  color: rgba(120, 255, 170, 0.22);
-  text-shadow: none;
-  transition: color 0.4s ease, text-shadow 0.4s ease;
-}
-#rig-control-panel .rig-freq-row-tx .rig-freq-digits {
-  font-size: clamp(1.25rem, 3.8vw, 1.95rem);
-  color: rgba(255, 190, 100, 0.22);
-}
-#rig-control-panel .rig-freq-display.is-live .rig-freq-row-rx .rig-freq-digits {
-  color: #3dff82;
-  text-shadow: 0 0 6px rgba(61, 255, 130, 0.85), 0 0 18px rgba(61, 255, 130, 0.5), 0 0 38px rgba(61, 255, 130, 0.25);
-}
-#rig-control-panel .rig-freq-display.is-live .rig-freq-row-tx .rig-freq-digits {
-  color: #ffb545;
-  text-shadow: 0 0 6px rgba(255, 181, 69, 0.85), 0 0 18px rgba(255, 181, 69, 0.5), 0 0 38px rgba(255, 181, 69, 0.25);
-}
-#rig-control-panel .rig-freq-digits.rig-freq-flash { animation: rig-freq-flash 0.3s ease-out; }
-@keyframes rig-freq-flash {
-  0% { filter: brightness(1.9); }
-  100% { filter: brightness(1); }
-}
-#rig-control-panel .rig-freq-mhz {
-  font-size: 0.78em;
-  color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 0.05em;
-}
-#rig-control-panel .rig-freq-meta {
-  margin-top: 0.75em;
-  padding-top: 0.6em;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  align-items: center;
-  gap: 0.55em;
-  font-size: 0.85em;
-  color: rgba(255, 255, 255, 0.6);
-}
-#rig-control-panel .rig-freq-live-dot {
-  width: 0.62em;
-  height: 0.62em;
-  border-radius: 50%;
-  background: rgba(120, 255, 170, 0.2);
-  flex-shrink: 0;
-  transition: background 0.4s ease, box-shadow 0.4s ease;
-}
-#rig-control-panel .rig-freq-display.is-live .rig-freq-live-dot {
-  background: #3dff82;
-  box-shadow: 0 0 6px #3dff82, 0 0 12px #3dff82;
-  animation: rig-live-pulse 1.4s ease-in-out infinite;
-}
-@keyframes rig-live-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.35; transform: scale(0.8); }
-}
-</style>
-
 <script>
 (function () {
   var panel = document.getElementById("rig-control-panel");
   if (!panel) { return; }
-  var noradId = panel.dataset.noradId;
+  var noradId = panel.dataset.noradId || "";
+  // Ohne ausdrueckliche Auswahl (?satellite=) folgt die Seite dem verfolgten Satelliten
+  var followTracked = !new URLSearchParams(window.location.search).get("satellite");
+  var lastStatus = null;
+  var presetApplied = false;
+  var satTitle = document.getElementById("rig-sat-title");
   var startBtn = document.getElementById("rig-tracking-start");
   var stopBtn = document.getElementById("rig-tracking-stop");
   var freqDisplay = document.getElementById("rig-freq-display");
@@ -658,8 +891,35 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     errorEl.textContent = message;
   }
 
+  function switchSatellite(id, name) {
+    noradId = String(id);
+    panel.dataset.noradId = noradId;
+    panel.dataset.satName = name || noradId;
+    if (satTitle) { satTitle.textContent = name || noradId; }
+    var sel = document.getElementById("ic705-satellite-choice");
+    if (sel) {
+      var has = Array.prototype.some.call(sel.options, function (o) { return o.value === noradId; });
+      if (!has) {
+        var o = document.createElement("option");
+        o.value = noradId;
+        o.textContent = (name || noradId) + " · " + noradId;
+        sel.appendChild(o);
+      }
+      sel.value = noradId;
+    }
+    amsatModes = [];
+    loadTransponderOptions();
+    loadAmsatModes();
+    document.dispatchEvent(new CustomEvent("ic705-satellite-switched", { detail: { norad_id: noradId, name: name } }));
+  }
+
   function renderStatus(status) {
     var active = !!(status && status.active);
+    lastStatus = status;
+    if (active && status.norad_id && String(status.norad_id) !== String(noradId) &&
+        (followTracked || document.body.dataset.liveActive)) {
+      switchSatellite(status.norad_id, status.satellite_name);
+    }
     trackingActive = active;
     startBtn.disabled = active;
     stopBtn.disabled = !active;
@@ -683,7 +943,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       rxDigits.textContent = "---.---.---";
       txDigits.textContent = "---.---.---";
       txRow.hidden = true;
-      metaText.textContent = "Tracking inaktiv";
+      metaText.textContent = noradId ? "Doppler aus – " + (panel.dataset.satName || "") + " bereit" : "Doppler aus – kein Satellit gewählt";
       showError(status ? status.error : null);
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
       return;
@@ -741,11 +1001,22 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     if (!list.length) { manualOpt.selected = true; }
     transponderChoice.appendChild(manualOpt);
     syncModeFromSelection();
+    // Laeuft schon ein Tracking fuer diesen Satelliten: dessen Transponder zeigen
+    if (trackingActive && lastStatus && String(lastStatus.norad_id) === String(noradId) && lastStatus.transponder_description) {
+      var wantText = ": " + lastStatus.transponder_description + " \u2013";
+      Array.prototype.some.call(transponderChoice.options, function (o) {
+        if (o.textContent.indexOf(wantText) !== -1) { transponderChoice.value = o.value; return true; }
+        return false;
+      });
+      if (modeChoice && lastStatus.rig_mode) { modeChoice.value = lastStatus.rig_mode; }
+    }
   }
 
   // Vorauswahl ueber die Adresse, z. B. vom Knopf auf "AMSAT Live":
   // /ic705?satellite=25544&transponder=<uuid>&mode=FM&autostart=1&from=...
   function applyUrlPreset() {
+    if (presetApplied) { return; }
+    presetApplied = true;
     var params = new URLSearchParams(window.location.search);
     var wanted = params.get("transponder");
     if (wanted && transponderChoice) {
@@ -876,6 +1147,10 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
 
     startBtn.addEventListener("click", function () {
       showError(null);
+      if (!noradId) {
+        showError("Bitte zuerst einen Satelliten wählen – Merkliste, NORAD-ID oder „Kommende 60 Minuten“.");
+        return;
+      }
       startBtn.disabled = true;
       startBtn.textContent = "Wird gestartet \u2026";
       fetchWithTimeout("/api/rig/tracking/start", {
@@ -902,7 +1177,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
           startBtn.disabled = false;
           showError(err.name === "AbortError" ? "Server antwortet nicht (System stark ausgelastet) \u2013 bitte kurz warten und erneut versuchen." : err.message);
         })
-        .then(function () { startBtn.textContent = "Tracking starten"; });
+        .then(function () { startBtn.textContent = "▶ Doppler an"; });
     });
 
     stopBtn.addEventListener("click", function () {
@@ -916,7 +1191,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
           stopBtn.disabled = false;
           showError(err.name === "AbortError" ? "Server antwortet nicht (System stark ausgelastet) \u2013 bitte kurz warten und erneut versuchen." : "Stoppen fehlgeschlagen \u2013 bitte erneut versuchen.");
         })
-        .then(function () { stopBtn.textContent = "Stoppen"; });
+        .then(function () { stopBtn.textContent = "■ Doppler aus"; });
     });
 
   function setAudioMode(mode) {
@@ -1066,52 +1341,6 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
 })();
 </script>
 
-
-<section class="add-source-panel" id="ic705-waterfall-panel">
-<div class="ic705-wf-head">
-<div>
-<div class="label">WASSERFALL · EMPFANGSSIGNAL</div>
-<h3>Signale sehen</h3>
-</div>
-<div class="ic705-wf-actions">
-<label class="ic705-wf-ctl">Bereich
-<select id="ic705-wf-span" class="rig-select">
-<option value="3000">0–3 kHz (SSB/CW)</option>
-<option value="6000">0–6 kHz</option>
-<option value="12000">0–12 kHz (FM)</option>
-</select>
-</label>
-<label class="ic705-wf-ctl">Empfindlichkeit
-<input type="range" id="ic705-wf-gain" min="-130" max="-70" step="2" value="-105">
-</label>
-<button type="button" id="ic705-wf-toggle" class="rig-control-btn ic705-wf-btn">▶ Wasserfall starten</button>
-</div>
-</div>
-<div class="ic705-wf-scale" id="ic705-wf-scale"></div>
-<canvas id="ic705-wf-canvas" class="ic705-wf-canvas" height="260"></canvas>
-<p class="rig-control-note" id="ic705-wf-note">
-Zeigt das Empfangssignal des IC-705 (Audio aus dem Durchlassbereich) als laufendes Spektrum: neue Zeilen oben,
-Frequenz von links nach rechts. Träger und Baken erscheinen als helle Linien – auch wenn sie kaum hörbar sind.
-Bei SSB/CW wandert ein Signal durch den Doppler schräg durchs Bild. Der Ton bleibt dabei, wo er ist (Lautsprecher oder Mac).
-</p>
-<p class="rig-control-error" id="ic705-wf-error" hidden></p>
-</section>
-
-<style>
-#ic705-waterfall-panel { margin-bottom: 1.2rem; }
-.ic705-wf-head { display: flex; flex-wrap: wrap; gap: 0.8em 1.2em; align-items: flex-start; justify-content: space-between; }
-.ic705-wf-actions { display: flex; flex-wrap: wrap; gap: 0.6em 1em; align-items: center; }
-.ic705-wf-ctl { display: flex; gap: 0.5em; align-items: center; font-size: 0.88em; opacity: 0.9; }
-.ic705-wf-ctl .rig-select { padding: 0.4em 0.5em; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); background: transparent; color: inherit; font: inherit; }
-.ic705-wf-ctl .rig-select option { color: #000; }
-.ic705-wf-btn { padding: 0.5em 1.1em; border-radius: 6px; border: 1px solid #56ddff; color: #56ddff; background: transparent; cursor: pointer; font: inherit; font-weight: 600; }
-.ic705-wf-btn.is-on { border-color: #c0392b; color: #ff8a8a; }
-.ic705-wf-canvas { display: block; width: 100%; height: 260px; background: #020611; border-radius: 0 0 8px 8px; border: 1px solid rgba(86,221,255,0.25); border-top: none; image-rendering: pixelated; }
-.ic705-wf-scale { position: relative; height: 1.4em; margin-top: 0.8em; border: 1px solid rgba(86,221,255,0.25); border-bottom: none; border-radius: 8px 8px 0 0; background: rgba(86,221,255,0.05); font-size: 0.75em; font-variant-numeric: tabular-nums; overflow: hidden; }
-.ic705-wf-scale span { position: absolute; top: 0.15em; transform: translateX(-50%); opacity: 0.75; white-space: nowrap; }
-.ic705-wf-scale span::before { content: ""; position: absolute; left: 50%; top: 1.25em; width: 1px; height: 0.4em; background: rgba(86,221,255,0.6); }
-</style>
-
 <script>
 (function () {
   var canvas = document.getElementById("ic705-wf-canvas");
@@ -1210,14 +1439,14 @@ Bei SSB/CW wandert ein Signal durch den Doppler schräg durchs Bild. Der Ton ble
     }
     resize();
     timer = setInterval(drawRow, 60);
-    toggle.textContent = "■ Wasserfall stoppen";
+    toggle.textContent = "■ Scope aus";
     toggle.classList.add("is-on");
   }
   function stop() {
     if (timer) { clearInterval(timer); timer = null; }
     if (audio) { var a = audio; audio = null; a.pause(); a.removeAttribute("src"); a.load(); }
     analyser = null;
-    toggle.textContent = "▶ Wasserfall starten";
+    toggle.textContent = "▶ Scope an";
     toggle.classList.remove("is-on");
   }
 
@@ -1235,140 +1464,12 @@ Bei SSB/CW wandert ein Signal durch den Doppler schräg durchs Bild. Der Ton ble
 })();
 </script>
 
-<section class="ic705-pass-grid">
-<div class="add-source-panel">
-<div class="label">ÜBERFLÜGE · 24 STUNDEN</div>
-<h3>{{ selected_satellite.name | display_name }}</h3>
-{% if passes %}
-<p class="rig-control-note">Überflug anklicken, um ihn im Polarplot anzuzeigen.</p>
-<div class="table-scroll">
-<table class="mission-table">
-<thead>
-<tr>
-<th>{{ t('passes.col_date') }}</th>
-<th>AOS</th>
-<th>LOS</th>
-<th>Max.</th>
-<th>Dauer</th>
-</tr>
-</thead>
-<tbody>
-{% for pass in passes %}
-<tr class="pass-row ic705-pass-row{% if loop.first %} active{% endif %}" data-pass-index="{{ loop.index0 }}" tabindex="0">
-<td>{{ pass.rise_time | fmt_time("%d.%m.") }}</td>
-<td>{{ pass.rise_time | fmt_time("%H:%M") }}</td>
-<td>{{ pass.set_time | fmt_time("%H:%M") }}</td>
-<td><strong class="ic705-el {% if pass.max_elevation_deg < 15 %}q-weak{% elif pass.max_elevation_deg < 35 %}q-ok{% else %}q-good{% endif %}">{{ "%.0f"|format(pass.max_elevation_deg) }}&deg;</strong></td>
-<td>{{ pass.duration_seconds // 60 }}:{{ "%02d"|format(pass.duration_seconds % 60) }}</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
-</div>
-<p class="rig-control-note"><a href="/passes?satellite={{ selected_satellite.norad_id }}">Karte und Bodenspur auf der Seite Überflüge →</a></p>
-{% else %}
-<p class="rig-control-note">In den nächsten 24 Stunden kein Überflug über dem Funk-Horizont.</p>
-{% endif %}
-</div>
-
-<div class="add-source-panel">
-<div class="label">POLARPLOT · HÖRBARKEIT</div>
-<h3 id="ic705-plot-title">{% if passes %}{{ passes[0].rise_time | fmt_time("%d.%m. %H:%M") }} Uhr{% else %}Kein Überflug{% endif %}</h3>
-{% if passes %}
-<div class="ic705-live-sky" id="ic705-live-sky" hidden></div>
-<div class="ic705-audibility" id="ic705-audibility"></div>
-<div class="polarplot-card ic705-polar-card">
-<svg class="polarplot" viewBox="0 0 200 200" role="img" aria-label="Polarplot des ausgewählten Überflugs">
-<circle class="polarplot-horizon" cx="100" cy="100" r="90" />
-<circle class="polarplot-ring" cx="100" cy="100" r="60" />
-<circle class="polarplot-ring" cx="100" cy="100" r="30" />
-<line class="polarplot-axis" x1="100" y1="10" x2="100" y2="190" />
-<line class="polarplot-axis" x1="10" y1="100" x2="190" y2="100" />
-{% for segment in horizon_shadow_segments %}
-<path class="polarplot-shadow" d="{{ segment.d }}" />
-{% endfor %}
-<text class="polarplot-direction" x="100" y="7">N</text>
-<text class="polarplot-direction" x="193" y="104">O</text>
-<text class="polarplot-direction" x="100" y="199">S</text>
-<text class="polarplot-direction" x="7" y="104">W</text>
-<text class="polarplot-elevation" x="104" y="38">30&deg;</text>
-<text class="polarplot-elevation" x="104" y="68">60&deg;</text>
-<polyline id="ic705-track" class="polarplot-track" points="" />
-<circle id="ic705-max" class="ic705-max-dot" cx="100" cy="100" r="3" />
-<circle id="ic705-rise" class="polarplot-rise" cx="100" cy="100" r="4" />
-<circle id="ic705-set" class="polarplot-set" cx="100" cy="100" r="4" />
-<text id="ic705-aos-label" class="polarplot-marker-label" x="100" y="100">AOS</text>
-<text id="ic705-los-label" class="polarplot-marker-label" x="100" y="100">LOS</text>
-<polyline id="ic705-live-track" class="ic705-live-track" points="" visibility="hidden" />
-<circle id="ic705-now" class="ic705-now-dot" cx="100" cy="100" r="5" visibility="hidden" />
-<text id="ic705-now-label" class="ic705-now-label" x="100" y="100" visibility="hidden"></text>
-</svg>
-</div>
-<dl class="ic705-pass-facts" id="ic705-pass-facts"></dl>
-<p class="rig-control-note">Schattierte Bereiche: dein Funk-Horizont (Einstellungen). Ringe: 30° und 60° Höhe, Mitte = senkrecht über dir.</p>
-{% endif %}
-</div>
-</section>
-{% if passes %}
-<script id="ic705-passes-data" type="application/json">{{ passes_json | tojson }}</script>
-{% endif %}
-{% else %}
-<section class="add-source-panel">
-<p>Kein Satellit ausgewählt. Bitte oben einen Satelliten aus der Merkliste wählen oder eine NORAD-ID eingeben.</p>
-</section>
-{% endif %}
-
-<style>
-.ic705-top-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.2rem; margin-bottom: 1.2rem; }
-.ic705-top-grid > .add-source-panel { margin: 0; }
-.ic705-select-row { display: flex; gap: 0.6em; margin: 0.5em 0; align-items: center; }
-.ic705-select-row .rig-select { flex: 1; padding: 0.45em 0.7em; border-radius: 6px; border: 1px solid rgba(255,255,255,0.35); background: transparent; color: inherit; font: inherit; }
-.ic705-select-row select.rig-select option { color: #000; }
-.ic705-go-btn { padding: 0.45em 1.1em; border-radius: 6px; border: 1px solid #3fae54; color: #3fae54; background: transparent; cursor: pointer; font: inherit; }
-.ic705-radio-lcd { background: radial-gradient(ellipse at center, #0f2a17 0%, #07130b 100%); border: 1px solid rgba(63,174,84,0.4); border-radius: 10px; padding: 0.9em 1.1em; box-shadow: inset 0 0 18px rgba(0,0,0,0.6); margin: 0.6em 0; }
-.ic705-radio-row { display: flex; align-items: baseline; gap: 0.6em; flex-wrap: wrap; }
-.ic705-radio-freq { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 2.1em; color: #7dffa0; text-shadow: 0 0 8px rgba(125,255,160,0.6); }
-.ic705-radio-unit { opacity: 0.6; font-size: 0.85em; }
-.ic705-radio-mode { margin-left: auto; font-family: monospace; font-size: 1.2em; padding: 0.1em 0.6em; border: 1px solid rgba(125,255,160,0.5); border-radius: 4px; color: #7dffa0; }
-.ic705-radio-meta { font-size: 0.8em; opacity: 0.7; margin-top: 0.4em; }
-.ic705-dot { width: 10px; height: 10px; border-radius: 50%; background: #555; align-self: center; }
-.ic705-dot.is-ok { background: #3fae54; box-shadow: 0 0 6px #3fae54; }
-.ic705-dot.is-bad { background: #c0392b; }
-.ic705-radio-lcd.is-offline .ic705-radio-freq { color: #3d5a45; text-shadow: none; }
-.ic705-pass-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
-.ic705-pass-grid > .add-source-panel { margin: 0; }
-@media (max-width: 1000px) { .ic705-pass-grid { grid-template-columns: 1fr; } }
-.ic705-pass-row:focus { outline: 1px solid rgba(68, 217, 230, 0.6); }
-.ic705-polar-card { min-height: 0; padding: 14px; }
-.ic705-live-track { fill: none; stroke: #ff4fd8; stroke-width: 2; stroke-dasharray: 4 3; opacity: 0.9; }
-.ic705-now-label { fill: #ff4fd8; font-size: 8px; font-weight: 700; text-anchor: middle; paint-order: stroke; stroke: #020611; stroke-width: 2px; }
-.ic705-live-sky { margin: 0 0 0.6em; padding: 0.55em 0.8em; border-radius: 8px; border: 1px solid rgba(255,79,216,0.45); background: rgba(255,79,216,0.08); font-variant-numeric: tabular-nums; }
-.ic705-live-sky b { color: #ff4fd8; }
-.ic705-max-dot { fill: #f2c14e; }
-.ic705-pass-grid .mission-table { min-width: 0; }
-.ic705-pass-grid .mission-table th, .ic705-pass-grid .mission-table td { white-space: nowrap; }
-.ic705-el.q-weak { color: #e0a63a !important; }
-.ic705-el.q-ok { color: #8fd36b !important; }
-.ic705-el.q-good { color: #3fe08a !important; }
-.ic705-now-dot { fill: #ff4fd8; stroke: #fff; stroke-width: 1.2; filter: drop-shadow(0 0 4px #ff4fd8); }
-.ic705-audibility { margin: 0.2em 0 0.8em; padding: 0.55em 0.9em; border-radius: 8px; font-weight: 600; border: 1px solid; }
-.ic705-audibility.q-weak { color: #e0a63a; border-color: rgba(224,166,58,0.5); background: rgba(224,166,58,0.08); }
-.ic705-audibility.q-ok { color: #8fd36b; border-color: rgba(143,211,107,0.5); background: rgba(143,211,107,0.08); }
-.ic705-audibility.q-good { color: #3fe08a; border-color: rgba(63,224,138,0.6); background: rgba(63,224,138,0.1); }
-.ic705-audibility small { display: block; font-weight: 400; opacity: 0.85; margin-top: 0.2em; }
-.ic705-pass-facts { display: grid; grid-template-columns: auto 1fr; gap: 0.25em 1em; margin: 0.8em 0 0.4em; font-size: 0.92em; }
-.ic705-pass-facts dt { opacity: 0.7; }
-.ic705-pass-facts dd { margin: 0; font-variant-numeric: tabular-nums; }
-.ic705-audio-health.is-ok { color: #3fae54; opacity: 1; }
-.ic705-audio-health.is-bad { color: #e0a63a; opacity: 1; }
-</style>
-
 <script>
 (function () {
   var choice = document.getElementById("ic705-satellite-choice");
   if (choice) {
     choice.addEventListener("change", function () {
-      window.location.href = "/ic705?satellite=" + encodeURIComponent(choice.value);
+      if (choice.value) { window.location.href = "/ic705?satellite=" + encodeURIComponent(choice.value); }
     });
   }
 
@@ -1395,7 +1496,7 @@ Bei SSB/CW wandert ein Signal durch den Doppler schräg durchs Bild. Der Ton ble
         if (ok) {
           freqEl.textContent = fmtHz(d.frequency_hz);
           modeEl.textContent = d.mode || "--";
-          metaEl.textContent = "Aktuelle VFO-Einstellung des Funkgeräts · " + new Date().toLocaleTimeString("de-DE");
+          metaEl.textContent = "VFO des IC-705 · gelesen " + new Date().toLocaleTimeString("de-DE");
         } else {
           freqEl.textContent = "---.---.---";
           modeEl.textContent = "--";
@@ -1409,159 +1510,454 @@ Bei SSB/CW wandert ein Signal durch den Doppler schräg durchs Bild. Der Ton ble
   pollRadio();
   setInterval(pollRadio, 3000);
 
-  // --- Ueberflug-Auswahl + Polarplot ---
-  var dataEl = document.getElementById("ic705-passes-data");
-  if (dataEl) {
-    var passList = JSON.parse(dataEl.textContent);
-    var rows = document.querySelectorAll(".ic705-pass-row");
-    var rigPanel = document.getElementById("rig-control-panel");
-    var track = document.getElementById("ic705-track");
-    var rise = document.getElementById("ic705-rise");
-    var set = document.getElementById("ic705-set");
-    var maxDot = document.getElementById("ic705-max");
-    var aosLabel = document.getElementById("ic705-aos-label");
-    var losLabel = document.getElementById("ic705-los-label");
-    var nowDot = document.getElementById("ic705-now");
-    var title = document.getElementById("ic705-plot-title");
-    var facts = document.getElementById("ic705-pass-facts");
-    var audibility = document.getElementById("ic705-audibility");
-    var selected = 0;
-
-    function hhmmss(iso) {
-      return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    }
-    function compass(az) {
-      var dirs = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-      return dirs[Math.round(az / 22.5) % 16];
-    }
-    function minutesAbove(p, el) {
-      var pts = p.track, total = 0;
-      for (var i = 1; i < pts.length; i++) {
-        if (pts[i].el >= el && pts[i - 1].el >= el) {
-          total += (new Date(pts[i].t) - new Date(pts[i - 1].t)) / 1000;
-        }
-      }
-      return total / 60;
-    }
-    function rate(p) {
-      var m = p.max_el;
-      if (m < 15) { return ["q-weak", "Flacher Überflug – schwierig", "Kurze, schwache Signale; nur mit freier Sicht zum Horizont in Richtung " + compass(p.rise_az) + "–" + compass(p.set_az) + "."]; }
-      if (m < 35) { return ["q-ok", "Mittlerer Überflug – gut hörbar", "Brauchbare Signale, am besten rund um das Maximum."]; }
-      return ["q-good", "Hoher Überflug – sehr gut hörbar", "Satellit steigt hoch auf, lange und kräftige Signale."];
-    }
-    function setLabel(el, x, y) { el.setAttribute("x", x); el.setAttribute("y", y - 7); }
-
-    function show(index) {
-      var p = passList[index];
-      if (!p) { return; }
-      selected = index;
-      rows.forEach(function (r) { r.classList.toggle("active", Number(r.dataset.passIndex) === index); });
-      var pts = p.track;
-      track.setAttribute("points", pts.map(function (q) { return q.x + "," + q.y; }).join(" "));
-      var first = pts[0], last = pts[pts.length - 1];
-      var top = pts.reduce(function (a, b) { return b.el > a.el ? b : a; }, first);
-      rise.setAttribute("cx", first.x); rise.setAttribute("cy", first.y);
-      set.setAttribute("cx", last.x); set.setAttribute("cy", last.y);
-      maxDot.setAttribute("cx", top.x); maxDot.setAttribute("cy", top.y);
-      setLabel(aosLabel, first.x, first.y);
-      setLabel(losLabel, last.x, last.y);
-      title.textContent = new Date(p.rise).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) + " " + hhmmss(p.rise).slice(0, 5) + " Uhr";
-      var r = rate(p);
-      audibility.className = "ic705-audibility " + r[0];
-      audibility.innerHTML = r[1] + "<small>" + r[2] + "</small>";
-      var dur = Math.round(p.duration / 60);
-      facts.innerHTML =
-        "<dt>AOS</dt><dd>" + hhmmss(p.rise) + " · " + p.rise_az.toFixed(0) + "° " + compass(p.rise_az) + "</dd>" +
-        "<dt>Maximum</dt><dd>" + hhmmss(p.culmination) + " · " + p.max_el.toFixed(1) + "° Höhe</dd>" +
-        "<dt>LOS</dt><dd>" + hhmmss(p.set) + " · " + p.set_az.toFixed(0) + "° " + compass(p.set_az) + "</dd>" +
-        "<dt>Dauer</dt><dd>" + dur + " min, davon " + minutesAbove(p, 20).toFixed(1) + " min über 20°</dd>";
-      // Countdown im Rig-Display folgt dem ausgewaehlten Ueberflug
-      if (rigPanel) { rigPanel.dataset.riseUtc = p.rise; rigPanel.dataset.setUtc = p.set; }
-      updateNow();
-    }
-
-    // Live: Position des gerade verfolgten Satelliten (Live-Beobachtung oder
-    // Tracking) - unabhaengig davon, welcher Ueberflug unten ausgewaehlt ist.
-    var liveTrack = document.getElementById("ic705-live-track");
-    var nowLabel = document.getElementById("ic705-now-label");
-    var liveSky = document.getElementById("ic705-live-sky");
-    var sky = null;
-    function pollSky() {
-      fetch("/api/rig/tracking/sky")
-        .then(function (r) { return r.json(); })
-        .then(function (d) { sky = d && d.active ? d : null; drawSky(); })
-        .catch(function () {});
-    }
-    function drawSky() {
-      if (!sky) {
-        liveTrack.setAttribute("visibility", "hidden");
-        nowLabel.setAttribute("visibility", "hidden");
-        liveSky.hidden = true;
-        updateNow();
-        return;
-      }
-      liveTrack.setAttribute("points", (sky.track || []).map(function (q) { return q.x + "," + q.y; }).join(" "));
-      liveTrack.setAttribute("visibility", sky.track && sky.track.length ? "visible" : "hidden");
-      liveSky.hidden = false;
-      if (sky.above_horizon) {
-        nowDot.setAttribute("cx", sky.x); nowDot.setAttribute("cy", sky.y);
-        nowDot.setAttribute("visibility", "visible");
-        nowLabel.textContent = sky.name.split(" (")[0];
-        nowLabel.setAttribute("x", sky.x); nowLabel.setAttribute("y", sky.y - 8);
-        nowLabel.setAttribute("visibility", "visible");
-        liveSky.innerHTML = "Jetzt: <b>" + sky.name + "</b> · Elevation " + Math.round(sky.el) + "° · Azimut " +
-          Math.round(sky.az) + "° " + compass(sky.az) + (sky.el < sky.min_el ? " · noch unter deinem Funk-Horizont" : "");
-      } else {
-        nowDot.setAttribute("visibility", "hidden");
-        nowLabel.setAttribute("visibility", "hidden");
-        var t0 = sky.track && sky.track.length ? sky.track[0].t : null;
-        liveSky.innerHTML = "Verfolgt: <b>" + sky.name + "</b> · noch unter dem Horizont" +
-          (t0 ? " · Aufgang " + hhmmss(t0).slice(0, 5) + " Uhr (gestrichelte Bahn)" : "");
-      }
-    }
-
-    function updateNow() {
-      if (sky) { return; } // Live-Position hat Vorrang
-      var p = passList[selected];
-      var now = Date.now(), pts = p.track;
-      if (now < new Date(p.rise).getTime() || now > new Date(p.set).getTime()) {
-        nowDot.setAttribute("visibility", "hidden");
-        return;
-      }
-      for (var i = 1; i < pts.length; i++) {
-        var t0 = new Date(pts[i - 1].t).getTime(), t1 = new Date(pts[i].t).getTime();
-        if (now >= t0 && now <= t1) {
-          var f = t1 > t0 ? (now - t0) / (t1 - t0) : 0;
-          nowDot.setAttribute("cx", pts[i - 1].x + (pts[i].x - pts[i - 1].x) * f);
-          nowDot.setAttribute("cy", pts[i - 1].y + (pts[i].y - pts[i - 1].y) * f);
-          nowDot.setAttribute("visibility", "visible");
-          return;
-        }
-      }
-      nowDot.setAttribute("visibility", "hidden");
-    }
-
-    rows.forEach(function (r) {
-      r.addEventListener("click", function () { show(Number(r.dataset.passIndex)); });
-      r.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); show(Number(r.dataset.passIndex)); } });
-    });
-    show(0);
-    setInterval(updateNow, 1000);
-    pollSky();
-    setInterval(pollSky, 3000);
+  // Uhr in der Statuszeile (UTC - so wie AMSAT sie fuer Meldungen will)
+  var clock = document.getElementById("icom-clock");
+  function tickClock() {
+    var d = new Date();
+    clock.textContent = d.toISOString().slice(11, 19) + " UTC";
   }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  // Statuszeile: LIVE / DOPPLER / MANUELL und Tonweg
+  var chipState = document.getElementById("icom-chip-state");
+  var chipAudio = document.getElementById("icom-chip-audio");
+  var freqDisplay = document.getElementById("rig-freq-display");
+  var macBtn = document.getElementById("rig-audio-mac");
+  setInterval(function () {
+    var live = !!document.body.dataset.liveActive;
+    var tracking = freqDisplay && freqDisplay.classList.contains("is-live");
+    chipState.textContent = live ? "LIVE AUTO" : tracking ? "DOPPLER" : "MANUELL";
+    chipState.className = "icom-chip " + (live ? "is-live" : tracking ? "is-track" : "");
+    var mac = macBtn && macBtn.classList.contains("is-active");
+    chipAudio.textContent = mac ? "AF ▸ MAC" : "AF ▸ SPK";
+  }, 500);
+
+  // --- Polarplot: verfolgter Satellit (live) oder naechster Ueberflug der Auswahl ---
+  var dataEl = document.getElementById("ic705-passes-data");
+  var passList = dataEl ? JSON.parse(dataEl.textContent) : [];
+  var rigPanel = document.getElementById("rig-control-panel");
+  var plotWrap = document.getElementById("ic705-plot-wrap");
+  var plotEmpty = document.getElementById("ic705-plot-empty");
+  var track = document.getElementById("ic705-track");
+  var rise = document.getElementById("ic705-rise");
+  var set = document.getElementById("ic705-set");
+  var maxDot = document.getElementById("ic705-max");
+  var aosLabel = document.getElementById("ic705-aos-label");
+  var losLabel = document.getElementById("ic705-los-label");
+  var nowDot = document.getElementById("ic705-now");
+  var nowLabel = document.getElementById("ic705-now-label");
+  var title = document.getElementById("ic705-plot-title");
+  var facts = document.getElementById("ic705-pass-facts");
+  var audibility = document.getElementById("ic705-audibility");
+  var liveSky = document.getElementById("ic705-live-sky");
+  var sky = null, cur = null;
+
+  document.addEventListener("ic705-satellite-switched", function () { passList = []; render(); });
+
+  // Live-Beobachtung wartet: naechsten Satelliten im Display und Plot ankuendigen
+  var liveNext = null;
+  var metaTextEl = document.getElementById("rig-freq-meta-text");
+  document.addEventListener("ic705-live-status", function (evt) {
+    var d = evt.detail || {}, s = d.status || {}, tr = d.tracking || {};
+    var before = liveNext ? liveNext.name + liveNext.rise : "";
+    liveNext = (s.active && !s.current && s.next_up) ? s.next_up : null;
+    if (liveNext && !tr.active && metaTextEl) {
+      metaTextEl.textContent = "Live-Beobachtung wartet · als Nächstes " + liveNext.name + " (" + liveNext.mode + ") um " +
+        hhmmss(liveNext.rise).slice(0, 5) + " Uhr, max. " + Math.round(liveNext.max_el) + "°";
+    }
+    if ((liveNext ? liveNext.name + liveNext.rise : "") !== before) { render(); }
+  });
+
+  function hhmmss(iso) {
+    return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+  function compass(az) {
+    var dirs = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+    return dirs[Math.round(az / 22.5) % 16];
+  }
+  function azOf(q) {
+    if (q.az != null) { return q.az; }
+    return (Math.atan2(q.x - 100, 100 - q.y) * 180 / Math.PI + 360) % 360;
+  }
+  function minutesAbove(pts, el) {
+    var total = 0;
+    for (var i = 1; i < pts.length; i++) {
+      if (pts[i].el >= el && pts[i - 1].el >= el) {
+        total += (new Date(pts[i].t) - new Date(pts[i - 1].t)) / 1000;
+      }
+    }
+    return total / 60;
+  }
+  function rate(maxEl, riseAz, setAz) {
+    if (maxEl < 15) { return ["q-weak", "Flacher Überflug – schwierig", "Kurze, schwache Signale; nur mit freier Sicht Richtung " + compass(riseAz) + "–" + compass(setAz) + "."]; }
+    if (maxEl < 35) { return ["q-ok", "Mittlerer Überflug – gut hörbar", "Brauchbare Signale, am besten rund um das Maximum."]; }
+    return ["q-good", "Hoher Überflug – sehr gut hörbar", "Satellit steigt hoch auf, lange und kräftige Signale."];
+  }
+  function setLabel(el, x, y) { el.setAttribute("x", x); el.setAttribute("y", y - 7); }
+
+  function currentPass() {
+    var selNorad = rigPanel ? String(rigPanel.dataset.noradId || "") : "";
+    if (sky && sky.track && sky.track.length > 1) {
+      var pts = sky.track;
+      var top = pts.reduce(function (a, b) { return b.el > a.el ? b : a; }, pts[0]);
+      return { name: sky.name, rise: pts[0].t, set: pts[pts.length - 1].t, culmination: top.t, max_el: top.el, track: pts };
+    }
+    if (passList.length && (!sky || String(sky.norad_id) === selNorad)) {
+      return Object.assign({ name: rigPanel ? rigPanel.dataset.satName : "" }, passList[0]);
+    }
+    return null;
+  }
+
+  function render() {
+    cur = currentPass();
+    plotWrap.hidden = !cur;
+    plotEmpty.hidden = !!cur;
+    if (!cur && liveNext && !sky) {
+      title.textContent = "Als Nächstes: " + liveNext.name;
+      plotEmpty.textContent = "Die Live-Beobachtung stellt " + liveNext.name + " (" + liveNext.mode + ") um " +
+        hhmmss(liveNext.rise).slice(0, 5) + " Uhr automatisch ein – max. " + Math.round(liveNext.max_el) + "° Höhe.";
+      if (rigPanel) { rigPanel.dataset.riseUtc = liveNext.rise; rigPanel.dataset.setUtc = liveNext.set; }
+      return;
+    }
+    if (!cur) {
+      title.textContent = sky ? sky.name : "Kein Überflug";
+      plotEmpty.textContent = sky
+        ? "Der verfolgte Satellit geht in den nächsten 25 Minuten nicht auf."
+        : "Kein Satellit gewählt oder verfolgt. Wähle oben einen Satelliten oder unter „Kommende 60 Minuten“.";
+      return;
+    }
+    var pts = cur.track;
+    var first = pts[0], last = pts[pts.length - 1];
+    var top = pts.reduce(function (a, b) { return b.el > a.el ? b : a; }, first);
+    track.setAttribute("points", pts.map(function (q) { return q.x + "," + q.y; }).join(" "));
+    rise.setAttribute("cx", first.x); rise.setAttribute("cy", first.y);
+    set.setAttribute("cx", last.x); set.setAttribute("cy", last.y);
+    maxDot.setAttribute("cx", top.x); maxDot.setAttribute("cy", top.y);
+    setLabel(aosLabel, first.x, first.y);
+    setLabel(losLabel, last.x, last.y);
+    var riseAz = azOf(first), setAz = azOf(last);
+    title.textContent = (cur.name || "").split(" (")[0] + " · " + hhmmss(cur.rise).slice(0, 5) + "–" + hhmmss(cur.set).slice(0, 5) + " Uhr";
+    var r = rate(cur.max_el, riseAz, setAz);
+    audibility.className = "ic705-audibility " + r[0];
+    audibility.innerHTML = r[1] + "<small>" + r[2] + "</small>";
+    var dur = Math.round((new Date(cur.set) - new Date(cur.rise)) / 60000);
+    facts.innerHTML =
+      "<dt>AOS</dt><dd>" + hhmmss(cur.rise) + " · " + riseAz.toFixed(0) + "° " + compass(riseAz) + "</dd>" +
+      "<dt>Maximum</dt><dd>" + hhmmss(cur.culmination) + " · " + Number(cur.max_el).toFixed(1) + "° Höhe</dd>" +
+      "<dt>LOS</dt><dd>" + hhmmss(cur.set) + " · " + setAz.toFixed(0) + "° " + compass(setAz) + "</dd>" +
+      "<dt>Dauer</dt><dd>" + dur + " min, davon " + minutesAbove(pts, 20).toFixed(1) + " min über 20°</dd>";
+    // Countdown im Display folgt dem gezeigten Ueberflug
+    if (rigPanel) { rigPanel.dataset.riseUtc = cur.rise; rigPanel.dataset.setUtc = cur.set; }
+    updateNow();
+  }
+
+  function pollSky() {
+    fetch("/api/rig/tracking/sky")
+      .then(function (r) { return r.json(); })
+      .then(function (d) { sky = d && d.active ? d : null; drawSky(); render(); })
+      .catch(function () {});
+  }
+  function drawSky() {
+    if (!sky) { liveSky.hidden = true; return; }
+    liveSky.hidden = false;
+    if (sky.above_horizon) {
+      liveSky.innerHTML = "Jetzt: <b>" + sky.name + "</b> · Elevation " + Math.round(sky.el) + "° · Azimut " +
+        Math.round(sky.az) + "° " + compass(sky.az) + (sky.el < sky.min_el ? " · noch unter deinem Funk-Horizont" : "");
+    } else {
+      var t0 = sky.track && sky.track.length ? sky.track[0].t : null;
+      liveSky.innerHTML = "Verfolgt: <b>" + sky.name + "</b> · noch unter dem Horizont" +
+        (t0 ? " · Aufgang " + hhmmss(t0).slice(0, 5) + " Uhr" : "");
+    }
+  }
+
+  function updateNow() {
+    if (sky && sky.above_horizon) {
+      nowDot.setAttribute("cx", sky.x); nowDot.setAttribute("cy", sky.y);
+      nowDot.setAttribute("visibility", "visible");
+      nowLabel.textContent = sky.name.split(" (")[0];
+      nowLabel.setAttribute("x", sky.x); nowLabel.setAttribute("y", sky.y - 8);
+      nowLabel.setAttribute("visibility", "visible");
+      return;
+    }
+    nowLabel.setAttribute("visibility", "hidden");
+    if (!cur) { nowDot.setAttribute("visibility", "hidden"); return; }
+    var now = Date.now(), pts = cur.track;
+    for (var i = 1; i < pts.length; i++) {
+      var t0 = new Date(pts[i - 1].t).getTime(), t1 = new Date(pts[i].t).getTime();
+      if (now >= t0 && now <= t1) {
+        var f = t1 > t0 ? (now - t0) / (t1 - t0) : 0;
+        nowDot.setAttribute("cx", pts[i - 1].x + (pts[i].x - pts[i - 1].x) * f);
+        nowDot.setAttribute("cy", pts[i - 1].y + (pts[i].y - pts[i - 1].y) * f);
+        nowDot.setAttribute("visibility", "visible");
+        return;
+      }
+    }
+    nowDot.setAttribute("visibility", "hidden");
+  }
+
+  render();
+  setInterval(updateNow, 1000);
+  pollSky();
+  setInterval(pollSky, 3000);
 
   var audioHealth = document.getElementById("ic705-audio-health");
   fetch("http://" + window.location.hostname + ":8766/health")
     .then(function (r) { return r.json(); })
     .then(function (d) {
-      audioHealth.textContent = "Audio-Stream bereit (Quelle " + d.source + ") – Ton am Mac über „Mac (Browser)“.";
+      audioHealth.textContent = "Audio-Stream bereit (" + d.source + ") – Ton am Mac über „MAC“.";
       audioHealth.classList.add("is-ok");
     })
     .catch(function () {
       audioHealth.textContent = "Audio-Stream (Port 8766) nicht erreichbar – Ton nur am IC-705-Lautsprecher.";
       audioHealth.classList.add("is-bad");
     });
+})();
+</script>
+
+<script>
+(function () {
+  var recentEl = document.getElementById("ic705-recent-list");
+  var upcomingEl = document.getElementById("ic705-upcoming-list");
+  var recentMeta = document.getElementById("ic705-recent-meta");
+  var upcomingMeta = document.getElementById("ic705-upcoming-meta");
+  var rigPanel = document.getElementById("rig-control-panel");
+  var ov = null;
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function hhmm(iso) { return new Date(iso).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); }
+  function span(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    if (sec < 3600) { return Math.floor(sec / 60) + ":" + pad2(sec % 60); }
+    return Math.floor(sec / 3600) + " h " + pad2(Math.floor(sec % 3600 / 60)) + " min";
+  }
+  function ago(iso) {
+    var min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    return min < 1 ? "gerade eben" : "vor " + min + " min";
+  }
+  function mhz(hz) { return hz ? (hz / 1e6).toFixed(3) : ""; }
+  var SLOT_TITLE = { heard: "aktiv gehört", tlm: "nur Bake/TLM", not_heard: "nicht gehört", conflict: "widersprüchlich" };
+
+  // ---------------- Uebersicht ----------------
+  function renderRecent() {
+    var list = ov.recent || [];
+    recentMeta.textContent = list.length ? list.length + " Satelliten/Betriebsarten gemeldet" : "";
+    if (!list.length) {
+      recentEl.innerHTML = '<p class="icom-empty">In den letzten 60 Minuten keine Meldungen bei AMSAT.</p>';
+      return;
+    }
+    recentEl.innerHTML = list.map(function (e, i) {
+      var slots = (e.slots || []).map(function (s, k) {
+        return '<span class="icom-slot ' + (s ? "s-" + s : "") + '" title="' + (k * 15) + "–" + (k * 15 + 15) + " min: " + (s ? SLOT_TITLE[s] : "keine Meldung") + '"></span>';
+      }).join("");
+      var who = e.latest_callsign ? esc(e.latest_callsign) + (e.latest_grid ? " · " + esc(String(e.latest_grid).slice(0, 4)) : "") : "";
+      var tune = (e.norad_id && e.transponder_uuid)
+        ? '<button type="button" class="icom-mini" data-act="tune" data-src="recent" data-i="' + i + '" title="Am IC-705 einstellen">📻</button>' : "";
+      return '<div class="icom-row">' +
+        '<div class="icom-slots">' + slots + "</div>" +
+        '<div class="icom-row-main"><b>' + esc(e.satellite) + '</b> <span class="icom-tagmode">' + esc(e.mode) + "</span>" +
+        (e.downlink_hz ? ' <span class="icom-row-freq">' + mhz(e.downlink_hz) + "</span>" : "") +
+        "<small>" + esc(e.status_label || e.status) + " · " + ago(e.latest_time) + (who ? " · " + who : "") +
+        (e.count_total > 1 ? " · " + e.count_total + " Meldungen" : "") + "</small></div>" +
+        '<div class="icom-row-actions">' + tune +
+        '<button type="button" class="icom-mini icom-mini-report" data-act="report" data-src="recent" data-i="' + i + '" title="Eigenen Empfang bei AMSAT melden">✎</button></div>' +
+        "</div>";
+    }).join("");
+  }
+
+  function renderUpcoming() {
+    var list = ov.upcoming || [];
+    upcomingMeta.textContent = list.length ? "bei AMSAT in 24 h gemeldet" : "";
+    if (!list.length) {
+      upcomingEl.innerHTML = '<p class="icom-empty">In den nächsten 60 Minuten geht kein gemeldeter Satellit auf.</p>';
+      return;
+    }
+    var now = Date.now();
+    upcomingEl.innerHTML = list.map(function (u, i) {
+      var p = u.next_pass;
+      var inRange = new Date(p.rise).getTime() <= now;
+      var time = inRange
+        ? '<b class="icom-now">● jetzt</b><small class="icom-tick" data-remain="' + esc(p.set) + '">noch ' + span((new Date(p.set) - now) / 1000) + "</small>"
+        : "<b>" + hhmm(p.rise) + '</b><small class="icom-tick" data-until="' + esc(p.rise) + '">in ' + span((new Date(p.rise) - now) / 1000) + "</small>";
+      var modes = u.modes.map(function (m) {
+        var cls = m.status === "Not Heard" ? " is-silent" : (m.downlink_hz ? "" : " is-nofreq");
+        return '<span class="icom-tagmode' + cls + '" title="' + esc(m.status_label || "") + (m.downlink_hz ? " · " + mhz(m.downlink_hz) + " MHz " + esc(m.rig_mode || "") : " · keine IC-705-Frequenz") + '">' +
+          esc(m.mode) + (m.downlink_hz ? " " + mhz(m.downlink_hz) : "") + "</span>";
+      }).join(" ");
+      var el = Math.round(p.max_el);
+      var elCls = el < 15 ? "q-weak" : el < 35 ? "q-ok" : "q-good";
+      return '<div class="icom-row' + (inRange ? " is-now" : "") + (u.usable ? "" : " is-dim") + '">' +
+        '<div class="icom-row-time">' + time + "</div>" +
+        '<div class="icom-row-main"><b>' + esc(u.satellite) + '</b> <span class="icom-el ' + elCls + '">max ' + el + "°</span>" +
+        '<span class="icom-modes">' + modes + "</span></div>" +
+        '<div class="icom-row-actions">' +
+        (u.usable ? '<button type="button" class="icom-mini" data-act="tune" data-src="upcoming" data-i="' + i + '" title="Am IC-705 einstellen (Doppler startet)">📻</button>' : "") +
+        '<button type="button" class="icom-mini icom-mini-report" data-act="report" data-src="upcoming" data-i="' + i + '" title="Eigenen Empfang bei AMSAT melden">✎</button>' +
+        "</div></div>";
+    }).join("");
+  }
+
+  setInterval(function () {
+    var now = Date.now();
+    Array.prototype.forEach.call(upcomingEl.querySelectorAll(".icom-tick"), function (el) {
+      if (el.dataset.until) { el.textContent = "in " + span((new Date(el.dataset.until) - now) / 1000); }
+      else { el.textContent = "noch " + span((new Date(el.dataset.remain) - now) / 1000); }
+    });
+  }, 1000);
+
+  function loadOverview() {
+    return fetch("/api/ic705/overview")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        ov = d;
+        if (d.error) {
+          recentEl.innerHTML = upcomingEl.innerHTML = '<p class="icom-empty">' + esc(d.error) + "</p>";
+          return;
+        }
+        renderRecent();
+        renderUpcoming();
+      })
+      .catch(function () {
+        recentEl.innerHTML = '<p class="icom-empty">Übersicht konnte nicht geladen werden.</p>';
+      });
+  }
+  loadOverview();
+  setInterval(loadOverview, 60000);
+
+  // Einstellen: wie der Knopf auf AMSAT Live
+  function tune(norad, uuid, mode, label) {
+    var q = new URLSearchParams({ satellite: norad, autostart: "1", from: "Übersicht (" + label + ")" });
+    if (uuid) { q.set("transponder", uuid); }
+    if (mode) { q.set("mode", mode); }
+    window.location.href = "/ic705?" + q.toString();
+  }
+
+  // ---------------- Bei AMSAT melden ----------------
+  // Zuletzt verfolgter Satellit (fuer "Gehoert? Melden" auch nach LOS)
+  var LAST_KEY = "ic705-last-tracked";
+  document.addEventListener("ic705-live-status", function (evt) {
+    var d = evt.detail || {}, tr = d.tracking || {}, s = d.status || {};
+    if (!tr.active || !tr.norad_id) { return; }
+    var liveKey = null;
+    if (s.active && s.current && String(s.current.norad_id) === String(tr.norad_id)) {
+      var v = (s.current.variants || []).filter(function (x) { return x.active; })[0];
+      liveKey = v ? v.key : s.current.key;
+    }
+    try {
+      localStorage.setItem(LAST_KEY, JSON.stringify({
+        norad_id: String(tr.norad_id), name: tr.satellite_name, rig_mode: tr.rig_mode,
+        transponder_description: tr.transponder_description, live_key: liveKey, at: new Date().toISOString(),
+      }));
+    } catch (e) {}
+  });
+  function lastTracked() {
+    try { return JSON.parse(localStorage.getItem(LAST_KEY) || "null"); } catch (e) { return null; }
+  }
+
+  var dlg = document.getElementById("amsat-report-dialog");
+  var form = document.getElementById("amsat-report-form");
+  var fName = document.getElementById("amsat-f-name");
+  var fDate = document.getElementById("amsat-f-date");
+  var fTime = document.getElementById("amsat-f-time");
+  var fCall = document.getElementById("amsat-f-call");
+  var fGrid = document.getElementById("amsat-f-grid");
+  var fYear = document.getElementById("amsat-f-year");
+  var fMonth = document.getElementById("amsat-f-month");
+  var fDay = document.getElementById("amsat-f-day");
+  var fHint = document.getElementById("amsat-f-hint");
+  var fSat = document.getElementById("amsat-f-sat");
+
+  function bestName(norad, hints) {
+    var list = (ov && ov.norad_names && ov.norad_names[norad]) || [];
+    hints = hints || {};
+    if (hints.live_key && list.some(function (n) { return n.name === hints.live_key; })) { return hints.live_key; }
+    var m = list.filter(function (n) { return hints.transponder_description && n.transponder_description === hints.transponder_description; })[0];
+    if (m) { return m.name; }
+    m = list.filter(function (n) { return hints.rig_mode && n.rig_mode && n.rig_mode.toUpperCase() === hints.rig_mode.toUpperCase(); })[0];
+    if (m) { return m.name; }
+    return list.length ? list[0].name : "";
+  }
+
+  function fillNames(selected) {
+    var names = (ov && ov.amsat_names) || [];
+    if (selected && !names.some(function (n) { return n.name === selected; })) {
+      names = [{ name: selected, label: selected.replace(/_/g, " ") }].concat(names);
+    }
+    fName.innerHTML = '<option value="">– Satellit / Betriebsart wählen –</option>' + names.map(function (n) {
+      return '<option value="' + esc(n.name) + '"' + (n.name === selected ? " selected" : "") + ">" + esc(n.label) + "</option>";
+    }).join("");
+  }
+
+  function openReport(opts) {
+    if (!ov) { loadOverview().then(function () { openReport(opts); }); return; }
+    var at = opts.at ? new Date(opts.at) : new Date();
+    if (at > new Date()) { at = new Date(); }
+    fillNames(opts.name || "");
+    fDate.value = at.toISOString().slice(0, 10);
+    fTime.value = at.toISOString().slice(11, 16);
+    fCall.value = ov.callsign || "";
+    fGrid.value = ov.locator || "";
+    form.querySelector('input[name="SatReport"][value="Heard"]').checked = true;
+    fSat.textContent = opts.label || "";
+    fHint.hidden = !!opts.name;
+    if (typeof dlg.showModal === "function") { dlg.showModal(); } else { dlg.setAttribute("open", ""); }
+  }
+
+  form.addEventListener("submit", function (evt) {
+    if (evt.submitter && evt.submitter.value === "cancel") { return; }
+    if (!fName.value) { evt.preventDefault(); fHint.hidden = false; fName.focus(); return; }
+    var parts = fDate.value.split("-");
+    fYear.value = parts[0]; fMonth.value = parts[1]; fDay.value = parts[2];
+    // Formular oeffnet die Kontrollseite von AMSAT in einem neuen Tab - dort
+    // erst mit "Yes" absenden. Hier wird nichts automatisch gemeldet.
+    setTimeout(function () { dlg.close(); }, 50);
+  });
+  document.getElementById("amsat-f-cancel").addEventListener("click", function () { dlg.close(); });
+
+  // Knopf am Funkgeraet: gerade/zuletzt verfolgter Satellit, sonst Auswahl
+  document.getElementById("icom-report-btn").addEventListener("click", function () {
+    var last = lastTracked();
+    var trackingNow = document.getElementById("rig-freq-display").classList.contains("is-live");
+    if (last) {
+      var lastAge = (Date.now() - new Date(last.at).getTime()) / 60000;
+      openReport({
+        name: bestName(last.norad_id, last),
+        at: trackingNow ? null : last.at,
+        label: (last.name || last.norad_id) + (trackingNow ? " · gerade verfolgt" : " · zuletzt verfolgt " + (lastAge < 1 ? "gerade eben" : "vor " + Math.round(lastAge) + " min")),
+      });
+      return;
+    }
+    var norad = rigPanel ? rigPanel.dataset.noradId : "";
+    openReport({ name: norad ? bestName(norad, {}) : "", label: norad ? rigPanel.dataset.satName : "" });
+  });
+
+  function onListClick(evt) {
+    var b = evt.target.closest(".icom-mini");
+    if (!b || !ov) { return; }
+    var item = (b.dataset.src === "recent" ? ov.recent : ov.upcoming)[Number(b.dataset.i)];
+    if (!item) { return; }
+    if (b.dataset.act === "tune") {
+      if (b.dataset.src === "recent") { tune(item.norad_id, item.transponder_uuid, item.rig_mode, item.name); }
+      else {
+        var m = item.modes.filter(function (x) { return x.downlink_hz && x.status !== "Not Heard"; })[0] || item.modes[0];
+        tune(item.norad_id, m.transponder_uuid, m.rig_mode, m.name);
+      }
+      return;
+    }
+    if (b.dataset.src === "recent") {
+      openReport({ name: item.name, label: item.satellite + " [" + item.mode + "]" });
+    } else {
+      var heard = item.modes.filter(function (x) { return x.status !== "Not Heard"; })[0] || item.modes[0];
+      openReport({ name: heard.name, label: item.satellite + (item.in_range ? " · gerade im Bereich" : "") });
+    }
+  }
+  recentEl.addEventListener("click", onListClick);
+  upcomingEl.addEventListener("click", onListClick);
 })();
 </script>
 {% endblock %}

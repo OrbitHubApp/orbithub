@@ -345,3 +345,71 @@ def parse_time(value: str | None) -> datetime | None:
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
         return None
+
+
+# ---------------------------------------------------------------------------
+# Satellitenliste fuer das Meldeformular (status.amsat.org/submit.php)
+# ---------------------------------------------------------------------------
+AMSAT_SATELLITES_URL = "https://status.amsat.org/api/v1/satellites.php"
+AMSAT_SUBMIT_URL = "https://status.amsat.org/submit.php"
+_names_cache: tuple[float, list[dict[str, str]]] | None = None
+
+
+async def fetch_satellite_names() -> list[dict[str, str]]:
+    """Alle bei AMSAT meldbaren Eintraege ({"name": "ISS_[FM]", "label": "ISS [FM]"}),
+    einmal am Tag geholt. Bei Fehlern die zuletzt bekannte Liste (oder leer)."""
+    global _names_cache
+    now = time.time()
+    if _names_cache and _names_cache[0] > now:
+        return _names_cache[1]
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
+            response = await client.get(
+                AMSAT_SATELLITES_URL,
+                headers={"User-Agent": "OrbitHub (DL7AG) amsat-live"},
+            )
+            response.raise_for_status()
+            data = response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        logger.warning("AMSAT-Satellitenliste nicht abrufbar: %r", exc)
+        return _names_cache[1] if _names_cache else []
+    names = [
+        {"name": item.get("html_element_name"), "label": item.get("name") or item.get("html_element_name")}
+        for item in (data if isinstance(data, list) else [])
+        if item.get("html_element_name")
+    ]
+    _names_cache = (now + 24 * 3600, names)
+    return names
+
+
+def recent_slots(reports: list[dict[str, Any]], now: datetime, minutes: int = 60, slot_minutes: int = 15) -> dict[str, list[str | None]]:
+    """Je AMSAT-Eintrag den Status pro Zeitfenster (neueste zuerst), wie die
+    Kaestchen auf status.amsat.org: heard / tlm / not_heard / conflict / None."""
+    slots = minutes // slot_minutes
+    buckets: dict[str, list[set[str]]] = defaultdict(lambda: [set() for _ in range(slots)])
+    for report in reports:
+        ts = parse_time(report.get("observation_time"))
+        if ts is None or not report.get("name"):
+            continue
+        age_min = (now - ts).total_seconds() / 60
+        if age_min < 0 or age_min >= minutes:
+            continue
+        kind = {
+            "Heard": "heard",
+            "Crew Active": "heard",
+            "Telemetry Only": "tlm",
+            "Not Heard": "not_heard",
+        }.get(report.get("report"), "heard")
+        buckets[report["name"]][int(age_min // slot_minutes)].add(kind)
+    result: dict[str, list[str | None]] = {}
+    for name, sets in buckets.items():
+        row: list[str | None] = []
+        for kinds in sets:
+            if not kinds:
+                row.append(None)
+            elif "not_heard" in kinds and kinds - {"not_heard"}:
+                row.append("conflict")
+            else:
+                row.append(next(iter(sorted(kinds))))
+        result[name] = row
+    return result
