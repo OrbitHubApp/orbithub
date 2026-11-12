@@ -441,6 +441,9 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom-sat-info { font-size: 0.8rem; color: var(--icom-dim); margin-top: 3px; }
 .icom-satblock.is-live .icom-sat-name, .icom-satblock.is-live .icom-sat-countdown { color: var(--icom-green); text-shadow: 0 0 10px rgba(60,224,122,0.35); }
 .icom-satblock.is-soon .icom-sat-countdown { animation: icom-blink 1s ease-in-out infinite; }
+.icom-satblock.is-nodoppler .icom-sat-when { color: #ff8a7a; font-weight: 700; }
+.icom-key.is-attention { animation: icom-attn 1s ease-in-out infinite; color: #fff; }
+@keyframes icom-attn { 50% { box-shadow: 0 0 0 2px var(--icom-green), 0 0 14px var(--icom-green); } }
 .icom-satblock.is-idle .icom-sat-name { color: #59636e; }
 .icom-satblock.is-past .icom-sat-name { color: #9aa5b1; }
 .icom-keygrid-4 { grid-template-columns: repeat(4, 1fr); }
@@ -1153,14 +1156,13 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     if (!mode) { return; }
     if (modeChoice) { modeChoice.value = mode; }
     markModeButtons(mode);
-    if (!trackingActive) { return; }
     fetch("/api/rig/tracking/mode", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: mode }),
     })
       .then(function (r) { return r.json().then(function (d) { if (!r.ok) { throw new Error(d.detail || "Fehler"); } return d; }); })
-      .then(function (d) { renderStatus(d.status); setTimeout(refreshStatus, 3500); })
+      .then(function (d) { if (trackingActive) { renderStatus(d.status); setTimeout(refreshStatus, 3500); } })
       .catch(function (err) { showError("Betriebsart nicht umgestellt: " + err.message); });
   }
   if (modeQuick) {
@@ -1786,6 +1788,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     return (h ? h + ":" + (m < 10 ? "0" : "") : "") + m + ":" + (x < 10 ? "0" : "") + x;
   }
   function tickSat() {
+    document.getElementById("rig-tracking-start").classList.remove("is-attention");
     if (!shown) {
       satBlock.className = "icom-satblock is-idle";
       satName.textContent = (rigPanel && rigPanel.dataset.satName) || "Kein Satellit";
@@ -1814,8 +1817,10 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       satTime.textContent = hhmmss(shown.rise) + " Uhr";
       satCount.textContent = "in " + dur(rise - now);
     } else if (now < set) {
-      satBlock.className = "icom-satblock is-live";
-      satLabel.textContent = "JETZT HÖRBAR · bis";
+      var dopplerOn = freqDisplay && freqDisplay.classList.contains("is-live");
+      satBlock.className = "icom-satblock is-live" + (dopplerOn ? "" : " is-nodoppler");
+      document.getElementById("rig-tracking-start").classList.toggle("is-attention", !dopplerOn);
+      satLabel.textContent = dopplerOn ? "JETZT HÖRBAR · bis" : "IM BEREICH – ABER DOPPLER AUS! ▶ Doppler an drücken · bis";
       satTime.textContent = hhmmss(shown.set) + " Uhr";
       satCount.textContent = "noch " + dur(set - now);
     } else {

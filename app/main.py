@@ -113,6 +113,7 @@ async def _predict_async(predictor, record, **kwargs):
         getattr(observer_settings, "elevation_m", None),
         getattr(observer_settings, "default_minimum_elevation_deg", None),
         getattr(observer_settings, "horizon_segments", None),
+        kwargs.get("start_time"),
     )
 
     now = time.time()
@@ -2976,7 +2977,13 @@ async def change_rig_tracking_mode(request: Request) -> dict:
     if not mode:
         raise HTTPException(status_code=400, detail="Keine Betriebsart angegeben.")
     if not tracking_session.status.active:
-        raise HTTPException(status_code=409, detail="Es läuft gerade kein Tracking.")
+        # Ohne Doppler direkt am Funkgeraet umstellen
+        rig_mode, _note = rig_mode_for(mode)
+        try:
+            await asyncio.to_thread(rig_control.set_mode, rig_mode)
+        except RigControlError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+        return {"ok": True, "rig_mode": rig_mode, "status": asdict(tracking_session.status)}
     rig_mode = tracking_session.change_mode(mode)
     return {"ok": True, "rig_mode": rig_mode, "status": asdict(tracking_session.status)}
 
@@ -3138,12 +3145,18 @@ async def ic705_page(request: Request, satellite: str | None = None):
             longitude_deg=observer.longitude_deg,
             elevation_m=observer.elevation_m,
         )
+        # 30 min zurueck rechnen, damit ein gerade laufender Ueberflug (Aufgang
+        # schon vorbei) nicht fehlt; auf 10 min gerundet fuer den Cache
+        from datetime import timedelta
+        ref = datetime.now(timezone.utc) - timedelta(minutes=30)
+        ref = ref.replace(minute=ref.minute - ref.minute % 10, second=0, microsecond=0)
         passes = await _predict_async(
             predictor,
             selected_record,
-            hours=24,
+            hours=25,
             minimum_elevation_deg=observer.default_minimum_elevation_deg,
             observer_settings=observer,
+            start_time=ref,
         )
 
     now_utc = datetime.now(timezone.utc)
