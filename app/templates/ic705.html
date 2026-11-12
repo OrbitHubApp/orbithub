@@ -39,11 +39,21 @@ OrbitHub &middot; {{ t('nav.ic705') }}
         <span class="icom-clock" id="icom-clock">--:--:-- UTC</span>
       </div>
 
-      <div class="icom-main-freq">
-        <span class="ic705-radio-freq" id="ic705-radio-freq">---.---.---</span>
-        <span class="ic705-radio-unit">MHz</span>
+      <div class="icom-main-row">
+        <div class="icom-satblock is-idle" id="icom-satblock">
+          <div class="icom-sat-name"><span id="icom-sat-name">Kein Satellit</span><small id="icom-sat-alias"></small></div>
+          <div class="icom-sat-when"><span id="icom-sat-label">wähle einen Satelliten oder starte die Live-Beobachtung</span> <b id="icom-sat-time"></b></div>
+          <div class="icom-sat-countdown" id="icom-sat-countdown"></div>
+          <div class="icom-sat-info" id="icom-sat-info"></div>
+        </div>
+        <div class="icom-freqblock">
+          <div class="icom-main-freq">
+            <span class="ic705-radio-freq" id="ic705-radio-freq">---.---.---</span>
+            <span class="ic705-radio-unit">MHz</span>
+          </div>
+          <div class="ic705-radio-meta" id="ic705-radio-meta">Verbinde …</div>
+        </div>
       </div>
-      <div class="ic705-radio-meta" id="ic705-radio-meta">Verbinde …</div>
 
       <div class="rig-freq-display" id="rig-freq-display">
         <div class="icom-sub-head">
@@ -51,7 +61,7 @@ OrbitHub &middot; {{ t('nav.ic705') }}
           <span id="rig-freq-meta-text">Doppler aus</span>
         </div>
         <div class="icom-sub-grid">
-          <div class="icom-sub-cell" id="rig-freq-row-countdown">
+          <div class="icom-sub-cell" id="rig-freq-row-countdown" hidden>
             <span class="icom-sub-label" id="rig-countdown-label">Nächster Überflug in</span>
             <span class="icom-sub-value rig-countdown-digits" id="rig-countdown-value">—:—:—</span>
           </div>
@@ -399,6 +409,21 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom-clock { font-family: var(--icom-mono); font-size: 0.78rem; color: var(--icom-dim); font-variant-numeric: tabular-nums; }
 
 .icom-main-freq { display: flex; align-items: baseline; justify-content: flex-end; gap: 0.35em; padding: 10px 4px 0; }
+.icom-main-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 10px 24px; padding-top: 8px; }
+.icom-freqblock { margin-left: auto; }
+.icom-satblock { min-width: 0; flex: 1 1 300px; padding: 2px 4px; }
+.icom-sat-name { font-size: clamp(1.6rem, 3.4vw, 2.3rem); font-weight: 800; line-height: 1.05; color: var(--icom-amber); letter-spacing: 0.01em; }
+.icom-sat-name small { display: inline-block; margin-left: 0.5em; font-size: 0.5em; font-weight: 600; color: var(--icom-dim); vertical-align: middle; }
+.icom-sat-when { margin-top: 6px; font-size: 0.95rem; color: #cfd6dd; }
+.icom-sat-when b { font-family: var(--icom-mono); font-size: 1.15rem; color: #fff; }
+.icom-sat-countdown { font-family: var(--icom-mono); font-variant-numeric: tabular-nums; font-weight: 700; font-size: clamp(1.5rem, 3vw, 2rem); color: var(--icom-amber); margin-top: 2px; }
+.icom-sat-info { font-size: 0.8rem; color: var(--icom-dim); margin-top: 3px; }
+.icom-satblock.is-live .icom-sat-name, .icom-satblock.is-live .icom-sat-countdown { color: var(--icom-green); text-shadow: 0 0 10px rgba(60,224,122,0.35); }
+.icom-satblock.is-soon .icom-sat-countdown { animation: icom-blink 1s ease-in-out infinite; }
+.icom-satblock.is-idle .icom-sat-name { color: #59636e; }
+.icom-satblock.is-past .icom-sat-name { color: #9aa5b1; }
+.icom-row.is-selected { box-shadow: inset 3px 0 0 var(--icom-cyan); background: rgba(56,200,255,0.06); }
+.icom-alias { font-size: 0.74rem; color: var(--icom-dim); font-weight: 500; margin-left: 4px; }
 .icom .ic705-radio-freq {
   font-family: var(--icom-mono); font-weight: 700; font-variant-numeric: tabular-nums;
   font-size: clamp(2.2rem, 5.6vw, 3.6rem); letter-spacing: 0.02em; line-height: 1;
@@ -1551,7 +1576,9 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
   var facts = document.getElementById("ic705-pass-facts");
   var audibility = document.getElementById("ic705-audibility");
   var liveSky = document.getElementById("ic705-live-sky");
-  var sky = null, cur = null;
+  var sky = null, cur = null, shown = null;
+  window.ic705Alias = window.ic705Alias || {};
+  window.ic705Catalog = window.ic705Catalog || {};
 
   document.addEventListener("ic705-satellite-switched", function () { passList = []; render(); });
 
@@ -1598,10 +1625,15 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
 
   function currentPass() {
     var selNorad = rigPanel ? String(rigPanel.dataset.noradId || "") : "";
+    // Vorhergesagter Ueberflug (ab Funk-Horizont = hoerbar) hat Vorrang vor der
+    // reinen Sichtbahn ab 0 Grad - gleiche Zeiten wie in "Kommende 60 Minuten"
+    if (passList.length && new Date(passList[0].set) > new Date() && (!sky || String(sky.norad_id) === selNorad)) {
+      return Object.assign({ name: rigPanel ? rigPanel.dataset.satName : "" }, passList[0]);
+    }
     if (sky && sky.track && sky.track.length > 1) {
       var pts = sky.track;
       var top = pts.reduce(function (a, b) { return b.el > a.el ? b : a; }, pts[0]);
-      return { name: sky.name, rise: pts[0].t, set: pts[pts.length - 1].t, culmination: top.t, max_el: top.el, track: pts };
+      return { name: sky.name, rise: pts[0].t, set: pts[pts.length - 1].t, culmination: top.t, max_el: top.el, track: pts, horizon0: true };
     }
     if (passList.length && (!sky || String(sky.norad_id) === selNorad)) {
       return Object.assign({ name: rigPanel ? rigPanel.dataset.satName : "" }, passList[0]);
@@ -1618,8 +1650,11 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       plotEmpty.textContent = "Die Live-Beobachtung stellt " + liveNext.name + " (" + liveNext.mode + ") um " +
         hhmmss(liveNext.rise).slice(0, 5) + " Uhr automatisch ein – max. " + Math.round(liveNext.max_el) + "° Höhe.";
       if (rigPanel) { rigPanel.dataset.riseUtc = liveNext.rise; rigPanel.dataset.setUtc = liveNext.set; }
+      shown = { name: liveNext.name, norad: null, rise: liveNext.rise, set: liveNext.set, max_el: liveNext.max_el, mode: liveNext.mode, live: true };
+      tickSat();
       return;
     }
+    shown = null;
     if (!cur) {
       title.textContent = sky ? sky.name : "Kein Überflug";
       plotEmpty.textContent = sky
@@ -1649,6 +1684,11 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       "<dt>Dauer</dt><dd>" + dur + " min, davon " + minutesAbove(pts, 20).toFixed(1) + " min über 20°</dd>";
     // Countdown im Display folgt dem gezeigten Ueberflug
     if (rigPanel) { rigPanel.dataset.riseUtc = cur.rise; rigPanel.dataset.setUtc = cur.set; }
+    shown = {
+      name: cur.name, norad: sky ? String(sky.norad_id) : (rigPanel ? rigPanel.dataset.noradId : null),
+      rise: cur.rise, set: cur.set, max_el: cur.max_el, riseAz: riseAz, setAz: setAz, horizon0: !!cur.horizon0,
+    };
+    tickSat();
     updateNow();
   }
 
@@ -1696,7 +1736,63 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     nowDot.setAttribute("visibility", "hidden");
   }
 
+  // Grosse Anzeige im Display: Satellit, wann hoerbar, Countdown
+  var satBlock = document.getElementById("icom-satblock");
+  var satName = document.getElementById("icom-sat-name");
+  var satAlias = document.getElementById("icom-sat-alias");
+  var satLabel = document.getElementById("icom-sat-label");
+  var satTime = document.getElementById("icom-sat-time");
+  var satCount = document.getElementById("icom-sat-countdown");
+  var satInfo = document.getElementById("icom-sat-info");
+  function dur(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+    return (h ? h + ":" + (m < 10 ? "0" : "") : "") + m + ":" + (x < 10 ? "0" : "") + x;
+  }
+  function tickSat() {
+    if (!shown) {
+      satBlock.className = "icom-satblock is-idle";
+      satName.textContent = (rigPanel && rigPanel.dataset.satName) || "Kein Satellit";
+      satAlias.textContent = "";
+      satLabel.textContent = (rigPanel && rigPanel.dataset.noradId) ? "kein Überflug in den nächsten Stunden" : "wähle einen Satelliten oder starte die Live-Beobachtung";
+      satTime.textContent = ""; satCount.textContent = ""; satInfo.textContent = "";
+      return;
+    }
+    // AMSAT-Name gross (wie in der Uebersicht), Katalogname klein daneben
+    var catalog = (shown.name || "").split(" (")[0];
+    var amsat = shown.norad ? window.ic705Alias[shown.norad] : null;
+    if (shown.live) { amsat = shown.name; catalog = window.ic705Catalog[shown.name] || ""; }
+    var big = amsat || catalog, small = (amsat && catalog && catalog.toUpperCase() !== amsat.toUpperCase()) ? catalog : "";
+    satName.textContent = big;
+    satAlias.textContent = small;
+    var now = Date.now(), rise = new Date(shown.rise).getTime(), set = new Date(shown.set).getTime();
+    var lenMin = Math.round((set - rise) / 60000);
+    var info = "Dauer " + lenMin + " min · max. " + Math.round(shown.max_el) + "°";
+    if (shown.riseAz != null) { info += " · von " + compass(shown.riseAz) + " nach " + compass(shown.setAz); }
+    if (shown.mode) { info += " · " + shown.mode; }
+    if (shown.live) { info += " · stellt sich automatisch ein"; }
+    satInfo.textContent = info;
+    if (now < rise) {
+      satBlock.className = "icom-satblock" + (rise - now < 120000 ? " is-soon" : "");
+      satLabel.textContent = shown.horizon0 ? "über dem Horizont ab" : "hörbar ab";
+      satTime.textContent = hhmmss(shown.rise) + " Uhr";
+      satCount.textContent = "in " + dur(rise - now);
+    } else if (now < set) {
+      satBlock.className = "icom-satblock is-live";
+      satLabel.textContent = "JETZT HÖRBAR · bis";
+      satTime.textContent = hhmmss(shown.set) + " Uhr";
+      satCount.textContent = "noch " + dur(set - now);
+    } else {
+      satBlock.className = "icom-satblock is-past";
+      satLabel.textContent = "Überflug vorbei seit";
+      satTime.textContent = hhmmss(shown.set) + " Uhr";
+      satCount.textContent = "";
+    }
+  }
+  setInterval(tickSat, 1000);
+
   render();
+  tickSat();
   setInterval(updateNow, 1000);
   pollSky();
   setInterval(pollSky, 3000);
@@ -1741,6 +1837,12 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     return min < 1 ? "gerade eben" : "vor " + min + " min";
   }
   function mhz(hz) { return hz ? (hz / 1e6).toFixed(3) : ""; }
+  // Katalogname klein dazu, wenn er anders heisst (SO-50 = SAUDISAT 1C)
+  function alias(item) {
+    var cat = (item.satellite_name || "").split(" (")[0];
+    if (!cat || cat.toUpperCase().replace(/[^A-Z0-9]/g, "") === String(item.satellite).toUpperCase().replace(/[^A-Z0-9]/g, "")) { return ""; }
+    return '<span class="icom-alias">' + esc(cat) + "</span>";
+  }
   var SLOT_TITLE = { heard: "aktiv gehört", tlm: "nur Bake/TLM", not_heard: "nicht gehört", conflict: "widersprüchlich" };
 
   // ---------------- Uebersicht ----------------
@@ -1760,7 +1862,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
         ? '<button type="button" class="icom-mini" data-act="tune" data-src="recent" data-i="' + i + '" title="Am IC-705 einstellen">📻</button>' : "";
       return '<div class="icom-row">' +
         '<div class="icom-slots">' + slots + "</div>" +
-        '<div class="icom-row-main"><b>' + esc(e.satellite) + '</b> <span class="icom-tagmode">' + esc(e.mode) + "</span>" +
+        '<div class="icom-row-main"><b>' + esc(e.satellite) + "</b>" + alias(e) + ' <span class="icom-tagmode">' + esc(e.mode) + "</span>" +
         (e.downlink_hz ? ' <span class="icom-row-freq">' + mhz(e.downlink_hz) + "</span>" : "") +
         "<small>" + esc(e.status_label || e.status) + " · " + ago(e.latest_time) + (who ? " · " + who : "") +
         (e.count_total > 1 ? " · " + e.count_total + " Meldungen" : "") + "</small></div>" +
@@ -1791,9 +1893,10 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       }).join(" ");
       var el = Math.round(p.max_el);
       var elCls = el < 15 ? "q-weak" : el < 35 ? "q-ok" : "q-good";
-      return '<div class="icom-row' + (inRange ? " is-now" : "") + (u.usable ? "" : " is-dim") + '">' +
+      var sel = rigPanel && String(rigPanel.dataset.noradId) === String(u.norad_id);
+      return '<div class="icom-row' + (inRange ? " is-now" : "") + (sel ? " is-selected" : "") + (u.usable ? "" : " is-dim") + '">' +
         '<div class="icom-row-time">' + time + "</div>" +
-        '<div class="icom-row-main"><b>' + esc(u.satellite) + '</b> <span class="icom-el ' + elCls + '">max ' + el + "°</span>" +
+        '<div class="icom-row-main"><b>' + esc(u.satellite) + "</b>" + alias(u) + ' <span class="icom-el ' + elCls + '">max ' + el + "°</span>" +
         '<span class="icom-modes">' + modes + "</span></div>" +
         '<div class="icom-row-actions">' +
         (u.usable ? '<button type="button" class="icom-mini" data-act="tune" data-src="upcoming" data-i="' + i + '" title="Am IC-705 einstellen (Doppler startet)">📻</button>' : "") +
@@ -1815,6 +1918,13 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       .then(function (r) { return r.json(); })
       .then(function (d) {
         ov = d;
+        Object.keys(d.norad_names || {}).forEach(function (n) {
+          var first = d.norad_names[n][0];
+          if (first) { window.ic705Alias[n] = first.name.split("_[")[0].replace(/_/g, " "); }
+        });
+        (d.upcoming || []).concat(d.recent || []).forEach(function (u) {
+          if (u.satellite && u.satellite_name) { window.ic705Catalog[u.satellite] = u.satellite_name.split(" (")[0]; }
+        });
         if (d.error) {
           recentEl.innerHTML = upcomingEl.innerHTML = '<p class="icom-empty">' + esc(d.error) + "</p>";
           return;
