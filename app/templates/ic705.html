@@ -258,6 +258,7 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 
 <!-- ============ Ueberblick +-60 Minuten ============ -->
 <section class="icom-overview">
+  <div class="icom-col">
   <div class="icom-menu">
     <div class="icom-menu-bar"><span>AMSAT LIVE · LETZTE 60 MIN</span><a href="https://status.amsat.org/" target="_blank" rel="noopener">status.amsat.org ↗</a></div>
     <div class="icom-menu-body">
@@ -269,6 +270,39 @@ OrbitHub &middot; {{ t('nav.ic705') }}
       <div class="icom-list" id="ic705-recent-list"><p class="icom-empty">Lade …</p></div>
       <p class="icom-hint" id="ic705-recent-meta"></p>
     </div>
+  </div>
+
+  <!-- ============ SSTV-Decoder ============ -->
+  <div class="icom-menu" id="ic705-sstv">
+    <div class="icom-menu-bar"><span>SSTV · DECODER</span><span class="icom-menu-note" id="sstv-state">aus</span></div>
+    <div class="icom-menu-body">
+      <div class="sstv-screen" id="sstv-screen">
+        <canvas id="sstv-canvas" width="320" height="256"></canvas>
+        <div class="sstv-overlay" id="sstv-overlay">Decoder aus – „▶ SSTV an“ hört den Audio-Stream des IC-705 ab und wartet auf den VIS-Code eines Bildes.</div>
+      </div>
+      <div class="sstv-meta">
+        <span class="sstv-mode" id="sstv-mode">–</span>
+        <span id="sstv-lines"></span>
+        <span class="sstv-tone" id="sstv-tone" title="Tonfrequenz im Empfänger: Sync 1200 Hz, Schwarz 1500 Hz, Weiß 2300 Hz">– Hz</span>
+      </div>
+      <div class="sstv-bar"><div id="sstv-bar-fill"></div></div>
+      <div class="sstv-tonebar" title="Ton: Sync 1200 · Schwarz 1500 · Leader 1900 · Weiß 2300 Hz"><i style="left:8.33%"></i><i style="left:33.33%"></i><i style="left:66.67%"></i><i style="left:100%"></i><b id="sstv-tone-mark"></b></div>
+      <div class="icom-keygrid sstv-keys">
+        <button type="button" class="icom-key icom-key-go" id="sstv-toggle">▶ SSTV an</button>
+        <button type="button" class="icom-key icom-key-stop" id="sstv-finish" disabled title="Laufendes Bild jetzt abschließen (z. B. wenn der Satellit untergeht)">■ Bild fertig</button>
+        <button type="button" class="icom-key" id="sstv-save" disabled title="Aktuelles bzw. letztes Bild als PNG speichern">💾 Speichern</button>
+      </div>
+      <div class="icom-field">
+        <span class="icom-field-label">Ohne VIS</span>
+        <select id="sstv-force-mode" class="icom-input"></select>
+        <button type="button" class="icom-btn icom-btn-small" id="sstv-force" title="Bild sofort in dieser Betriebsart beginnen – falls der VIS-Code verpasst wurde">Jetzt starten</button>
+      </div>
+      <label class="sstv-check"><input type="checkbox" id="sstv-autosave"> Fertige Bilder automatisch speichern (Download-Ordner)</label>
+      <label class="icom-btn icom-btn-small sstv-file" title="WAV/MP3-Aufnahme eines SSTV-Bildes vom Rechner dekodieren">📂 Aufnahme dekodieren …<input type="file" id="sstv-file" accept="audio/*,.wav,.mp3,.ogg,.flac" hidden></label>
+      <div class="sstv-gallery" id="sstv-gallery"></div>
+      <p class="icom-hint">Erkennt PD 50–290 (ISS: PD 120/180), Robot 36/72, Martin M1/M2, Scottie S1/S2/DX am VIS-Code, Schräglauf wird über die Sync-Impulse korrigiert. Tipp: FM, Rauschsperre offen oder niedrig, Tab im Vordergrund lassen.</p>
+    </div>
+  </div>
   </div>
 
   <div class="icom-menu">
@@ -532,6 +566,28 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.2rem; margin-bottom: 1.2rem; align-items: start; }
 .icom-overview { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
 @media (max-width: 1250px) { .icom-overview { grid-template-columns: 1fr 1fr; } }
+.icom-col { display: flex; flex-direction: column; gap: 1.2rem; min-width: 0; }
+.sstv-screen { position: relative; background: #020408; border: 1px solid #1c242d; border-radius: 6px; overflow: hidden; aspect-ratio: 320 / 256; box-shadow: 0 0 0 1px #000 inset, 0 0 18px rgba(56,200,255,0.06) inset; }
+.sstv-screen canvas { display: block; width: 100%; height: 100%; }
+.sstv-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 1.2em; font-size: 0.82rem; color: var(--icom-dim); background: radial-gradient(ellipse at center, rgba(10,16,24,0.6), rgba(2,4,8,0.92)); }
+.sstv-meta { display: flex; gap: 0.8em; align-items: baseline; margin: 8px 0 4px; font-family: var(--icom-mono); font-size: 0.8rem; color: var(--icom-dim); flex-wrap: wrap; }
+.sstv-mode { color: var(--icom-amber); font-weight: 700; font-size: 0.95rem; }
+.sstv-tone { margin-left: auto; color: var(--icom-cyan); }
+.sstv-bar { height: 4px; background: #141a21; border-radius: 2px; overflow: hidden; }
+.sstv-bar div { height: 100%; width: 0; background: var(--icom-green); box-shadow: 0 0 6px var(--icom-green); transition: width 0.3s; }
+.sstv-tonebar { position: relative; height: 8px; margin: 7px 0 10px; border-radius: 3px; background: linear-gradient(90deg, #3a1a1a 0%, #3a1a1a 20.8%, #111 20.8%, #111 33.3%, #000 33.3%, #fff 100%); opacity: 0.85; }
+.sstv-tonebar i { position: absolute; top: -2px; bottom: -2px; width: 1px; background: #5b6774; }
+.sstv-tonebar b { position: absolute; top: -3px; width: 3px; height: 14px; margin-left: -1px; background: var(--icom-cyan); box-shadow: 0 0 5px var(--icom-cyan); display: none; }
+.sstv-keys { margin-bottom: 6px; }
+.icom #sstv-toggle.is-on::before { background: var(--icom-green); box-shadow: 0 0 6px var(--icom-green); }
+.sstv-check { display: flex; gap: 0.5em; align-items: center; font-size: 0.82rem; color: var(--icom-text); margin: 6px 0; cursor: pointer; }
+.sstv-file { display: inline-block; margin: 2px 0 4px; }
+.sstv-gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0 4px; }
+.sstv-gallery:empty { display: none; }
+.sstv-thumb { position: relative; display: block; border: 1px solid #2f353c; border-radius: 4px; overflow: hidden; background: #000; cursor: pointer; padding: 0; }
+.sstv-thumb img { display: block; width: 100%; aspect-ratio: 320 / 256; object-fit: cover; }
+.sstv-thumb span { position: absolute; left: 0; right: 0; bottom: 0; font-size: 0.6rem; padding: 1px 3px; background: rgba(0,0,0,0.65); color: #dfe7ef; font-family: var(--icom-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sstv-thumb:hover { border-color: var(--icom-cyan); }
 @media (max-width: 820px) { .icom-overview { grid-template-columns: 1fr; } }
 .icom-menu, .icom-dialog { background: #07090c; border: 1px solid #2f353c; border-radius: 10px; overflow: hidden; color: var(--icom-text); box-shadow: 0 8px 22px rgba(0,0,0,0.3); }
 .icom-menu-bar {
@@ -2241,6 +2297,216 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
   }
   poll();
   setInterval(poll, 1000);
+})();
+</script>
+
+<script src="{{ url_for('static', path='js/sstv.js') }}?v={{ version }}-sstv1"></script>
+<script>
+/* SSTV-Decoder: Audio-Stream -> OrbitSSTV.Decoder -> Canvas, PNG speichern */
+(function () {
+  if (!window.OrbitSSTV) { return; }
+  var $ = function (id) { return document.getElementById(id); };
+  var canvas = $("sstv-canvas"), c2d = canvas.getContext("2d"), overlay = $("sstv-overlay");
+  var toggle = $("sstv-toggle"), finishBtn = $("sstv-finish"), saveBtn = $("sstv-save");
+  var forceSel = $("sstv-force-mode"), forceBtn = $("sstv-force"), autoBox = $("sstv-autosave");
+  var stateEl = $("sstv-state"), modeEl = $("sstv-mode"), linesEl = $("sstv-lines"), toneEl = $("sstv-tone");
+  var barEl = $("sstv-bar-fill"), markEl = $("sstv-tone-mark"), gallery = $("sstv-gallery"), screen = $("sstv-screen");
+  var streamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
+  var actx = null, audio = null, proc = null, dec = null, timer = null, imgData = null, lastImage = null;
+  var shots = [];
+
+  OrbitSSTV.MODES.forEach(function (m) {
+    var o = document.createElement("option"); o.value = m.name; o.textContent = m.name + " · " + m.w + "×" + m.h;
+    forceSel.appendChild(o);
+  });
+  try { forceSel.value = localStorage.getItem("ic705-sstv-force") || "PD 120"; } catch (e) { forceSel.value = "PD 120"; }
+  try { autoBox.checked = localStorage.getItem("ic705-sstv-autosave") !== "0"; } catch (e) { autoBox.checked = true; }
+  autoBox.addEventListener("change", function () { try { localStorage.setItem("ic705-sstv-autosave", autoBox.checked ? "1" : "0"); } catch (e) {} });
+  forceSel.addEventListener("change", function () { try { localStorage.setItem("ic705-sstv-force", forceSel.value); } catch (e) {} });
+
+  function setState(txt, cls) { stateEl.textContent = txt; stateEl.style.color = cls || ""; }
+  function msg(txt) { overlay.hidden = !txt; overlay.textContent = txt || ""; }
+
+  function setupCanvas(mode) {
+    canvas.width = mode.w; canvas.height = mode.h;
+    screen.style.aspectRatio = mode.w + " / " + mode.h;
+    c2d.fillStyle = "#000"; c2d.fillRect(0, 0, mode.w, mode.h);
+    imgData = c2d.createImageData(mode.w, mode.h);
+  }
+  function draw(rgba) {
+    if (!imgData || imgData.data.length !== rgba.length) { return; }
+    imgData.data.set(rgba); c2d.putImageData(imgData, 0, 0);
+  }
+
+  function satName() {
+    var s = ($("icom-sat-name") || {}).textContent || "";
+    return /kein satellit/i.test(s) ? "" : s.trim();
+  }
+  function fileName(info) {
+    var d = info.time, p = function (n) { return String(n).padStart(2, "0"); };
+    var stamp = d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate()) + "_" + p(d.getUTCHours()) + p(d.getUTCMinutes()) + p(d.getUTCSeconds()) + "Z";
+    var parts = ["SSTV", stamp];
+    if (info.sat) { parts.push(info.sat); }
+    parts.push(info.mode);
+    return parts.join("_").replace(/[^A-Za-z0-9_.-]+/g, "-").replace(/-+/g, "-") + ".png";
+  }
+  function download(url, name) {
+    var a = document.createElement("a"); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function addShot(blob, info) {
+    var url = URL.createObjectURL(blob), name = fileName(info);
+    var shot = { url: url, name: name, info: info };
+    shots.unshift(shot);
+    while (shots.length > 8) { URL.revokeObjectURL(shots.pop().url); }
+    renderGallery();
+    return shot;
+  }
+  function renderGallery() {
+    gallery.innerHTML = "";
+    shots.forEach(function (s) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "sstv-thumb";
+      b.title = s.name + " – klicken zum Speichern";
+      var hh = String(s.info.time.getHours()).padStart(2, "0") + ":" + String(s.info.time.getMinutes()).padStart(2, "0");
+      b.innerHTML = '<img alt=""><span></span>';
+      b.querySelector("img").src = s.url;
+      b.querySelector("span").textContent = hh + " " + s.info.mode;
+      b.addEventListener("click", function () { download(s.url, s.name); });
+      gallery.appendChild(b);
+    });
+  }
+
+  function onEvent(e) {
+    if (e.type === "start") {
+      setupCanvas(e.mode); msg("");
+      modeEl.textContent = e.mode.name + (e.fromVis ? "" : " (ohne VIS)");
+      linesEl.textContent = "0/" + e.mode.h;
+      barEl.style.width = "0";
+      setState("● EMPFANG", "#3ce07a");
+      finishBtn.disabled = false; saveBtn.disabled = false;
+    } else if (e.type === "progress") {
+      linesEl.textContent = e.lines + "/" + e.total;
+      barEl.style.width = (e.lines / e.total * 100).toFixed(1) + "%";
+    } else if (e.type === "vis-unknown") {
+      setState("VIS " + e.code + " unbekannt", "#ffad1f");
+    } else if (e.type === "done") {
+      var r = e.result;
+      draw(r.rgba);
+      linesEl.textContent = r.lines + "/" + r.h + " · " + r.reason;
+      barEl.style.width = (r.lines / r.h * 100).toFixed(1) + "%";
+      finishBtn.disabled = true;
+      setState(audio ? "lauscht …" : "aus");
+      if (r.lines < 16) { return; }
+      var info = { mode: r.mode.name.replace(/\s+/g, ""), sat: satName(), time: new Date(), lines: r.lines, h: r.h };
+      canvas.toBlob(function (blob) {
+        if (!blob) { return; }
+        var shot = addShot(blob, info);
+        lastImage = shot;
+        if (autoBox.checked && r.lines >= r.h * 0.2) { download(shot.url, shot.name); }
+      }, "image/png");
+    }
+  }
+
+  function tick() {
+    if (!dec) { return; }
+    var f = dec.currentTone(), lvl = dec.level;
+    if (lvl > 1e-7 && f) {
+      toneEl.textContent = Math.round(f) + " Hz";
+      markEl.style.display = "block";
+      markEl.style.left = Math.max(0, Math.min(100, (f - 1100) / 1200 * 100)) + "%";
+    } else { toneEl.textContent = "kein Ton"; markEl.style.display = "none"; }
+    if (dec.state === "decode" && dec.img) { draw(dec.img.rgba); }
+  }
+
+  function start() {
+    msg("Verbinde mit dem Audio-Stream …");
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      audio = new Audio();
+      audio.crossOrigin = "anonymous";
+      audio.src = streamUrl + "?sstv=" + Date.now();
+      var source = actx.createMediaElementSource(audio);
+      proc = actx.createScriptProcessor(4096, 1, 1);
+      var mute = actx.createGain(); mute.gain.value = 0;
+      dec = new OrbitSSTV.Decoder(actx.sampleRate, { onEvent: onEvent });
+      proc.onaudioprocess = function (ev) { if (dec) { dec.process(ev.inputBuffer.getChannelData(0)); } };
+      source.connect(proc); proc.connect(mute); mute.connect(actx.destination);
+      actx.resume();
+      audio.addEventListener("playing", function () {
+        if (dec && dec.state === "hunt") { msg(lastImage ? "" : "Lausche … warte auf den VIS-Code eines SSTV-Bildes."); }
+      });
+      audio.addEventListener("error", function () {
+        if (audio) { stop(); msg("Audio-Stream (Port 8766) nicht erreichbar – läuft audio-stream.service?"); setState("Fehler", "#ff4d3d"); }
+      });
+      audio.play().catch(function (err) { stop(); msg("Stream konnte nicht gestartet werden: " + err.message); });
+    } catch (err) {
+      stop(); msg("SSTV nicht möglich: " + err.message); return;
+    }
+    timer = setInterval(tick, 250);
+    toggle.textContent = "■ SSTV aus"; toggle.classList.add("is-on");
+    setState("lauscht …");
+  }
+  function stop() {
+    if (dec && dec.state === "decode") { dec.stop(); }
+    if (timer) { clearInterval(timer); timer = null; }
+    if (proc) { proc.onaudioprocess = null; try { proc.disconnect(); } catch (e) {} proc = null; }
+    if (audio) { var a = audio; audio = null; a.pause(); a.removeAttribute("src"); a.load(); }
+    dec = null;
+    toggle.textContent = "▶ SSTV an"; toggle.classList.remove("is-on");
+    finishBtn.disabled = true;
+    toneEl.textContent = "– Hz"; markEl.style.display = "none";
+    setState("aus", "");
+    if (!lastImage) { msg("Decoder aus – „▶ SSTV an“ hört den Audio-Stream des IC-705 ab und wartet auf den VIS-Code eines Bildes."); }
+  }
+
+  toggle.addEventListener("click", function () { if (audio) { stop(); } else { start(); } });
+  finishBtn.addEventListener("click", function () { if (dec) { dec.stop(); } });
+  forceBtn.addEventListener("click", function () {
+    if (!audio) { start(); }
+    if (!dec) { return; }
+    if (dec.state === "decode") { dec.stop(); }
+    dec.startDecode(forceSel.value);
+  });
+  saveBtn.addEventListener("click", function () {
+    if (dec && dec.state === "decode") {
+      var m = dec.mode;
+      canvas.toBlob(function (blob) {
+        if (!blob) { return; }
+        var shot = addShot(blob, { mode: m.name.replace(/\s+/g, ""), sat: satName(), time: new Date() });
+        download(shot.url, shot.name);
+      }, "image/png");
+    } else if (lastImage) {
+      download(lastImage.url, lastImage.name);
+    }
+  });
+  window.addEventListener("beforeunload", function () { if (audio) { stop(); } });
+
+  // Aufnahme (WAV/MP3) vom Rechner dekodieren
+  function decodeSamples(x, rate) {
+    if (audio) { stop(); }
+    var fd = new OrbitSSTV.Decoder(rate, { onEvent: onEvent }), i = 0, chunk = Math.round(rate * 2);
+    setState("Datei …", "#38c8ff"); msg("Suche VIS-Code in der Aufnahme …");
+    (function step() {
+      var end = Math.min(x.length, i + chunk);
+      fd.process(x.subarray(i, end)); i = end;
+      if (fd.state === "decode" && fd.img) { draw(fd.img.rgba); }
+      if (i < x.length) { setTimeout(step, 0); return; }
+      if (fd.state === "decode") { fd.stop(); }
+      else if (!fd.mode) { msg("Kein SSTV-Bild (VIS-Code) in der Aufnahme gefunden – ggf. „Ohne VIS“ wählen und live starten."); }
+      setState("aus", "");
+    })();
+  }
+  $("sstv-file").addEventListener("change", function (ev) {
+    var file = ev.target.files && ev.target.files[0];
+    if (!file) { return; }
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    file.arrayBuffer().then(function (buf) { return ctx.decodeAudioData(buf); }).then(function (ab) {
+      decodeSamples(ab.getChannelData(0), ab.sampleRate);
+      ctx.close();
+    }).catch(function (err) { msg("Datei nicht lesbar: " + (err && err.message || err)); });
+    ev.target.value = "";
+  });
+  window.OrbitSSTVUI = { decodeSamples: decodeSamples };
 })();
 </script>
 {% endblock %}
