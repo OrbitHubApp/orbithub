@@ -256,7 +256,7 @@ OrbitHub &middot; {{ t('nav.ic705') }}
   </section>
 </section>
 
-<!-- ============ Ueberblick +-60 Minuten ============ -->
+<!-- ============ Ueberblick: letzte 60 / kommende 120 Minuten ============ -->
 <section class="icom-overview">
   <div class="icom-col">
   <div class="icom-menu">
@@ -306,7 +306,7 @@ OrbitHub &middot; {{ t('nav.ic705') }}
   </div>
 
   <div class="icom-menu">
-    <div class="icom-menu-bar"><span>KOMMENDE 60 MIN</span><span class="icom-menu-note" id="ic705-upcoming-meta"></span></div>
+    <div class="icom-menu-bar"><span>KOMMENDE 120 MIN</span><span class="icom-menu-note" id="ic705-upcoming-meta"></span></div>
     <div class="icom-menu-body">
       <div class="icom-list" id="ic705-upcoming-list"><p class="icom-empty">Lade …</p></div>
       <p class="icom-hint">📻 stellt den IC-705 ein (Doppler läuft), ✎ füllt den AMSAT-Bericht vor.</p>
@@ -1267,7 +1267,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     startBtn.addEventListener("click", function () {
       showError(null);
       if (!noradId) {
-        showError("Bitte zuerst einen Satelliten wählen – Merkliste, NORAD-ID oder „Kommende 60 Minuten“.");
+        showError("Bitte zuerst einen Satelliten wählen – Merkliste, NORAD-ID oder „Kommende 120 Minuten“.");
         return;
       }
       startBtn.disabled = true;
@@ -1720,7 +1720,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
   function currentPass() {
     var selNorad = rigPanel ? String(rigPanel.dataset.noradId || "") : "";
     // Vorhergesagter Ueberflug (ab Funk-Horizont = hoerbar) hat Vorrang vor der
-    // reinen Sichtbahn ab 0 Grad - gleiche Zeiten wie in "Kommende 60 Minuten"
+    // reinen Sichtbahn ab 0 Grad - gleiche Zeiten wie in "Kommende 120 Minuten"
     if (passList.length && new Date(passList[0].set) > new Date() && (!sky || String(sky.norad_id) === selNorad)) {
       return Object.assign({ name: rigPanel ? rigPanel.dataset.satName : "" }, passList[0]);
     }
@@ -1753,7 +1753,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       title.textContent = sky ? sky.name : "Kein Überflug";
       plotEmpty.textContent = sky
         ? "Der verfolgte Satellit geht in den nächsten 25 Minuten nicht auf."
-        : "Kein Satellit gewählt oder verfolgt. Wähle oben einen Satelliten oder unter „Kommende 60 Minuten“.";
+        : "Kein Satellit gewählt oder verfolgt. Wähle oben einen Satelliten oder unter „Kommende 120 Minuten“.";
       return;
     }
     var pts = cur.track;
@@ -1973,7 +1973,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     var list = ov.upcoming || [];
     upcomingMeta.textContent = list.length ? "bei AMSAT in 24 h gemeldet" : "";
     if (!list.length) {
-      upcomingEl.innerHTML = '<p class="icom-empty">In den nächsten 60 Minuten geht kein gemeldeter Satellit auf.</p>';
+      upcomingEl.innerHTML = '<p class="icom-empty">In den nächsten 120 Minuten geht kein gemeldeter Satellit auf.</p>';
       return;
     }
     var now = Date.now();

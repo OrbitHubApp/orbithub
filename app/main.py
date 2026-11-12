@@ -3531,7 +3531,7 @@ async def amsat_modes_for_satellite(norad_id: str, hours: int = 24) -> dict:
 async def ic705_overview() -> dict:
     """Uebersicht fuer /ic705: AMSAT-Berichte der letzten 60 Minuten (wie die
     Kaestchen auf status.amsat.org) und gemeldete Satelliten mit IC-705-Frequenz,
-    die in den kommenden 60 Minuten aufgehen (oder gerade im Bereich sind).
+    die in den kommenden 120 Minuten aufgehen (oder gerade im Bereich sind).
     Dazu die Angaben fuer das vorausgefuellte AMSAT-Meldeformular."""
     from datetime import timedelta
 
@@ -3587,7 +3587,7 @@ async def ic705_overview() -> dict:
                     }
                 )
 
-    horizon = now + timedelta(minutes=60)
+    horizon = now + timedelta(minutes=120)
     by_norad: dict[str, dict] = {}
     for entry in day["entries"]:
         next_pass = entry.get("next_pass")
