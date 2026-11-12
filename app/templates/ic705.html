@@ -35,6 +35,7 @@ OrbitHub &middot; {{ t('nav.ic705') }}
         <span class="icom-chip icom-chip-mode" id="ic705-radio-mode">--</span>
         <span class="icom-chip" id="icom-chip-state">MANUELL</span>
         <span class="icom-statusbar-spacer"></span>
+        <span class="icom-chip icom-chip-sql" id="icom-chip-sql" title="Rauschsperre">SQL --</span>
         <span class="icom-chip" id="icom-chip-audio">AF ▸ SPK</span>
         <span class="icom-clock" id="icom-clock">--:--:-- UTC</span>
       </div>
@@ -53,6 +54,15 @@ OrbitHub &middot; {{ t('nav.ic705') }}
           </div>
           <div class="ic705-radio-meta" id="ic705-radio-meta">Verbinde …</div>
         </div>
+      </div>
+
+      <div class="icom-meter" title="S-Meter des IC-705">
+        <span class="icom-meter-label">S</span>
+        <div class="icom-meter-track">
+          <div class="icom-meter-fill" id="icom-s-fill"></div>
+          <div class="icom-meter-scale" id="icom-s-scale"></div>
+        </div>
+        <span class="icom-meter-val" id="icom-s-val">--</span>
       </div>
 
       <div class="rig-freq-display" id="rig-freq-display">
@@ -116,6 +126,17 @@ OrbitHub &middot; {{ t('nav.ic705') }}
           <button type="button" id="rig-tracking-start" class="icom-key icom-key-go">▶ Doppler an</button>
           <button type="button" id="rig-tracking-stop" class="icom-key icom-key-stop" disabled>■ Doppler aus</button>
         </div>
+      </div>
+      <div class="icom-keygroup" id="icom-sql-group">
+        <div class="icom-keygroup-label">SQL · RAUSCHSPERRE <b id="icom-sql-val">--</b></div>
+        <input type="range" id="icom-sql-slider" class="icom-sql-slider" min="0" max="1000" step="1" value="0" aria-label="Rauschsperre">
+        <div class="icom-keygrid icom-keygrid-4">
+          <button type="button" class="icom-key" data-sql="open" title="Rauschsperre ganz offen (Rauschen hörbar)">OFFEN</button>
+          <button type="button" class="icom-key" data-sql="-1" title="eine Stufe empfindlicher">−</button>
+          <button type="button" class="icom-key" data-sql="+1" title="eine Stufe strenger">+</button>
+          <button type="button" class="icom-key" data-sql="auto" title="Rauschen messen und die Sperre knapp darüber setzen (kein Satellit in Reichweite!)">AUTO</button>
+        </div>
+        <div class="icom-sql-hint" id="icom-sql-hint">Links feinfühlig: die ersten Stufen öffnen schon bei leisen Signalen.</div>
       </div>
       <div class="icom-keygroup" id="rig-audio-actions">
         <div class="icom-keygroup-label">AF OUT</div>
@@ -422,6 +443,21 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom-satblock.is-soon .icom-sat-countdown { animation: icom-blink 1s ease-in-out infinite; }
 .icom-satblock.is-idle .icom-sat-name { color: #59636e; }
 .icom-satblock.is-past .icom-sat-name { color: #9aa5b1; }
+.icom-keygrid-4 { grid-template-columns: repeat(4, 1fr); }
+.icom-sql-slider { width: 100%; accent-color: var(--icom-amber); margin: 2px 0 6px; }
+.icom-sql-hint { font-size: 0.68rem; color: var(--icom-dim); margin-top: 4px; line-height: 1.3; }
+#icom-sql-val { color: var(--icom-amber); font-family: var(--icom-mono); letter-spacing: 0; }
+.icom-chip-sql.is-open { background: rgba(60,224,122,0.18); border-color: var(--icom-green); color: var(--icom-green); }
+.icom-chip-sql.is-closed { color: var(--icom-dim); }
+.icom-meter { display: flex; align-items: center; gap: 8px; padding: 6px 4px 8px; }
+.icom-meter-label { font-family: var(--icom-mono); font-weight: 700; color: var(--icom-cyan); }
+.icom-meter-track { position: relative; flex: 1; height: 26px; }
+.icom-meter-fill { position: absolute; left: 0; top: 2px; height: 9px; width: 0; border-radius: 1px;
+  background: linear-gradient(90deg, #e9edf1 0%, #e9edf1 49.8%, #ff4d3d 49.8%, #ff4d3d 100%); background-size: var(--icom-meter-w, 100%) 100%; transition: width 0.25s ease-out; }
+.icom-meter-scale { position: absolute; left: 0; right: 0; top: 13px; height: 13px; border-top: 1px solid #39424c; font-family: var(--icom-mono); font-size: 0.6rem; color: var(--icom-dim); }
+.icom-meter-scale span { position: absolute; top: 1px; transform: translateX(-50%); }
+.icom-meter-scale span.is-plus { color: #ff8a7a; }
+.icom-meter-val { min-width: 4.8em; text-align: right; font-family: var(--icom-mono); font-size: 0.85rem; color: #fff; }
 .icom-row.is-selected { box-shadow: inset 3px 0 0 var(--icom-cyan); background: rgba(56,200,255,0.06); }
 .icom-alias { font-size: 0.74rem; color: var(--icom-dim); font-weight: 500; margin-left: 4px; }
 .icom .ic705-radio-freq {
@@ -2068,6 +2104,138 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
   }
   recentEl.addEventListener("click", onListClick);
   upcomingEl.addEventListener("click", onListClick);
+})();
+</script>
+
+<script>
+(function () {
+  // ---- S-Meter und Rauschsperre (SQL) ----
+  var fill = document.getElementById("icom-s-fill");
+  var sval = document.getElementById("icom-s-val");
+  var scale = document.getElementById("icom-s-scale");
+  var chip = document.getElementById("icom-chip-sql");
+  var slider = document.getElementById("icom-sql-slider");
+  var valEl = document.getElementById("icom-sql-val");
+  var hint = document.getElementById("icom-sql-hint");
+  var group = document.getElementById("icom-sql-group");
+  var FULL = 241; // S9+60 dB
+  var current = null, dragging = false, sendTimer = null, lastSent = null, holdUntil = 0, autoRunning = false;
+
+  // Skala wie am IC-705: S1..S9 bis zur Mitte, dann +20/+40/+60 dB
+  [[1, "1"], [3, "3"], [5, "5"], [7, "7"], [9, "9"]].forEach(function (p) {
+    scale.insertAdjacentHTML("beforeend", '<span style="left:' + (p[0] * 120 / 9 / FULL * 100) + '%">' + p[1] + "</span>");
+  });
+  [[20, "+20"], [40, "+40"], [60, "+60"]].forEach(function (p) {
+    scale.insertAdjacentHTML("beforeend", '<span class="is-plus" style="left:' + Math.min(97, (120 + p[0] / 60 * 121) / FULL * 100) + '%">' + p[1] + "</span>");
+  });
+  function meterWidth() { fill.parentNode.style.setProperty("--icom-meter-w", fill.parentNode.clientWidth + "px"); }
+  meterWidth();
+  window.addEventListener("resize", meterWidth);
+
+  function sText(raw) {
+    if (raw <= 120) { return "S" + Math.round(raw / 120 * 9); }
+    return "S9+" + Math.round((raw - 120) / 121 * 60);
+  }
+  // Regler quadratisch: der empfindliche untere Bereich bekommt viel Weg
+  // (halber Regler = Stufe 64 von 255)
+  function rawFromSlider(u) { return Math.round(255 * Math.pow(u / 1000, 2)); }
+  function sliderFromRaw(r) { return Math.round(Math.sqrt(r / 255) * 1000); }
+  // Gemessene Rausch-Schwelle (AUTO) - die Beschreibung richtet sich danach
+  var thr = null, msgUntil = 0;
+  try { thr = Number(localStorage.getItem("ic705-sql-threshold")) || null; } catch (e) {}
+  function describe(r) {
+    if (r === 0) { return "offen – Rauschen hörbar"; }
+    if (thr === null) { return "Stufe " + r + " – AUTO misst die Rausch-Schwelle"; }
+    if (r < thr) { return "unter der Rausch-Schwelle (" + thr + ") – Rauschen hörbar"; }
+    if (r <= thr + 3) { return "sehr empfindlich – knapp über dem Rauschen, leise Signale öffnen"; }
+    if (r <= thr + 15) { return "empfindlich – schwächste Signale bleiben evtl. stumm"; }
+    return "streng – nur kräftige Signale öffnen";
+  }
+  function showLevel(r) {
+    valEl.textContent = r + "/255";
+    if (!autoRunning && Date.now() > msgUntil) { hint.textContent = describe(r); }
+  }
+
+  function send(raw) {
+    raw = Math.max(0, Math.min(255, raw));
+    current = raw;
+    showLevel(raw);
+    if (!dragging) { slider.value = sliderFromRaw(raw); }
+    holdUntil = Date.now() + 2500; // Rueckmeldung des Geraets kurz abwarten
+    if (sendTimer) { clearTimeout(sendTimer); }
+    sendTimer = setTimeout(function () {
+      if (lastSent === raw) { return; }
+      lastSent = raw;
+      fetch("/api/rig/squelch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ raw: raw }) })
+        .then(function (r) { if (!r.ok) { return r.json().then(function (d) { throw new Error(d.detail || "Fehler"); }); } })
+        .catch(function (err) { hint.textContent = "SQL nicht gesetzt: " + err.message; lastSent = null; });
+    }, 120);
+  }
+
+  slider.addEventListener("input", function () { dragging = true; send(rawFromSlider(Number(slider.value))); });
+  slider.addEventListener("change", function () { dragging = false; });
+  group.addEventListener("click", function (evt) {
+    var b = evt.target.closest("[data-sql]");
+    if (!b || current === null || autoRunning) { return; }
+    var a = b.dataset.sql;
+    if (a === "open") { send(0); }
+    else if (a === "auto") { autoSet(); }
+    else { send(current + Number(a)); }
+  });
+
+  // AUTO: Sperre schrittweise anheben, bis das Rauschen gerade schliesst,
+  // dann eine Stufe darueber -> so empfindlich wie moeglich, ohne Dauerrauschen.
+  function autoSet() {
+    var r = 0;
+    autoRunning = true;
+    hint.textContent = "AUTO: suche die Schwelle … (gerade kein Signal auf der Frequenz)";
+    function done(msg) { autoRunning = false; hint.textContent = msg; msgUntil = Date.now() + 10000; }
+    function step() {
+      send(r);
+      setTimeout(function () {
+        fetch("/api/rig/meter").then(function (x) { return x.json(); }).then(function (d) {
+          if (!d.ok) { done("AUTO abgebrochen: " + (d.error || "")); return; }
+          if (!d.sql_open) {
+            thr = r;
+            try { localStorage.setItem("ic705-sql-threshold", String(r)); } catch (e) {}
+            send(r + 1); done("AUTO: Rauschen schließt bei " + r + " – gesetzt auf " + (r + 1) + "/255 (rauscht es ab und zu, einmal +)"); return;
+          }
+          r += r < 20 ? 1 : 3;
+          if (r > 160) { done("AUTO: Rauschen sehr stark – bitte von Hand einstellen"); return; }
+          hint.textContent = "AUTO: teste Stufe " + r + " …";
+          step();
+        }).catch(function () { done("AUTO abgebrochen"); });
+      }, 1300);
+    }
+    step();
+  }
+
+  function poll() {
+    if (document.hidden) { return; }
+    fetch("/api/rig/meter").then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) {
+        fill.style.width = "0";
+        sval.textContent = "--";
+        chip.textContent = "SQL --";
+        chip.className = "icom-chip icom-chip-sql";
+        if (/RPRT -11/.test(d.error || "")) {
+          hint.textContent = "kappanhang kennt den SQL-Befehl noch nicht – Update nötig (tools/rig).";
+        }
+        return;
+      }
+      fill.style.width = Math.min(100, d.s_raw / FULL * 100) + "%";
+      sval.textContent = sText(d.s_raw);
+      chip.textContent = d.sql_open ? "SQL OFFEN" : "SQL ZU";
+      chip.className = "icom-chip icom-chip-sql " + (d.sql_open ? "is-open" : "is-closed");
+      if (Date.now() > holdUntil && !dragging && !autoRunning) {
+        current = d.sql_raw;
+        slider.value = sliderFromRaw(current);
+        showLevel(current);
+      }
+    }).catch(function () {});
+  }
+  poll();
+  setInterval(poll, 1000);
 })();
 </script>
 {% endblock %}

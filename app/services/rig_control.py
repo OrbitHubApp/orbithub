@@ -102,6 +102,25 @@ class RigControl:
         """
         self._command(f"M {mode} {passband}")
 
+    def get_meter(self) -> dict:
+        """S-Meter und Rauschsperre (braucht die OrbitHub-Erweiterung von
+        kappanhang: l SQL / l RAWSTR / l SQLSTAT)."""
+        def level(name: str) -> str:
+            return self._command(f"l {name}").splitlines()[0].strip()
+
+        try:
+            sql = float(level("SQL"))
+            s_raw = int(float(level("RAWSTR")))
+            sql_open = level("SQLSTAT") == "1"
+        except ValueError as exc:
+            raise RigControlError(f"Unerwartete Antwort beim Lesen der Pegel: {exc}") from exc
+        return {"sql_raw": round(sql * 255), "s_raw": s_raw, "sql_open": sql_open}
+
+    def set_squelch_raw(self, raw: int) -> None:
+        """Rauschsperre in voller IC-705-Aufloesung setzen (0 = offen ... 255)."""
+        raw = max(0, min(255, int(raw)))
+        self._command(f"L SQL {raw / 255:.6f}")
+
     def is_reachable(self) -> bool:
         """Prueft ohne Exception, ob rigctld gerade erreichbar ist."""
         try:

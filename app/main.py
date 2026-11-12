@@ -3075,6 +3075,34 @@ async def rig_state() -> dict:
     return await asyncio.to_thread(_read)
 
 
+@app.get("/api/rig/meter")
+async def rig_meter() -> dict:
+    """S-Meter, Rauschsperren-Stellung und ob die Sperre gerade offen ist."""
+
+    def _read() -> dict:
+        try:
+            return {"ok": True, **rig_control.get_meter()}
+        except RigControlError as exc:
+            return {"ok": False, "error": str(exc)}
+
+    return await asyncio.to_thread(_read)
+
+
+@app.post("/api/rig/squelch")
+async def rig_squelch(request: Request) -> dict:
+    """Setzt die Rauschsperre des IC-705 (raw 0..255, 0 = offen)."""
+    payload = await request.json()
+    try:
+        raw = int(payload.get("raw"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="raw 0..255 erwartet")
+    try:
+        await asyncio.to_thread(rig_control.set_squelch_raw, raw)
+    except RigControlError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return {"ok": True, "raw": max(0, min(255, raw))}
+
+
 @app.get("/ic705")
 async def ic705_page(request: Request, satellite: str | None = None):
     """Eigene Seite fuer die IC-705-Steuerung (Doppler-Tracking, Transponder, Ton)."""

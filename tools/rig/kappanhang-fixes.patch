@@ -1,8 +1,119 @@
+diff --git a/civcontrol.go b/civcontrol.go
+index 13d3fa5..7e0bcb3 100644
+--- a/civcontrol.go
++++ b/civcontrol.go
+@@ -96,6 +96,7 @@ type civControlStruct struct {
+ 
+ 		getPwr            civCmd
+ 		getS              civCmd
++		getSQLStatus      civCmd
+ 		getOVF            civCmd
+ 		getSWR            civCmd
+ 		getTransmitStatus civCmd
+@@ -147,6 +148,9 @@ type civControlStruct struct {
+ 		pwrPercent          int
+ 		rfGainPercent       int
+ 		sqlPercent          int
++		sqlRaw              int // 0..255 (BCD-Wert des IC-705)
++		sRaw                int // S-Meter 0..255: 0 = S0, 120 = S9, 241 = S9+60 dB
++		sqlOpen             bool // Rauschsperre gerade offen (Signal da)
+ 		nrPercent           int
+ 		nrEnabled           bool
+ 		operatingModeIdx    int
+@@ -455,6 +459,7 @@ func (s *civControlStruct) decodePowerRFGainSQLNRPwr(d []byte) bool {
+ 		}
+ 		hex := uint16(d[1])<<8 | uint16(d[2])
+ 		s.state.sqlPercent = int(math.Round((float64(hex) / 0x0255) * 100))
++		s.state.sqlRaw = bcdLevel(d[1], d[2])
+ 		statusLog.reportSQL(s.state.sqlPercent)
+ 		if s.state.getSQL.pending {
+ 			s.removePendingCmd(&s.state.getSQL)
+@@ -560,6 +565,15 @@ func (s *civControlStruct) decodeTransmitStatus(d []byte) bool {
+ 
+ func (s *civControlStruct) decodeVdSWRS(d []byte) bool {
+ 	switch d[0] {
++	case 0x01:
++		if len(d) < 2 {
++			return !s.state.getSQLStatus.pending
++		}
++		s.state.sqlOpen = d[1] == 0x01
++		if s.state.getSQLStatus.pending {
++			s.removePendingCmd(&s.state.getSQLStatus)
++			return false
++		}
+ 	case 0x02:
+ 		if len(d) < 3 {
+ 			return !s.state.getS.pending
+@@ -594,6 +608,7 @@ func (s *civControlStruct) decodeVdSWRS(d []byte) bool {
+ 				sStr += "60"
+ 			}
+ 		}
++		s.state.sRaw = bcdLevel(d[1], d[2])
+ 		s.state.lastSReceivedAt = time.Now()
+ 		statusLog.reportS(sStr)
+ 		if s.state.getS.pending {
+@@ -870,6 +885,26 @@ func (s *civControlStruct) setSQL(percent int) error {
+ 	return s.sendCmd(&s.state.setSQL)
+ }
+ 
++// bcdLevel wandelt einen CI-V-Pegel (2 Bytes BCD, 0000..0255) in 0..255.
++func bcdLevel(hi, lo byte) int {
++	return int(hi>>4)*1000 + int(hi&0x0f)*100 + int(lo>>4)*10 + int(lo&0x0f)
++}
++
++// setSQLRaw setzt die Rauschsperre in voller Aufloesung (0..255, BCD), damit
++// auch sehr niedrige, empfindliche Stufen einstellbar sind.
++func (s *civControlStruct) setSQLRaw(v int) error {
++	if v < 0 {
++		v = 0
++	}
++	if v > 255 {
++		v = 255
++	}
++	hi := byte(v / 100)
++	lo := byte((v/10)%10)<<4 | byte(v%10)
++	s.initCmd(&s.state.setSQL, "setSQL", []byte{254, 254, civAddress, 224, 0x14, 0x03, hi, lo, 253})
++	return s.sendCmd(&s.state.setSQL)
++}
++
+ func (s *civControlStruct) incSQL() error {
+ 	if s.state.sqlPercent < 100 {
+ 		return s.setSQL(s.state.sqlPercent + 1)
+@@ -1226,6 +1261,11 @@ func (s *civControlStruct) getVd() error {
+ 	return s.sendCmd(&s.state.getVd)
+ }
+ 
++func (s *civControlStruct) getSQLStatus() error {
++	s.initCmd(&s.state.getSQLStatus, "getSQLStatus", []byte{254, 254, civAddress, 224, 0x15, 0x01, 253})
++	return s.sendCmd(&s.state.getSQLStatus)
++}
++
+ func (s *civControlStruct) getS() error {
+ 	s.initCmd(&s.state.getS, "getS", []byte{254, 254, civAddress, 224, 0x15, 0x02, 253})
+ 	return s.sendCmd(&s.state.getS)
+@@ -1318,6 +1358,9 @@ func (s *civControlStruct) loop() {
+ 				if !s.state.getS.pending && time.Since(s.state.lastSReceivedAt) >= statusPollInterval {
+ 					_ = s.getS()
+ 				}
++				if !s.state.getSQLStatus.pending {
++					_ = s.getSQLStatus()
++				}
+ 				if !s.state.getOVF.pending && time.Since(s.state.lastOVFReceivedAt) >= statusPollInterval {
+ 					_ = s.getOVF()
+ 				}
 diff --git a/rigctld.go b/rigctld.go
-index 5431cf8..2762209 100644
+index 5431cf8..76bdffd 100644
 --- a/rigctld.go
 +++ b/rigctld.go
-@@ -170,7 +170,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+@@ -4,6 +4,7 @@ import (
+ 	"bytes"
+ 	"fmt"
+ 	"io"
++	"math"
+ 	"net"
+ 	"strconv"
+ 	"strings"
+@@ -170,7 +171,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
  	case cmdSplit[0] == "M", cmdSplit[0] == "\\set_mode":
  		mode := cmdSplit[1]
  		var dataMode bool
@@ -11,7 +122,7 @@ index 5431cf8..2762209 100644
  			dataMode = true
  			mode = mode[3:]
  		}
-@@ -200,7 +200,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+@@ -200,7 +201,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
  		} else if width <= 2400 {
  			filterCode = 1
  		}
@@ -20,7 +131,7 @@ index 5431cf8..2762209 100644
  		if err != nil {
  			_ = s.sendReplyCode(rigctldInvalidParam)
  		} else {
-@@ -318,7 +318,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+@@ -318,7 +319,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
  	case cmdSplit[0] == "X", cmdSplit[0] == "\\set_split_mode":
  		mode := cmdSplit[1]
  		var dataMode byte
@@ -29,7 +140,7 @@ index 5431cf8..2762209 100644
  			dataMode = 1
  			mode = mode[3:]
  		}
-@@ -348,7 +348,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+@@ -348,12 +349,50 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
  		} else if width <= 2400 {
  			filterCode = 1
  		}
@@ -38,3 +149,46 @@ index 5431cf8..2762209 100644
  		if err != nil {
  			_ = s.sendReplyCode(rigctldInvalidParam)
  		} else {
+ 			_ = s.sendReplyCode(rigctldNoError)
+ 		}
++	case len(cmdSplit) >= 2 && (cmdSplit[0] == "l" || cmdSplit[0] == "\\get_level"):
++		civControl.state.mutex.Lock()
++		sqlRaw, sRaw, sqlOpen := civControl.state.sqlRaw, civControl.state.sRaw, civControl.state.sqlOpen
++		civControl.state.mutex.Unlock()
++		switch cmdSplit[1] {
++		case "SQL":
++			err = s.send(fmt.Sprintf("%.6f\n", float64(sqlRaw)/255))
++		case "SQLSTAT": // eigene Erweiterung: 1 = Rauschsperre offen
++			if sqlOpen {
++				err = s.send("1\n")
++			} else {
++				err = s.send("0\n")
++			}
++		case "RAWSTR":
++			err = s.send(fmt.Sprintf("%d\n", sRaw))
++		case "STRENGTH":
++			// Hamlib: dB relativ zu S9 (IC-705: 0 = S0, 120 = S9, 241 = S9+60)
++			var db float64
++			if sRaw <= 120 {
++				db = float64(sRaw)/120*54 - 54
++			} else {
++				db = float64(sRaw-120) / 121 * 60
++			}
++			err = s.send(fmt.Sprintf("%d\n", int(math.Round(db))))
++		default:
++			_ = s.sendReplyCode(rigctldUnsupportedCmd)
++		}
++	case len(cmdSplit) >= 3 && (cmdSplit[0] == "L" || cmdSplit[0] == "\\set_level") && cmdSplit[1] == "SQL":
++		v, perr := strconv.ParseFloat(cmdSplit[2], 64)
++		if perr != nil || v < 0 || v > 1 {
++			_ = s.sendReplyCode(rigctldInvalidParam)
++			break
++		}
++		if err = civControl.setSQLRaw(int(math.Round(v * 255))); err != nil {
++			_ = s.sendReplyCode(rigctldInvalidParam)
++		} else {
++			_ = s.sendReplyCode(rigctldNoError)
++		}
+ 	case cmd == "v": // Ignore this command.
+ 		_ = s.sendReplyCode(rigctldUnsupportedCmd)
+ 		return
