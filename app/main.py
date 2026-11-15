@@ -63,6 +63,7 @@ from app.services.transponder_db import (
     load_transponders,
 )
 from app.services.rig_control import RigControlError, rig_control, rig_mode_for
+from app.services.doppler import transponder_center_frequencies
 from app.services import amsat_status
 from app.models.tle_record import TLERecord
 from app.services.satnogs_tle import fetch_and_save_satnogs_tles, load_satnogs_tles, satnogs_record
@@ -3477,6 +3478,54 @@ async def select_live_variant(request: Request) -> dict:
         raise HTTPException(status_code=409, detail="Live-Beobachtung läuft nicht.")
     if not live_observer.select_variant(norad_id, key):
         raise HTTPException(status_code=404, detail="Betriebsart nicht gefunden.")
+    return {"ok": True, "status": asdict(live_observer.status)}
+
+
+@app.post("/api/rig/live/pin")
+async def pin_live_satellite(request: Request) -> dict:
+    """Haelt waehrend der Live-Beobachtung einen gerade hoerbaren Satelliten
+    von Hand fest (key) - leerer key schaltet zurueck auf automatisch."""
+    payload = await request.json()
+    key = str(payload.get("key", "")).strip()
+    if not live_observer.active:
+        raise HTTPException(status_code=409, detail="Live-Beobachtung läuft nicht.")
+    if not live_observer.pin(key or None):
+        raise HTTPException(status_code=404, detail="Satellit ist gerade nicht hörbar.")
+    return {"ok": True, "status": asdict(live_observer.status)}
+
+
+@app.post("/api/rig/live/transponder")
+async def select_live_transponder(request: Request) -> dict:
+    """Stellt waehrend der Live-Beobachtung einen frei gewaehlten Transponder
+    (oder eine manuelle Frequenz) fuer einen Satelliten ein."""
+    payload = await request.json()
+    norad_id = str(payload.get("norad_id", "")).strip()
+    if not live_observer.active:
+        raise HTTPException(status_code=409, detail="Live-Beobachtung läuft nicht.")
+    transponder_uuid = str(payload.get("transponder_uuid", "")).strip()
+    if transponder_uuid == "__manual__":
+        transponder = _manual_rig_transponder(payload)
+    else:
+        candidates = _transponders_for(norad_id, load_transponders(SATNOGS_TRANSMITTERS_FILE))
+        transponder = next((t for t in candidates if t.get("uuid") == transponder_uuid), None)
+    if transponder is None:
+        raise HTTPException(status_code=404, detail="Transponder nicht gefunden.")
+    mode_override = str(payload.get("mode_override", "")).strip().upper()
+    if mode_override:
+        transponder = {**transponder, "mode": mode_override}
+    rig_mode, _note = rig_mode_for(str(transponder.get("mode") or ""))
+    downlink_hz = transponder_center_frequencies(transponder)["downlink_hz"]
+    description = str(transponder.get("description") or "Transponder")
+    variant = {
+        "key": "__tx__:" + (transponder.get("uuid") or "") + ":" + str(downlink_hz),
+        "mode": description,
+        "rig_mode": rig_mode,
+        "downlink_hz": downlink_hz,
+        "description": description,
+        "transponder": transponder,
+    }
+    if not live_observer.select_transponder(norad_id, variant):
+        raise HTTPException(status_code=404, detail="Satellit gehört nicht zur Live-Beobachtung.")
     return {"ok": True, "status": asdict(live_observer.status)}
 
 

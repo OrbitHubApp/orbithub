@@ -653,6 +653,11 @@ select.icom-input option { color: #000; }
 .ic705-live-list { display: flex; flex-wrap: wrap; gap: 0.4em; margin: 0.3em 0 0.4em; }
 .ic705-live-chip { padding: 0.15em 0.6em; border-radius: 3px; border: 1px solid #3a424b; font-size: 0.82em; font-variant-numeric: tabular-nums; }
 .ic705-live-chip.is-current { border-color: var(--icom-cyan); color: var(--icom-cyan); }
+.icom .ic705-live-chip { background: #0e1720; color: inherit; font-family: inherit; cursor: pointer; }
+.icom .ic705-live-chip:hover:not(:disabled) { border-color: var(--icom-amber); }
+.icom .ic705-live-chip.is-pinned { border-color: var(--icom-amber); color: var(--icom-amber); }
+.icom .ic705-live-chip.is-auto { border-style: dashed; }
+.ic705-live-list-label { font-size: 0.8em; color: var(--icom-dim); align-self: center; }
 
 /* Ueberblick-Listen */
 .icom-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.72rem; color: var(--icom-dim); margin-bottom: 8px; align-items: center; }
@@ -835,6 +840,21 @@ select.icom-input option { color: #000; }
       .catch(function (err) { showError("Umschalten fehlgeschlagen: " + err.message); load(); });
   });
 
+  listEl.addEventListener("click", function (evt) {
+    var btn = evt.target.closest(".ic705-live-chip");
+    if (!btn || btn.classList.contains("is-pinned")) { return; }
+    Array.prototype.forEach.call(listEl.querySelectorAll(".ic705-live-chip"), function (b) { b.disabled = true; });
+    fetch("/api/rig/live/pin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: btn.dataset.key || "" }),
+    })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) { throw new Error(d.detail || "Fehler"); } return d; }); })
+      .then(function () { return new Promise(function (res) { setTimeout(res, 1500); }); })
+      .then(load)
+      .catch(function (err) { showError("Umschalten fehlgeschlagen: " + err.message); load(); });
+  });
+
   function render(d) {
     document.dispatchEvent(new CustomEvent("ic705-live-status", { detail: d }));
     var s = d.status || {};
@@ -856,6 +876,7 @@ select.icom-input option { color: #000; }
         '<span class="ic705-live-mode">' + esc(cur.mode) + "</span>" +
         '<span class="ic705-live-figs">' + (cur.downlink_hz / 1e6).toFixed(3) + " MHz " + esc(cur.rig_mode || "") +
         " · Elevation " + Math.round(cur.el) + "° · Azimut " + Math.round(cur.az) + "°" +
+        (s.pinned_key && s.pinned_key === cur.key ? " · 📌 von Hand" : "") +
         (cur.set ? " · LOS " + hhmm(cur.set) + " (" + remain(cur.set) + ")" : "") + "</span>" +
         variantButtons(cur);
     } else {
@@ -868,11 +889,19 @@ select.icom-input option { color: #000; }
     }
 
     var vis = s.visible || [];
-    listEl.innerHTML = vis.length > 1
-      ? vis.map(function (v) {
+    // Mehrere gleichzeitig hoerbar: per Klick einen festhalten
+    var pinned = s.pinned_key || null;
+    listEl.innerHTML = (vis.length > 1 || pinned)
+      ? '<span class="ic705-live-list-label">Hörbar – antippen zum Festhalten:</span>' +
+        vis.map(function (v) {
           var isCur = cur && v.key === cur.key;
-          return '<span class="ic705-live-chip' + (isCur ? " is-current" : "") + '">' + esc(v.name) + " " + esc(v.mode) + " · " + Math.round(v.el) + "°</span>";
-        }).join("")
+          var isPin = pinned && v.key === pinned;
+          return '<button type="button" class="ic705-live-chip' + (isCur ? " is-current" : "") + (isPin ? " is-pinned" : "") + '"' +
+            ' data-key="' + esc(v.key) + '"' + (isCur ? ' aria-pressed="true"' : "") +
+            ' title="' + (isPin ? "von Hand festgehalten" : "diesen Satelliten festhalten") + '">' +
+            (isPin ? "📌 " : "") + esc(v.name) + " " + esc(v.mode) + " · " + Math.round(v.el) + "°</button>";
+        }).join("") +
+        (pinned ? '<button type="button" class="ic705-live-chip is-auto" data-key="" title="wieder den höchsten automatisch wählen">↺ Automatisch</button>' : "")
       : "";
 
     var meta = s.candidates_count + " gemeldete Satelliten mit IC-705-Frequenz (AMSAT Live, gehört in " + s.hours + " h)";
@@ -1045,12 +1074,12 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     stopBtn.disabled = !active;
     // Transponder/Modus bleiben auch waehrend des Trackings waehlbar - ein
     // Wechsel stellt sofort um (ausser die Live-Beobachtung steuert gerade)
-    var liveSteers = active && !!document.body.dataset.liveActive;
-    if (transponderChoice) { transponderChoice.disabled = liveSteers || !transponderChoice.options.length; }
+    // auch waehrend der Live-Beobachtung: Wechsel gilt dann fuer den laufenden Satelliten
+    if (transponderChoice) { transponderChoice.disabled = !transponderChoice.options.length; }
     if (modeChoice) { modeChoice.disabled = false; } // Betriebsart immer umschaltbar
     markModeButtons(active ? status.rig_mode : (modeChoice ? modeChoice.value : ""));
-    if (manualRx) { manualRx.disabled = active; }
-    if (manualTx) { manualTx.disabled = active; }
+    if (manualRx) { manualRx.disabled = false; } // Aenderung stellt sofort um
+    if (manualTx) { manualTx.disabled = false; }
     freqDisplay.classList.toggle("is-live", active);
 
     if (modeNote) {
@@ -1231,10 +1260,36 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
   // Waehrend eines laufenden (manuellen) Trackings auf anderen Transponder
   // bzw. Modus umschalten: Tracking mit der neuen Auswahl neu starten.
   function retuneIfTracking() {
-    if (!trackingActive || document.body.dataset.liveActive || isManualSelected()) { return; }
+    if (!trackingActive) { return; }
+    if (isManualSelected() && !(manualRx && manualRx.value.trim())) { return; }
+    if (document.body.dataset.liveActive) { retuneLive(); return; }
     startBtn.disabled = false;
     startBtn.click();
   }
+
+  // Live-Beobachtung: anderen Transponder / manuelle Frequenz fuer den
+  // gerade verfolgten Satelliten einstellen (Beobachtung laeuft weiter)
+  function retuneLive() {
+    var target = (lastStatus && lastStatus.norad_id) || noradId;
+    showError(null);
+    fetch("/api/rig/live/transponder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        norad_id: target,
+        transponder_uuid: transponderChoice ? transponderChoice.value : "",
+        mode_override: modeChoice ? modeChoice.value : "",
+        manual_downlink_mhz: (isManualSelected() && manualRx) ? manualRx.value : "",
+        manual_uplink_mhz: (isManualSelected() && manualTx) ? manualTx.value : "",
+      }),
+    })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) { throw new Error(d.detail || "Fehler"); } return d; }); })
+      .then(function () { setTimeout(refreshStatus, 1500); })
+      .catch(function (err) { showError("Transponder nicht umgestellt: " + err.message); });
+  }
+  [manualRx, manualTx].forEach(function (el) {
+    if (el) { el.addEventListener("change", function () { if (isManualSelected()) { retuneIfTracking(); } }); }
+  });
 
   function refreshStatus() {
     fetch("/api/rig/tracking/status")

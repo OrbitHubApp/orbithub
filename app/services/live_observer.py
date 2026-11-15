@@ -21,7 +21,12 @@ Ablauf (alle CHECK_INTERVAL_SECONDS):
 Hat ein Satellit mehrere gehoerte Betriebsarten (ISS: Crew, FM-Repeater,
 SSTV, Digi), startet die Beobachtung mit der zuletzt gemeldeten. Ueber
 select_variant() laesst sich jederzeit umschalten; die Wahl gilt fuer diesen
-Satelliten, solange die Beobachtung laeuft.
+Satelliten, solange die Beobachtung laeuft. select_transponder() stellt
+einen beliebigen SatNOGS-Transponder ein (auch nicht gemeldete).
+
+Stehen mehrere Satelliten gleichzeitig ueber der Schwelle, laesst sich einer
+per pin() von Hand festhalten - bis er nicht mehr hoerbar ist, danach waehlt
+die Beobachtung wieder selbst.
 
 Der Zustand (an/aus, Zeitraum) wird in data/live-observer.json gespeichert,
 damit die Beobachtung einen Neustart des Containers uebersteht.
@@ -62,6 +67,8 @@ class LiveObserverStatus:
     visible: list[dict[str, Any]] = field(default_factory=list)
     next_up: dict[str, Any] | None = None
     switches: int = 0
+    # Von Hand festgehaltener Satellit (Schluessel), None = automatisch
+    pinned_key: str | None = None
     error: str | None = None
 
 
@@ -72,6 +79,9 @@ class LiveObserver:
         self._status = LiveObserverStatus()
         self._provider: CandidateProvider | None = None
         self._variant_choice: dict[str, str] = {}
+        # Frei gewaehlter Transponder je Satellit (nicht aus AMSAT gemeldet)
+        self._custom_variant: dict[str, dict[str, Any]] = {}
+        self._pinned_key: str | None = None
         self._candidates: list[dict[str, Any]] = []
         self._wake: asyncio.Event | None = None
 
@@ -106,6 +116,8 @@ class LiveObserver:
         self.stop(stop_tracking=False, persist=False)
         self._provider = provider
         self._variant_choice = {}
+        self._custom_variant = {}
+        self._pinned_key = None
         self._candidates = []
         self._wake = asyncio.Event()
         self._status = LiveObserverStatus(
@@ -130,6 +142,9 @@ class LiveObserver:
 
     # ------------------------------------------------------------- Varianten
     def _variant(self, candidate: dict[str, Any]) -> dict[str, Any]:
+        custom = self._custom_variant.get(candidate["norad_id"])
+        if custom is not None:
+            return custom
         wanted = self._variant_choice.get(candidate["norad_id"])
         for variant in candidate["variants"]:
             if variant["key"] == wanted:
@@ -142,12 +157,41 @@ class LiveObserver:
         if candidate is None or not any(v["key"] == key for v in candidate["variants"]):
             return False
         self._variant_choice[norad_id] = key
+        self._custom_variant.pop(norad_id, None)
         if self._wake is not None:
             self._wake.set()
         return True
 
-    @staticmethod
-    def _variant_list(candidate: dict[str, Any], active_key: str) -> list[dict[str, Any]]:
+    def select_transponder(self, norad_id: str, variant: dict[str, Any]) -> bool:
+        """Beliebigen (nicht von AMSAT gemeldeten) Transponder fuer einen
+        Satelliten einstellen; wirkt sofort, wenn der Satellit gerade laeuft."""
+        if not any(c["norad_id"] == norad_id for c in self._candidates):
+            return False
+        self._custom_variant[norad_id] = variant
+        if self._wake is not None:
+            self._wake.set()
+        return True
+
+    def pin(self, key: str | None) -> bool:
+        """Satelliten von Hand festhalten (key) bzw. zurueck auf automatisch (None).
+        Festhalten geht nur fuer einen gerade hoerbaren Satelliten; faellt er
+        unter die Schwelle, waehlt die Beobachtung wieder selbst."""
+        if key:
+            if not any(v.get("key") == key for v in self._status.visible):
+                return False
+            self._pinned_key = key
+        else:
+            self._pinned_key = None
+        self._status.pinned_key = self._pinned_key
+        if self._wake is not None:
+            self._wake.set()
+        return True
+
+    def _variant_list(self, candidate: dict[str, Any], active_key: str) -> list[dict[str, Any]]:
+        variants = list(candidate["variants"])
+        custom = self._custom_variant.get(candidate["norad_id"])
+        if custom is not None:
+            variants.append(custom)
         return [
             {
                 "key": v["key"],
@@ -157,7 +201,7 @@ class LiveObserver:
                 "description": v["description"],
                 "active": v["key"] == active_key,
             }
-            for v in candidate["variants"]
+            for v in variants
         ]
 
     # ------------------------------------------------------------------ Loop
@@ -192,6 +236,14 @@ class LiveObserver:
                     if choice and current and choice is not current:
                         if choice["el"] < current["el"] + SWITCH_MARGIN_DEG:
                             choice = current  # Hysterese: nicht wegen 1-2 Grad wechseln
+                    if self._pinned_key is not None:
+                        pinned = next((p for p in audible if p["key"] == self._pinned_key), None)
+                        if pinned is not None:
+                            choice = pinned  # von Hand gewaehlt hat Vorrang
+                        else:
+                            # nicht mehr hoerbar -> wieder automatisch
+                            self._pinned_key = None
+                    self._status.pinned_key = self._pinned_key
 
                     tracking = tracking_session.status
                     if choice is None:
