@@ -69,6 +69,7 @@ from app.services import amsat_status
 from app.models.tle_record import TLERecord
 from app.services.satnogs_tle import fetch_and_save_satnogs_tles, load_satnogs_tles, satnogs_record
 from app.services.rig_tracking import tracking_session
+from app.services.relais_scan import relais_scanner
 from app.services.live_observer import MIN_ELEVATION_DEG as LIVE_MIN_ELEVATION_DEG, live_observer
 from app.services.tinygs_aliases import (
     fetch_and_save_tinygs_aliases,
@@ -2953,6 +2954,7 @@ async def start_rig_tracking(request: Request) -> dict:
 
     # Manuelles Tracking hat Vorrang vor der automatischen Live-Beobachtung
     live_observer.stop(stop_tracking=False)
+    relais_scanner.stop("Doppler-Verfolgung gestartet")
     tracking_session.start(
         norad_id=norad_id,
         satellite=satellite,
@@ -3096,6 +3098,68 @@ async def rig_relais_list() -> dict:
         raise HTTPException(status_code=500, detail=f"Relaisliste nicht lesbar: {exc}") from exc
 
 
+@app.post("/api/rig/scan/start")
+async def rig_scan_start(request: Request) -> dict:
+    """Startet den Relais-Scan durch die Speicherliste (optional nur ein Band)."""
+    try:
+        payload = await request.json()
+    except ValueError:
+        payload = {}
+    band = str(payload.get("band") or "all")
+    try:
+        relais = json.loads(_RELAIS_FILE.read_text(encoding="utf-8")).get("relais", [])
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=500, detail=f"Relaisliste nicht lesbar: {exc}") from exc
+    if band != "all":
+        relais = [r for r in relais if r.get("band") == band]
+    if not relais:
+        raise HTTPException(status_code=400, detail="Keine Relais für diese Auswahl.")
+    relais = sorted(relais, key=lambda r: float(r.get("rx_mhz") or 0))
+
+    def _meter() -> dict:
+        return rig_control.get_meter()
+
+    try:
+        meter = await asyncio.to_thread(_meter)
+    except RigControlError as exc:
+        raise HTTPException(status_code=502, detail=f"IC-705 nicht erreichbar: {exc}") from exc
+    if meter.get("sql_raw", 0) == 0 or meter.get("sql_open"):
+        raise HTTPException(
+            status_code=409,
+            detail="Rauschsperre ist offen – der Scan würde auf jedem Relais anhalten. "
+            "Bitte die Rauschsperre (SQL) erst so weit schließen, dass das Rauschen weg ist.",
+        )
+    live_observer.stop(stop_tracking=False)
+    tracking_session.stop()
+    relais_scanner.start(relais, band)
+    return {"ok": True, "status": relais_scanner.status_dict()}
+
+
+@app.post("/api/rig/scan/{action}")
+async def rig_scan_action(action: str) -> dict:
+    """Relais-Scan steuern: stop | hold (auf dem Relais bleiben) | skip (weiter)."""
+    if action == "stop":
+        relais_scanner.stop("beendet")
+    elif action == "hold":
+        if not relais_scanner.hold():
+            raise HTTPException(status_code=409, detail="Scan läuft nicht.")
+        for _ in range(30):  # bis zu 3 s auf das Einstellen warten
+            if not relais_scanner.active:
+                break
+            await asyncio.sleep(0.1)
+    elif action == "skip":
+        if not relais_scanner.skip():
+            raise HTTPException(status_code=409, detail="Scan läuft nicht.")
+    else:
+        raise HTTPException(status_code=404, detail="Unbekannte Aktion.")
+    return {"ok": True, "status": relais_scanner.status_dict()}
+
+
+@app.get("/api/rig/scan/status")
+async def rig_scan_status() -> dict:
+    return {"status": relais_scanner.status_dict()}
+
+
 @app.get("/api/rig/vfo")
 async def rig_vfo_state() -> dict:
     """Handbetrieb: Frequenz, Modus und Relais-Einstellungen des IC-705."""
@@ -3149,9 +3213,10 @@ async def rig_vfo_set(request: Request) -> dict:
         if not 670 <= tone_tenths <= 2541:
             raise HTTPException(status_code=400, detail="CTCSS-Ton muss zwischen 67,0 und 254,1 Hz liegen.")
 
-    # Handbetrieb hat Vorrang: Doppler/Live-Beobachtung beenden
+    # Handbetrieb hat Vorrang: Doppler/Live-Beobachtung/Scan beenden
     live_observer.stop(stop_tracking=False)
     tracking_session.stop()
+    relais_scanner.stop("von Hand eingestellt")
 
     def _apply() -> dict:
         if mode:
@@ -3565,6 +3630,7 @@ async def start_live_observation(request: Request) -> dict:
         hours = 24
     if hours not in (6, 12, 24, 48):
         hours = 24
+    relais_scanner.stop("Live-Beobachtung gestartet")
     live_observer.start(hours, _live_observer_candidates)
     return {"ok": True, "status": asdict(live_observer.status)}
 

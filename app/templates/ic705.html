@@ -176,6 +176,21 @@ OrbitHub &middot; {{ t('nav.ic705') }}
         </div>
         <p class="icom-hint vfo-relais-info" id="vfo-relais-info" hidden></p>
         <div class="icom-field">
+          <span class="icom-field-label">Scan</span>
+          <select id="vfo-scan-band" class="icom-input vfo-scan-band" aria-label="Band für den Scan">
+            <option value="all">alle Relais</option><option value="2m">nur 2 m</option><option value="70cm">nur 70 cm</option><option value="10m">nur 10 m</option>
+          </select>
+          <button type="button" class="icom-btn" id="vfo-scan-start" title="Relaisliste durchsuchen, bei Signal 10 s anhalten">⟳ Scan</button>
+        </div>
+        <div class="vfo-scan-status" id="vfo-scan-status" hidden>
+          <span class="vfo-scan-text" id="vfo-scan-text"></span>
+          <span class="vfo-scan-actions">
+            <button type="button" class="icom-btn icom-btn-small icom-btn-live" id="vfo-scan-hold" title="Auf diesem Relais bleiben (Ablage und Ton werden eingestellt)">📌 Bleiben</button>
+            <button type="button" class="icom-btn icom-btn-small" id="vfo-scan-skip" title="Sofort zum nächsten Relais">⏭ Weiter</button>
+            <button type="button" class="icom-btn icom-btn-small" id="vfo-scan-stop">■ Stop</button>
+          </span>
+        </div>
+        <div class="icom-field">
           <span class="icom-field-label">RX MHz</span>
           <input type="text" inputmode="decimal" id="vfo-freq" class="icom-input" placeholder="z. B. 439.075">
         </div>
@@ -617,6 +632,11 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom .vfo-offset { flex: 0 0 4.6em; min-width: 0; width: 4.6em; }
 .icom .vfo-tone { flex: 0 0 auto; min-width: 0; }
 .icom .vfo-relais-info { margin: 0 0 6px; }
+.icom .vfo-scan-band { flex: 1 1 auto; min-width: 7em; }
+.icom .vfo-scan-status { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; margin: 2px 0 8px; padding: 6px 8px; border: 1px solid #3a4f63; border-radius: 4px; background: #0e1720; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.icom .vfo-scan-status.is-paused { border-color: var(--icom-amber); background: rgba(255,173,31,0.08); }
+.icom .vfo-scan-status.is-paused .vfo-scan-text b { color: var(--icom-amber); }
+.icom .vfo-scan-actions { display: inline-flex; gap: 6px; }
 .icom .vfo-relais-info b { color: var(--icom-amber); }
 .icom .vfo-unit { font-size: 0.8rem; color: var(--icom-dim); }
 .icom .vfo-offset:disabled, .icom .vfo-tone:disabled { opacity: 0.4; }
@@ -2861,6 +2881,78 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     updateHint();
     if (form.requestSubmit) { form.requestSubmit(); } else { applyBtn.click(); }
   });
+
+  // ---- Relais-Scan ----
+  var scanBand = document.getElementById("vfo-scan-band");
+  var scanStartBtn = document.getElementById("vfo-scan-start");
+  var scanBox = document.getElementById("vfo-scan-status");
+  var scanText = document.getElementById("vfo-scan-text");
+  var scanHoldBtn = document.getElementById("vfo-scan-hold");
+  var scanSkipBtn = document.getElementById("vfo-scan-skip");
+  var scanStopBtn = document.getElementById("vfo-scan-stop");
+  var scanTimer = null, scanWasActive = false;
+  function relaisIndex(r) {
+    for (var i = 0; i < relaisList.length; i++) {
+      if (relaisList[i].call === r.call && relaisList[i].rx_mhz === r.rx_mhz) { return i; }
+    }
+    return -1;
+  }
+  function scanPost(action, body) {
+    return fetch("/api/rig/scan/" + action, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}),
+    }).then(function (r) { return r.json().then(function (d) { if (!r.ok) { throw new Error(d.detail || "Fehler"); } return d; }); });
+  }
+  function renderScan(st) {
+    var active = !!(st && st.active);
+    scanStartBtn.disabled = active;
+    scanBand.disabled = active;
+    scanBox.hidden = !active;
+    scanBox.classList.toggle("is-paused", active && st.state === "paused");
+    if (active && st.current) {
+      var r = st.current;
+      var where = r.call + " " + de(r.rx_mhz, 4) + " MHz · " + r.qth;
+      if (st.state === "paused") {
+        scanText.innerHTML = "<b>Signal auf " + r.call + "</b> " + de(r.rx_mhz, 4) + " MHz · " + r.qth + " – " +
+          (st.resume_in > 0 ? "weiter in " + Math.ceil(st.resume_in) + " s" : "wartet, bis der Durchgang vorbei ist");
+      } else {
+        scanText.textContent = "Scan " + (st.index + 1) + "/" + st.channels + ": " + where + (st.cycles ? " · Runde " + (st.cycles + 1) : "");
+      }
+      window.ic705Manual = {
+        name: r.call, tag: st.state === "paused" ? "Signal" : "Scan",
+        label: r.qth + " · " + r.dist_km + " km ·", freq: de(r.rx_mhz, 4) + " MHz FM",
+        repeater: st.state === "paused" ? (st.resume_in > 0 ? "weiter in " + Math.ceil(st.resume_in) + " s" : "Durchgang läuft") : "Scan " + (st.index + 1) + "/" + st.channels,
+        info: st.state === "paused" ? "📌 Bleiben im Handbetrieb-Feld hält das Relais" : "",
+      };
+    }
+    if (!active && scanWasActive) {
+      if (st && st.state === "held" && st.current) {
+        var idx = relaisIndex(st.current);
+        if (idx >= 0) { relaisSel.value = String(idx); selectedRelais = relaisList[idx]; }
+        readFromRig(true).then(function (d) { if (d && d.reachable !== false) { window.ic705SetManual(manualFromReadback(d)); } });
+      } else {
+        window.ic705SetManual(null);
+        readFromRig(true);
+      }
+      if (st && st.error) { showError(st.error); } else if (st && st.note && st.state === "stopped" && st.note !== "beendet") { showError("Scan beendet: " + st.note); }
+    }
+    scanWasActive = active;
+    if (active && !scanTimer) { scanTimer = setInterval(pollScan, 700); }
+    if (!active && scanTimer) { clearInterval(scanTimer); scanTimer = null; }
+  }
+  function pollScan() {
+    fetch("/api/rig/scan/status").then(function (r) { return r.json(); }).then(function (d) { renderScan(d.status); }).catch(function () {});
+  }
+  scanStartBtn.addEventListener("click", function () {
+    showError(null);
+    scanStartBtn.disabled = true;
+    scanPost("start", { band: scanBand.value })
+      .then(function (d) { scanWasActive = true; renderScan(d.status); document.dispatchEvent(new Event("rig-tracking-changed")); })
+      .catch(function (err) { scanStartBtn.disabled = false; showError("Scan nicht gestartet: " + err.message); });
+  });
+  scanHoldBtn.addEventListener("click", function () { scanPost("hold").then(function (d) { renderScan(d.status); }).catch(function (e) { showError(e.message); }); });
+  scanSkipBtn.addEventListener("click", function () { scanPost("skip").then(function (d) { renderScan(d.status); }).catch(function () {}); });
+  scanStopBtn.addEventListener("click", function () { scanPost("stop").then(function (d) { renderScan(d.status); }).catch(function () {}); });
+  pollScan();
 
   setShift("0"); setTone("off");
   var savedManual = null;

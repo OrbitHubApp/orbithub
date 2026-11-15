@@ -304,7 +304,7 @@ index 13d3fa5..8ad1ab7 100644
  					_ = s.getOVF()
  				}
 diff --git a/rigctld.go b/rigctld.go
-index 5431cf8..3efcfca 100644
+index 5431cf8..edb19ae 100644
 --- a/rigctld.go
 +++ b/rigctld.go
 @@ -4,9 +4,11 @@ import (
@@ -346,7 +346,7 @@ index 5431cf8..3efcfca 100644
  			dataMode = 1
  			mode = mode[3:]
  		}
-@@ -348,12 +350,137 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+@@ -348,12 +350,159 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
  		} else if width <= 2400 {
  			filterCode = 1
  		}
@@ -357,6 +357,28 @@ index 5431cf8..3efcfca 100644
  		} else {
  			_ = s.sendReplyCode(rigctldNoError)
  		}
++	case len(cmdSplit) >= 2 && (cmdSplit[0] == "l" || cmdSplit[0] == "\\get_level") && cmdSplit[1] == "SQLFRESH":
++		// OrbitHub-Erweiterung fuer den Relais-Scan: Rauschsperren-Status sofort
++		// frisch vom Geraet holen statt den bis zu 1 s alten Wert zu liefern.
++		_ = civControl.getSQLStatus()
++		deadline := time.Now().Add(400 * time.Millisecond)
++		for time.Now().Before(deadline) {
++			civControl.state.mutex.Lock()
++			pending := civControl.state.getSQLStatus.pending
++			civControl.state.mutex.Unlock()
++			if !pending {
++				break
++			}
++			time.Sleep(20 * time.Millisecond)
++		}
++		civControl.state.mutex.Lock()
++		open := civControl.state.sqlOpen
++		civControl.state.mutex.Unlock()
++		if open {
++			err = s.send("1\n")
++		} else {
++			err = s.send("0\n")
++		}
 +	case len(cmdSplit) >= 2 && (cmdSplit[0] == "l" || cmdSplit[0] == "\\get_level"):
 +		civControl.state.mutex.Lock()
 +		sqlRaw, sRaw, sqlOpen := civControl.state.sqlRaw, civControl.state.sRaw, civControl.state.sqlOpen
