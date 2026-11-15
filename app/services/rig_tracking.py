@@ -151,6 +151,13 @@ class TrackingSession:
                     "wieder erreichbar ist."
                 )
 
+            # Relais-Einstellungen aus dem Handbetrieb (Ablage/Ton) duerfen
+            # beim Satellitenbetrieb nicht stehen bleiben -> simplex, kein Ton
+            try:
+                await asyncio.to_thread(rig_control.set_repeater, "0")
+            except RigControlError as exc:
+                logger.info("Doppler-Tracking: Ablage nicht zurueckgesetzt: %r", exc)
+
             rig_mode, note = rig_mode_for(str(transponder.get("mode") or ""))
             self._status.mode_note = note
             self._wanted_mode = rig_mode

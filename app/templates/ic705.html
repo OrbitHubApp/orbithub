@@ -165,6 +165,45 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 
 <!-- ============ Bedienung ============ -->
 <section class="icom-panels">
+  <div class="icom-menu" id="ic705-vfo-card">
+    <div class="icom-menu-bar"><span>VFO · HANDBETRIEB</span><span class="icom-menu-note" id="vfo-readback"></span></div>
+    <div class="icom-menu-body">
+      <p class="icom-hint vfo-intro">Frei einstellen, ohne Satellit – z. B. ein Relais zwischen den Überflügen. Beendet Doppler und Live-Beobachtung.</p>
+      <form id="vfo-form" autocomplete="off">
+        <div class="icom-field">
+          <span class="icom-field-label">RX MHz</span>
+          <input type="text" inputmode="decimal" id="vfo-freq" class="icom-input" placeholder="z. B. 439.075">
+        </div>
+        <div class="icom-field">
+          <span class="icom-field-label">Modus</span>
+          <select id="vfo-mode" class="icom-input">
+            <option value="FM" selected>FM</option><option value="USB">USB</option><option value="LSB">LSB</option>
+            <option value="CW">CW</option><option value="AM">AM</option><option value="DV">DV</option><option value="PKTFM">FM-D</option><option value="PKTUSB">USB-D</option>
+          </select>
+        </div>
+        <div class="icom-field">
+          <span class="icom-field-label">Ablage</span>
+          <span class="vfo-seg" id="vfo-shift" role="group" aria-label="Ablage">
+            <button type="button" data-shift="0" class="is-active">Simplex</button><button type="button" data-shift="-" title="Duplex minus (Senden unter der Empfangsfrequenz)">−</button><button type="button" data-shift="+" title="Duplex plus (Senden über der Empfangsfrequenz)">+</button>
+          </span>
+          <span class="vfo-offset-wrap"><input type="text" inputmode="decimal" id="vfo-offset" class="icom-input vfo-offset" value="600" aria-label="Ablage in kHz"><span class="vfo-unit">kHz</span></span>
+        </div>
+        <div class="icom-field">
+          <span class="icom-field-label">Ton</span>
+          <span class="vfo-seg" id="vfo-tone-mode" role="group" aria-label="Tonbetrieb">
+            <button type="button" data-tone="off" class="is-active">Aus</button><button type="button" data-tone="tone" title="CTCSS-Ton beim Senden">TONE</button><button type="button" data-tone="tsql" title="Senden mit Ton, Empfang nur bei passendem Ton">TSQL</button>
+          </span>
+          <select id="vfo-tone" class="icom-input vfo-tone"><option value="67.0">67,0 Hz</option><option value="69.3">69,3 Hz</option><option value="71.9">71,9 Hz</option><option value="74.4">74,4 Hz</option><option value="77.0">77,0 Hz</option><option value="79.7">79,7 Hz</option><option value="82.5">82,5 Hz</option><option value="85.4">85,4 Hz</option><option value="88.5" selected>88,5 Hz</option><option value="91.5">91,5 Hz</option><option value="94.8">94,8 Hz</option><option value="97.4">97,4 Hz</option><option value="100.0">100,0 Hz</option><option value="103.5">103,5 Hz</option><option value="107.2">107,2 Hz</option><option value="110.9">110,9 Hz</option><option value="114.8">114,8 Hz</option><option value="118.8">118,8 Hz</option><option value="123.0">123,0 Hz</option><option value="127.3">127,3 Hz</option><option value="131.8">131,8 Hz</option><option value="136.5">136,5 Hz</option><option value="141.3">141,3 Hz</option><option value="146.2">146,2 Hz</option><option value="151.4">151,4 Hz</option><option value="156.7">156,7 Hz</option><option value="159.8">159,8 Hz</option><option value="162.2">162,2 Hz</option><option value="165.5">165,5 Hz</option><option value="167.9">167,9 Hz</option><option value="171.3">171,3 Hz</option><option value="173.8">173,8 Hz</option><option value="177.3">177,3 Hz</option><option value="179.9">179,9 Hz</option><option value="183.5">183,5 Hz</option><option value="186.2">186,2 Hz</option><option value="189.9">189,9 Hz</option><option value="192.8">192,8 Hz</option><option value="196.6">196,6 Hz</option><option value="199.5">199,5 Hz</option><option value="203.5">203,5 Hz</option><option value="206.5">206,5 Hz</option><option value="210.7">210,7 Hz</option><option value="218.1">218,1 Hz</option><option value="225.7">225,7 Hz</option><option value="229.1">229,1 Hz</option><option value="233.6">233,6 Hz</option><option value="241.8">241,8 Hz</option><option value="250.3">250,3 Hz</option><option value="254.1">254,1 Hz</option></select>
+        </div>
+        <p class="icom-hint" id="vfo-tx-hint"></p>
+        <div class="icom-field">
+          <button type="submit" class="icom-btn icom-btn-live" id="vfo-apply">▶ Einstellen</button>
+          <button type="button" class="icom-btn" id="vfo-read" title="Aktuelle Einstellungen vom IC-705 übernehmen">⟲ Vom Gerät</button>
+        </div>
+      </form>
+      <p class="rig-control-error" id="vfo-error" hidden></p>
+    </div>
+  </div>
   <div class="icom-menu" id="ic705-satellite-card">
     <div class="icom-menu-bar"><span>SATELLIT · TRANSPONDER</span><span class="icom-menu-note" id="rig-reachable-note"></span></div>
     <div class="icom-menu-body">
@@ -563,6 +602,15 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom-key-amsat { color: #ffd38a; }
 
 /* --- Menue-Karten (wie die Menues im IC-705-Display) --- */
+.icom .vfo-seg { display: inline-flex; border: 1px solid #3a424b; border-radius: 4px; overflow: hidden; }
+.icom .vfo-seg button { background: #0f141a; color: var(--icom-dim); border: 0; border-right: 1px solid #3a424b; padding: 5px 8px; min-width: 2.2em; font: inherit; font-size: 0.82rem; cursor: pointer; }
+.icom .vfo-seg button:last-child { border-right: 0; }
+.icom .vfo-seg button.is-active { background: #1d2a36; color: var(--icom-amber); font-weight: 700; }
+.icom .vfo-offset-wrap { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.icom .vfo-offset { flex: 0 0 4.6em; min-width: 0; width: 4.6em; }
+.icom .vfo-tone { flex: 0 0 auto; min-width: 0; }
+.icom .vfo-unit { font-size: 0.8rem; color: var(--icom-dim); }
+.icom .vfo-offset:disabled, .icom .vfo-tone:disabled { opacity: 0.4; }
 .icom-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.2rem; margin-bottom: 1.2rem; align-items: start; }
 .icom-overview { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
 @media (max-width: 1250px) { .icom-overview { grid-template-columns: 1fr 1fr; } }
@@ -2562,6 +2610,144 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     ev.target.value = "";
   });
   window.OrbitSSTVUI = { decodeSamples: decodeSamples };
+})();
+</script>
+
+<script>
+(function () {
+  var form = document.getElementById("vfo-form");
+  if (!form) { return; }
+  var freqEl = document.getElementById("vfo-freq");
+  var modeEl = document.getElementById("vfo-mode");
+  var shiftSeg = document.getElementById("vfo-shift");
+  var offsetEl = document.getElementById("vfo-offset");
+  var toneSeg = document.getElementById("vfo-tone-mode");
+  var toneEl = document.getElementById("vfo-tone");
+  var hintEl = document.getElementById("vfo-tx-hint");
+  var errEl = document.getElementById("vfo-error");
+  var readbackEl = document.getElementById("vfo-readback");
+  var applyBtn = document.getElementById("vfo-apply");
+  var readBtn = document.getElementById("vfo-read");
+  var shift = "0", toneMode = "off", shiftTouched = false;
+
+  function num(v) { return parseFloat(String(v || "").replace(",", ".")); }
+  function fmtMhz(hz) { return (hz / 1e6).toFixed(4).replace(".", ","); }
+  function showError(msg) { errEl.hidden = !msg; errEl.textContent = msg || ""; }
+  function setSeg(seg, attr, value) {
+    Array.prototype.forEach.call(seg.querySelectorAll("button"), function (b) {
+      b.classList.toggle("is-active", b.dataset[attr] === value);
+    });
+  }
+  function setShift(v) { shift = v; setSeg(shiftSeg, "shift", v); offsetEl.disabled = v === "0"; updateHint(); }
+  function setTone(v) { toneMode = v; setSeg(toneSeg, "tone", v); toneEl.disabled = v === "off"; updateHint(); }
+
+  // Uebliche Relais-Ablagen in DL (Ausgabe = RX, Eingabe = RX - Ablage)
+  function bandDefault(mhz) {
+    if (mhz >= 145.5875 && mhz <= 145.8) { return { shift: "-", khz: 600 }; }
+    if (mhz >= 438.65 && mhz <= 439.475) { return { shift: "-", khz: 7600 }; }
+    if (mhz >= 29.52 && mhz <= 29.7) { return { shift: "-", khz: 100 }; }
+    if (mhz >= 144 && mhz <= 148) { return { shift: "0", khz: 600 }; }
+    if (mhz >= 430 && mhz <= 450) { return { shift: "0", khz: 7600 }; }
+    if (mhz >= 28 && mhz <= 29.7) { return { shift: "0", khz: 100 }; }
+    if (mhz >= 50 && mhz <= 54) { return { shift: "0", khz: 600 }; }
+    return null;
+  }
+
+  function updateHint() {
+    var f = num(freqEl.value);
+    if (!f) { hintEl.textContent = ""; return; }
+    var tx = f;
+    if (shift !== "0") { tx = f + (shift === "+" ? 1 : -1) * num(offsetEl.value) / 1000; }
+    var txt = "RX " + f.toFixed(4).replace(".", ",") + " MHz · TX " + tx.toFixed(4).replace(".", ",") + " MHz";
+    if (toneMode !== "off") { txt += " · " + toneMode.toUpperCase() + " " + toneEl.value.replace(".", ",") + " Hz"; }
+    hintEl.textContent = txt;
+  }
+
+  shiftSeg.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) { return; }
+    shiftTouched = true; setShift(b.dataset.shift);
+  });
+  toneSeg.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) { return; }
+    setTone(b.dataset.tone);
+  });
+  freqEl.addEventListener("input", function () {
+    var d = bandDefault(num(freqEl.value));
+    if (d) {
+      offsetEl.value = String(d.khz);
+      if (!shiftTouched) { setShift(d.shift); }
+    }
+    updateHint();
+  });
+  offsetEl.addEventListener("input", updateHint);
+  toneEl.addEventListener("change", updateHint);
+
+  function showReadback(d) {
+    if (!d || d.reachable === false) { readbackEl.textContent = "IC-705 nicht erreichbar"; return; }
+    var t = fmtMhz(d.frequency_hz) + " MHz " + (d.mode || "");
+    var r = d.repeater;
+    if (r) {
+      if (r.shift !== "0") { t += " · DUP" + (r.shift === "+" ? "+" : "−") + " " + (r.offset_hz / 1000).toLocaleString("de-DE") + " kHz"; }
+      if (r.tone_mode !== "off" && r.tone_hz) { t += " · " + r.tone_mode.toUpperCase() + " " + r.tone_hz.toFixed(1).replace(".", ",") + " Hz"; }
+    }
+    readbackEl.textContent = t;
+  }
+
+  function fillFrom(d) {
+    if (!d || d.reachable === false) { return; }
+    freqEl.value = (d.frequency_hz / 1e6).toFixed(4);
+    var m = (d.mode || "").toUpperCase();
+    if (Array.prototype.some.call(modeEl.options, function (o) { return o.value === m; })) { modeEl.value = m; }
+    var r = d.repeater;
+    if (r) {
+      setShift(r.shift);
+      if (r.offset_hz) { offsetEl.value = String(r.offset_hz / 1000); }
+      if (r.tone_hz) {
+        var v = r.tone_hz.toFixed(1);
+        if (Array.prototype.some.call(toneEl.options, function (o) { return o.value === v; })) { toneEl.value = v; }
+      }
+      setTone(r.tone_mode);
+      shiftTouched = true;
+    }
+    updateHint();
+  }
+
+  function readFromRig(fill) {
+    return fetch("/api/rig/vfo").then(function (r) { return r.json(); }).then(function (d) {
+      showReadback(d);
+      if (fill) { fillFrom(d); }
+      if (d.repeater_error) { showError("Relais-Werte nicht lesbar: " + d.repeater_error); }
+      return d;
+    }).catch(function () { readbackEl.textContent = "Status unbekannt"; });
+  }
+
+  readBtn.addEventListener("click", function () { showError(null); readFromRig(true); });
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    showError(null);
+    applyBtn.disabled = true;
+    applyBtn.textContent = "Wird eingestellt …";
+    fetch("/api/rig/vfo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        freq_mhz: freqEl.value, mode: modeEl.value, shift: shift,
+        offset_khz: offsetEl.value, tone_mode: toneMode, tone_hz: toneEl.value,
+      }),
+    })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) { throw new Error(d.detail || "Fehler"); } return d; }); })
+      .then(function (d) {
+        showReadback(d);
+        if (d.repeater_error) { showError(d.repeater_error); }
+        document.dispatchEvent(new Event("rig-tracking-changed"));
+      })
+      .catch(function (err) { showError("Nicht eingestellt: " + err.message); })
+      .then(function () { applyBtn.disabled = false; applyBtn.textContent = "▶ Einstellen"; });
+  });
+
+  setShift("0"); setTone("off");
+  readFromRig(true);
 })();
 </script>
 {% endblock %}

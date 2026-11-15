@@ -121,6 +121,54 @@ class RigControl:
         raw = max(0, min(255, int(raw)))
         self._command(f"L SQL {raw / 255:.6f}")
 
+    # ---- Relaisbetrieb (braucht die OrbitHub-Erweiterung von kappanhang:
+    # R/r Ablage, O/o Offset, C/c CTCSS-Ton, U/u TONE bzw. TSQL) ----
+    def set_repeater(
+        self,
+        shift: str,
+        offset_hz: int | None = None,
+        tone_mode: str = "off",
+        tone_tenths: int | None = None,
+    ) -> None:
+        """Ablage ('+', '-' oder '0' = simplex), Offset in Hz, Tonbetrieb
+        ('off', 'tone' = Ton beim Senden, 'tsql' = Tonsquelch) und CTCSS-Ton
+        in 0,1 Hz setzen. Reihenfolge: Offset und Ton vor dem Einschalten."""
+        if shift not in ("+", "-", "0"):
+            raise RigControlError(f"Unbekannte Ablage {shift!r}")
+        try:
+            if offset_hz is not None and shift != "0":
+                self._command(f"O {int(offset_hz)}")
+            if tone_tenths is not None and tone_mode != "off":
+                self._command(f"C {int(tone_tenths)}")
+            self._command(f"R {shift}")
+            self._command(f"U TONE {1 if tone_mode == 'tone' else 0}")
+            self._command(f"U TSQL {1 if tone_mode == 'tsql' else 0}")
+        except RigControlError as exc:
+            if "RPRT -11" in str(exc):
+                raise RigControlError(
+                    "kappanhang kennt die Relais-Befehle noch nicht – bitte "
+                    "kappanhang mit tools/rig/kappanhang-fixes.patch neu bauen."
+                ) from exc
+            raise
+
+    def get_repeater(self) -> dict:
+        """Aktuelle Ablage, Offset (Hz), Tonbetrieb und CTCSS-Ton (Hz)."""
+        shift_raw = self._command("r").splitlines()[0].strip()
+        shift = shift_raw if shift_raw in ("+", "-") else "0"
+        try:
+            offset_hz = int(float(self._command("o").splitlines()[0]))
+            tone_tenths = int(float(self._command("c").splitlines()[0]))
+            tone_on = self._command("u TONE").splitlines()[0].strip() == "1"
+            tsql_on = self._command("u TSQL").splitlines()[0].strip() == "1"
+        except (ValueError, IndexError) as exc:
+            raise RigControlError(f"Unerwartete Antwort beim Lesen der Relais-Werte: {exc}") from exc
+        return {
+            "shift": shift,
+            "offset_hz": offset_hz,
+            "tone_mode": "tsql" if tsql_on else ("tone" if tone_on else "off"),
+            "tone_hz": tone_tenths / 10 if tone_tenths else None,
+        }
+
     def is_reachable(self) -> bool:
         """Prueft ohne Exception, ob rigctld gerade erreichbar ist."""
         try:

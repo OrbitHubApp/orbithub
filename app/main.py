@@ -3083,6 +3083,102 @@ async def rig_state() -> dict:
     return await asyncio.to_thread(_read)
 
 
+@app.get("/api/rig/vfo")
+async def rig_vfo_state() -> dict:
+    """Handbetrieb: Frequenz, Modus und Relais-Einstellungen des IC-705."""
+
+    def _read() -> dict:
+        try:
+            frequency_hz = rig_control.get_frequency()
+            mode, _passband = rig_control.get_mode()
+        except RigControlError as exc:
+            return {"reachable": False, "error": str(exc)}
+        result = {"reachable": True, "frequency_hz": frequency_hz, "mode": mode}
+        try:
+            result["repeater"] = rig_control.get_repeater()
+        except RigControlError as exc:
+            result["repeater_error"] = str(exc)
+        return result
+
+    return await asyncio.to_thread(_read)
+
+
+@app.post("/api/rig/vfo")
+async def rig_vfo_set(request: Request) -> dict:
+    """Handbetrieb ohne Satellit: Frequenz/Modus/Ablage/CTCSS direkt einstellen.
+    Beendet dafuer Doppler-Tracking und Live-Beobachtung, damit nichts
+    ueberschrieben wird."""
+    payload = await request.json()
+    frequency_hz = _parse_mhz_to_hz(payload.get("freq_mhz"), "Frequenz", required=True)
+    mode = str(payload.get("mode") or "").strip().upper()
+    shift = str(payload.get("shift") or "0").strip()
+    if shift not in ("+", "-", "0"):
+        raise HTTPException(status_code=400, detail="Ablage muss +, - oder 0 sein.")
+    offset_hz = None
+    if shift != "0":
+        try:
+            offset_hz = round(float(str(payload.get("offset_khz", "")).replace(",", ".")) * 1000)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Ablage-Offset (kHz) fehlt oder ist ungültig.")
+        if not 0 < offset_hz <= 99_999_900:
+            raise HTTPException(status_code=400, detail="Ablage-Offset außerhalb des gültigen Bereichs.")
+        tx_hz = frequency_hz + offset_hz if shift == "+" else frequency_hz - offset_hz
+        _parse_mhz_to_hz(tx_hz / 1e6, "Sendefrequenz (mit Ablage)", required=True)
+    tone_mode = str(payload.get("tone_mode") or "off").strip().lower()
+    if tone_mode not in ("off", "tone", "tsql"):
+        raise HTTPException(status_code=400, detail="Tonbetrieb muss off, tone oder tsql sein.")
+    tone_tenths = None
+    if tone_mode != "off":
+        try:
+            tone_tenths = round(float(str(payload.get("tone_hz", "")).replace(",", ".")) * 10)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="CTCSS-Ton fehlt oder ist ungültig.")
+        if not 670 <= tone_tenths <= 2541:
+            raise HTTPException(status_code=400, detail="CTCSS-Ton muss zwischen 67,0 und 254,1 Hz liegen.")
+
+    # Handbetrieb hat Vorrang: Doppler/Live-Beobachtung beenden
+    live_observer.stop(stop_tracking=False)
+    tracking_session.stop()
+
+    def _apply() -> dict:
+        if mode:
+            rig_mode, _note = rig_mode_for(mode)
+            rig_control.set_mode(rig_mode)
+        rig_control.set_frequency(frequency_hz)
+        repeater_error = None
+        try:
+            rig_control.set_repeater(shift, offset_hz, tone_mode, tone_tenths)
+        except RigControlError as exc:
+            if shift != "0" or tone_mode != "off":
+                raise
+            repeater_error = str(exc)  # simplex ohne Ton geht auch ohne Erweiterung
+        # kappanhang aktualisiert seinen Frequenz-Zwischenspeicher verzoegert
+        actual_hz = rig_control.get_frequency()
+        for _ in range(8):
+            if abs(actual_hz - frequency_hz) < 10:
+                break
+            time.sleep(0.25)
+            actual_hz = rig_control.get_frequency()
+        result = {
+            "frequency_hz": actual_hz,
+            "mode": rig_control.get_mode()[0],
+        }
+        if repeater_error:
+            result["repeater_error"] = repeater_error
+        else:
+            try:
+                result["repeater"] = rig_control.get_repeater()
+            except RigControlError as exc:
+                result["repeater_error"] = str(exc)
+        return result
+
+    try:
+        result = await asyncio.to_thread(_apply)
+    except RigControlError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return {"ok": True, **result}
+
+
 @app.get("/api/rig/meter")
 async def rig_meter() -> dict:
     """S-Meter, Rauschsperren-Stellung und ob die Sperre gerade offen ist."""

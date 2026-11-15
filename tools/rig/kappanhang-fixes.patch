@@ -1,16 +1,32 @@
 diff --git a/civcontrol.go b/civcontrol.go
-index 13d3fa5..7e0bcb3 100644
+index 13d3fa5..8ad1ab7 100644
 --- a/civcontrol.go
 +++ b/civcontrol.go
-@@ -96,6 +96,7 @@ type civControlStruct struct {
+@@ -94,8 +94,23 @@ type civControlStruct struct {
+ 		mutex       sync.Mutex
+ 		pendingCmds []*civCmd
  
++		// Relaisbetrieb (OrbitHub-Erweiterung): Ablage-Offset, CTCSS, Tonfunktionen
++		setRptrOffs civCmd
++		getRptrOffs civCmd
++		setTone     civCmd
++		getTone     civCmd
++		setToneFunc civCmd
++		getToneFunc civCmd
++		setTSQLFunc civCmd
++		getTSQLFunc civCmd
++		rptrOffsHz  uint
++		toneTenths  int
++		toneOn      bool
++		tsqlOn      bool
++
  		getPwr            civCmd
  		getS              civCmd
 +		getSQLStatus      civCmd
  		getOVF            civCmd
  		getSWR            civCmd
  		getTransmitStatus civCmd
-@@ -147,6 +148,9 @@ type civControlStruct struct {
+@@ -147,6 +162,9 @@ type civControlStruct struct {
  		pwrPercent          int
  		rfGainPercent       int
  		sqlPercent          int
@@ -20,7 +36,68 @@ index 13d3fa5..7e0bcb3 100644
  		nrPercent           int
  		nrEnabled           bool
  		operatingModeIdx    int
-@@ -455,6 +459,7 @@ func (s *civControlStruct) decodePowerRFGainSQLNRPwr(d []byte) bool {
+@@ -193,8 +211,12 @@ func (s *civControlStruct) decode(d []byte) bool {
+ 		return s.decodeMode(payload)
+ 	case 0x07:
+ 		return s.decodeVFO(payload)
++	case 0x0c, 0x0d:
++		return s.decodeRptrOffs(payload)
+ 	case 0x0f:
+ 		return s.decodeSplit(payload)
++	case 0x1b:
++		return s.decodeTone(payload)
+ 	case 0x10:
+ 		return s.decodeTS(payload)
+ 	case 0x1a:
+@@ -312,6 +334,47 @@ func (s *civControlStruct) decodeVFO(d []byte) bool {
+ 	return true
+ }
+ 
++// decodeRptrOffs: Duplex-Ablage, 3 Bytes BCD (Einerstelle zuerst) in 100 Hz.
++func (s *civControlStruct) decodeRptrOffs(d []byte) bool {
++	if len(d) < 3 {
++		return !s.state.getRptrOffs.pending && !s.state.setRptrOffs.pending
++	}
++	s.state.rptrOffsHz = s.decodeFreqData(d[:3]) * 100
++	if s.state.getRptrOffs.pending {
++		s.removePendingCmd(&s.state.getRptrOffs)
++		return false
++	}
++	if s.state.setRptrOffs.pending {
++		s.removePendingCmd(&s.state.setRptrOffs)
++		return false
++	}
++	return true
++}
++
++// decodeTone: 1B 00 = Relais-Tonfrequenz, 3 Bytes BCD (hoechste Stelle zuerst) in 0,1 Hz.
++func (s *civControlStruct) decodeTone(d []byte) bool {
++	if len(d) < 1 || d[0] != 0x00 {
++		return true
++	}
++	if len(d) < 4 {
++		return !s.state.getTone.pending && !s.state.setTone.pending
++	}
++	v := 0
++	for _, b := range d[1:4] {
++		v = v*100 + int(b>>4)*10 + int(b&0x0f)
++	}
++	s.state.toneTenths = v
++	if s.state.getTone.pending {
++		s.removePendingCmd(&s.state.getTone)
++		return false
++	}
++	if s.state.setTone.pending {
++		s.removePendingCmd(&s.state.setTone)
++		return false
++	}
++	return true
++}
++
+ func (s *civControlStruct) decodeSplit(d []byte) bool {
+ 	if len(d) < 1 {
+ 		return !s.state.getSplit.pending && !s.state.setSplit.pending
+@@ -455,6 +518,7 @@ func (s *civControlStruct) decodePowerRFGainSQLNRPwr(d []byte) bool {
  		}
  		hex := uint16(d[1])<<8 | uint16(d[2])
  		s.state.sqlPercent = int(math.Round((float64(hex) / 0x0255) * 100))
@@ -28,7 +105,7 @@ index 13d3fa5..7e0bcb3 100644
  		statusLog.reportSQL(s.state.sqlPercent)
  		if s.state.getSQL.pending {
  			s.removePendingCmd(&s.state.getSQL)
-@@ -560,6 +565,15 @@ func (s *civControlStruct) decodeTransmitStatus(d []byte) bool {
+@@ -560,6 +624,15 @@ func (s *civControlStruct) decodeTransmitStatus(d []byte) bool {
  
  func (s *civControlStruct) decodeVdSWRS(d []byte) bool {
  	switch d[0] {
@@ -44,7 +121,7 @@ index 13d3fa5..7e0bcb3 100644
  	case 0x02:
  		if len(d) < 3 {
  			return !s.state.getS.pending
-@@ -594,6 +608,7 @@ func (s *civControlStruct) decodeVdSWRS(d []byte) bool {
+@@ -594,6 +667,7 @@ func (s *civControlStruct) decodeVdSWRS(d []byte) bool {
  				sStr += "60"
  			}
  		}
@@ -52,7 +129,44 @@ index 13d3fa5..7e0bcb3 100644
  		s.state.lastSReceivedAt = time.Now()
  		statusLog.reportS(sStr)
  		if s.state.getS.pending {
-@@ -870,6 +885,26 @@ func (s *civControlStruct) setSQL(percent int) error {
+@@ -624,7 +698,36 @@ func (s *civControlStruct) decodeVdSWRS(d []byte) bool {
+ }
+ 
+ func (s *civControlStruct) decodePreampAGCNREnabled(d []byte) bool {
++	if len(d) < 1 {
++		return true
++	}
+ 	switch d[0] {
++	case 0x42:
++		if len(d) < 2 {
++			return !s.state.getToneFunc.pending && !s.state.setToneFunc.pending
++		}
++		s.state.toneOn = d[1] == 0x01
++		if s.state.getToneFunc.pending {
++			s.removePendingCmd(&s.state.getToneFunc)
++			return false
++		}
++		if s.state.setToneFunc.pending {
++			s.removePendingCmd(&s.state.setToneFunc)
++			return false
++		}
++	case 0x43:
++		if len(d) < 2 {
++			return !s.state.getTSQLFunc.pending && !s.state.setTSQLFunc.pending
++		}
++		s.state.tsqlOn = d[1] == 0x01
++		if s.state.getTSQLFunc.pending {
++			s.removePendingCmd(&s.state.getTSQLFunc)
++			return false
++		}
++		if s.state.setTSQLFunc.pending {
++			s.removePendingCmd(&s.state.setTSQLFunc)
++			return false
++		}
+ 	case 0x02:
+ 		if len(d) < 2 {
+ 			return !s.state.getPreamp.pending && !s.state.setPreamp.pending
+@@ -870,6 +973,26 @@ func (s *civControlStruct) setSQL(percent int) error {
  	return s.sendCmd(&s.state.setSQL)
  }
  
@@ -79,7 +193,95 @@ index 13d3fa5..7e0bcb3 100644
  func (s *civControlStruct) incSQL() error {
  	if s.state.sqlPercent < 100 {
  		return s.setSQL(s.state.sqlPercent + 1)
-@@ -1226,6 +1261,11 @@ func (s *civControlStruct) getVd() error {
+@@ -1167,6 +1290,87 @@ func (s *civControlStruct) setSplit(mode splitMode) error {
+ 	return s.sendCmd(&s.state.setSplit)
+ }
+ 
++// expireLater entfernt einen Befehl nach `after` aus der Wiederholungsliste,
++// falls das Geraet nicht wie erwartet geantwortet hat (sonst endlose Wiederholung).
++func (s *civControlStruct) expireLater(cmd *civCmd, after time.Duration) {
++	go func() {
++		time.Sleep(after)
++		s.state.mutex.Lock()
++		if cmd.pending {
++			log.Debug("giving up on cmd ", cmd.name)
++			s.removePendingCmd(cmd)
++		}
++		s.state.mutex.Unlock()
++	}()
++}
++
++func toBCDLE(v uint, n int) []byte {
++	out := make([]byte, n)
++	for i := 0; i < n; i++ {
++		lo := byte(v % 10)
++		v /= 10
++		hi := byte(v % 10)
++		v /= 10
++		out[i] = hi<<4 | lo
++	}
++	return out
++}
++
++// setRptrOffs setzt die Duplex-Ablage (Hz, auf 100 Hz gerundet).
++func (s *civControlStruct) setRptrOffs(hz uint) error {
++	b := toBCDLE((hz+50)/100, 3)
++	s.initCmd(&s.state.setRptrOffs, "setRptrOffs", []byte{254, 254, civAddress, 224, 0x0d, b[0], b[1], b[2], 253})
++	s.expireLater(&s.state.setRptrOffs, time.Second)
++	return s.sendCmd(&s.state.setRptrOffs)
++}
++
++func (s *civControlStruct) getRptrOffs() error {
++	s.initCmd(&s.state.getRptrOffs, "getRptrOffs", []byte{254, 254, civAddress, 224, 0x0c, 253})
++	s.expireLater(&s.state.getRptrOffs, time.Second)
++	return s.sendCmd(&s.state.getRptrOffs)
++}
++
++// setTone setzt die Relais-Tonfrequenz (CTCSS) in 0,1 Hz, z. B. 885 = 88,5 Hz.
++func (s *civControlStruct) setTone(tenths int) error {
++	b := toBCDLE(uint(tenths), 3)
++	s.initCmd(&s.state.setTone, "setTone", []byte{254, 254, civAddress, 224, 0x1b, 0x00, b[2], b[1], b[0], 253})
++	s.expireLater(&s.state.setTone, time.Second)
++	return s.sendCmd(&s.state.setTone)
++}
++
++func (s *civControlStruct) getTone() error {
++	s.initCmd(&s.state.getTone, "getTone", []byte{254, 254, civAddress, 224, 0x1b, 0x00, 253})
++	s.expireLater(&s.state.getTone, time.Second)
++	return s.sendCmd(&s.state.getTone)
++}
++
++// setToneFunc schaltet TONE (0x42, Ton beim Senden) bzw. TSQL (0x43) ein/aus.
++func (s *civControlStruct) setToneFunc(sub byte, on bool) error {
++	var v byte
++	if on {
++		v = 1
++	}
++	cmd := &s.state.setToneFunc
++	name := "setToneFunc"
++	if sub == 0x43 {
++		cmd, name = &s.state.setTSQLFunc, "setTSQLFunc"
++	}
++	s.initCmd(cmd, name, []byte{254, 254, civAddress, 224, 0x16, sub, v, 253})
++	s.expireLater(cmd, time.Second)
++	return s.sendCmd(cmd)
++}
++
++func (s *civControlStruct) getToneFuncs() error {
++	s.initCmd(&s.state.getToneFunc, "getToneFunc", []byte{254, 254, civAddress, 224, 0x16, 0x42, 253})
++	s.expireLater(&s.state.getToneFunc, time.Second)
++	if err := s.sendCmd(&s.state.getToneFunc); err != nil {
++		return err
++	}
++	s.initCmd(&s.state.getTSQLFunc, "getTSQLFunc", []byte{254, 254, civAddress, 224, 0x16, 0x43, 253})
++	s.expireLater(&s.state.getTSQLFunc, time.Second)
++	return s.sendCmd(&s.state.getTSQLFunc)
++}
++
+ func (s *civControlStruct) toggleSplit() error {
+ 	var mode splitMode
+ 	switch s.state.splitMode {
+@@ -1226,6 +1430,11 @@ func (s *civControlStruct) getVd() error {
  	return s.sendCmd(&s.state.getVd)
  }
  
@@ -91,7 +293,7 @@ index 13d3fa5..7e0bcb3 100644
  func (s *civControlStruct) getS() error {
  	s.initCmd(&s.state.getS, "getS", []byte{254, 254, civAddress, 224, 0x15, 0x02, 253})
  	return s.sendCmd(&s.state.getS)
-@@ -1318,6 +1358,9 @@ func (s *civControlStruct) loop() {
+@@ -1318,6 +1527,9 @@ func (s *civControlStruct) loop() {
  				if !s.state.getS.pending && time.Since(s.state.lastSReceivedAt) >= statusPollInterval {
  					_ = s.getS()
  				}
@@ -102,10 +304,10 @@ index 13d3fa5..7e0bcb3 100644
  					_ = s.getOVF()
  				}
 diff --git a/rigctld.go b/rigctld.go
-index 5431cf8..76bdffd 100644
+index 5431cf8..3efcfca 100644
 --- a/rigctld.go
 +++ b/rigctld.go
-@@ -4,6 +4,7 @@ import (
+@@ -4,9 +4,11 @@ import (
  	"bytes"
  	"fmt"
  	"io"
@@ -113,7 +315,11 @@ index 5431cf8..76bdffd 100644
  	"net"
  	"strconv"
  	"strings"
-@@ -170,7 +171,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
++	"time"
+ )
+ 
+ const (
+@@ -170,7 +172,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
  	case cmdSplit[0] == "M", cmdSplit[0] == "\\set_mode":
  		mode := cmdSplit[1]
  		var dataMode bool
@@ -122,7 +328,7 @@ index 5431cf8..76bdffd 100644
  			dataMode = true
  			mode = mode[3:]
  		}
-@@ -200,7 +201,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+@@ -200,7 +202,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
  		} else if width <= 2400 {
  			filterCode = 1
  		}
@@ -131,7 +337,7 @@ index 5431cf8..76bdffd 100644
  		if err != nil {
  			_ = s.sendReplyCode(rigctldInvalidParam)
  		} else {
-@@ -318,7 +319,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+@@ -318,7 +320,7 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
  	case cmdSplit[0] == "X", cmdSplit[0] == "\\set_split_mode":
  		mode := cmdSplit[1]
  		var dataMode byte
@@ -140,7 +346,7 @@ index 5431cf8..76bdffd 100644
  			dataMode = 1
  			mode = mode[3:]
  		}
-@@ -348,12 +349,50 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+@@ -348,12 +350,137 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
  		} else if width <= 2400 {
  			filterCode = 1
  		}
@@ -188,6 +394,93 @@ index 5431cf8..76bdffd 100644
 +			_ = s.sendReplyCode(rigctldInvalidParam)
 +		} else {
 +			_ = s.sendReplyCode(rigctldNoError)
++		}
++	// --- Relaisbetrieb (OrbitHub-Erweiterung, Hamlib-Befehle R/r, O/o, C/c, U/u) ---
++	case len(cmdSplit) >= 2 && (cmdSplit[0] == "R" || cmdSplit[0] == "\\set_rptr_shift"):
++		var mode splitMode = splitModeOff
++		switch cmdSplit[1] {
++		case "+":
++			mode = splitModeDUPPlus
++		case "-":
++			mode = splitModeDUPMinus
++		}
++		if err = civControl.setSplit(mode); err != nil {
++			_ = s.sendReplyCode(rigctldInvalidParam)
++		} else {
++			_ = s.sendReplyCode(rigctldNoError)
++		}
++	case cmd == "r", cmd == "\\get_rptr_shift":
++		_ = civControl.getSplit()
++		time.Sleep(300 * time.Millisecond)
++		civControl.state.mutex.Lock()
++		res := "None"
++		switch civControl.state.splitMode {
++		case splitModeDUPPlus:
++			res = "+"
++		case splitModeDUPMinus:
++			res = "-"
++		}
++		civControl.state.mutex.Unlock()
++		err = s.send(res, "\n")
++	case len(cmdSplit) >= 2 && (cmdSplit[0] == "O" || cmdSplit[0] == "\\set_rptr_offs"):
++		v, perr := strconv.ParseFloat(cmdSplit[1], 64)
++		if perr != nil || v < 0 || v > 99999900 {
++			_ = s.sendReplyCode(rigctldInvalidParam)
++			break
++		}
++		if err = civControl.setRptrOffs(uint(v)); err != nil {
++			_ = s.sendReplyCode(rigctldInvalidParam)
++		} else {
++			_ = s.sendReplyCode(rigctldNoError)
++		}
++	case cmd == "o", cmd == "\\get_rptr_offs":
++		_ = civControl.getRptrOffs()
++		time.Sleep(300 * time.Millisecond)
++		civControl.state.mutex.Lock()
++		v := civControl.state.rptrOffsHz
++		civControl.state.mutex.Unlock()
++		err = s.send(v, "\n")
++	case len(cmdSplit) >= 2 && (cmdSplit[0] == "C" || cmdSplit[0] == "\\set_ctcss_tone"):
++		v, perr := strconv.Atoi(cmdSplit[1])
++		if perr != nil || v < 670 || v > 2541 {
++			_ = s.sendReplyCode(rigctldInvalidParam)
++			break
++		}
++		if err = civControl.setTone(v); err != nil {
++			_ = s.sendReplyCode(rigctldInvalidParam)
++		} else {
++			_ = s.sendReplyCode(rigctldNoError)
++		}
++	case cmd == "c", cmd == "\\get_ctcss_tone":
++		_ = civControl.getTone()
++		time.Sleep(300 * time.Millisecond)
++		civControl.state.mutex.Lock()
++		v := civControl.state.toneTenths
++		civControl.state.mutex.Unlock()
++		err = s.send(v, "\n")
++	case len(cmdSplit) >= 3 && (cmdSplit[0] == "U" || cmdSplit[0] == "\\set_func") && (cmdSplit[1] == "TONE" || cmdSplit[1] == "TSQL"):
++		var sub byte = 0x42
++		if cmdSplit[1] == "TSQL" {
++			sub = 0x43
++		}
++		if err = civControl.setToneFunc(sub, cmdSplit[2] == "1"); err != nil {
++			_ = s.sendReplyCode(rigctldInvalidParam)
++		} else {
++			_ = s.sendReplyCode(rigctldNoError)
++		}
++	case len(cmdSplit) >= 2 && (cmdSplit[0] == "u" || cmdSplit[0] == "\\get_func") && (cmdSplit[1] == "TONE" || cmdSplit[1] == "TSQL"):
++		_ = civControl.getToneFuncs()
++		time.Sleep(300 * time.Millisecond)
++		civControl.state.mutex.Lock()
++		on := civControl.state.toneOn
++		if cmdSplit[1] == "TSQL" {
++			on = civControl.state.tsqlOn
++		}
++		civControl.state.mutex.Unlock()
++		if on {
++			err = s.send("1\n")
++		} else {
++			err = s.send("0\n")
 +		}
  	case cmd == "v": // Ignore this command.
  		_ = s.sendReplyCode(rigctldUnsupportedCmd)

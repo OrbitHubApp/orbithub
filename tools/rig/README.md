@@ -45,6 +45,11 @@ Der Original-kappanhang (Stand 2021) hat zwei Fehler in `rigctld.go`, die OrbitH
 2. **Modus wird ignoriert** – an den IC-705 geht der Filter-*Index* (0/1/2) statt des CI-V-Filtercodes
    (01/02/03). Filter 0 gibt es nicht, das Funkgerät verwirft den Befehl kommentarlos.
 
+Außerdem ergänzt der Patch Befehle, die OrbitHub braucht: S-Meter/Rauschsperre
+(`l SQL`, `l RAWSTR`, `l SQLSTAT`, `L SQL`) und für den **Relaisbetrieb** im Handbetrieb
+(`R +|-|0` Ablage, `O <Hz>` Ablage-Offset, `C <0,1 Hz>` CTCSS-Ton, `U TONE|TSQL 0|1`
+sowie die Lesebefehle `r`, `o`, `c`, `u TONE|TSQL`).
+
 Vor dem `go build .` deshalb einspielen:
 
 ```bash
