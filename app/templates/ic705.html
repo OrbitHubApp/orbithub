@@ -171,6 +171,11 @@ OrbitHub &middot; {{ t('nav.ic705') }}
       <p class="icom-hint vfo-intro">Frei einstellen, ohne Satellit – z. B. ein Relais zwischen den Überflügen. Beendet Doppler und Live-Beobachtung.</p>
       <form id="vfo-form" autocomplete="off">
         <div class="icom-field">
+          <span class="icom-field-label">Relais</span>
+          <select id="vfo-relais" class="icom-input"><option value="">– aus der Liste wählen –</option></select>
+        </div>
+        <p class="icom-hint vfo-relais-info" id="vfo-relais-info" hidden></p>
+        <div class="icom-field">
           <span class="icom-field-label">RX MHz</span>
           <input type="text" inputmode="decimal" id="vfo-freq" class="icom-input" placeholder="z. B. 439.075">
         </div>
@@ -609,6 +614,8 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom .vfo-offset-wrap { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .icom .vfo-offset { flex: 0 0 4.6em; min-width: 0; width: 4.6em; }
 .icom .vfo-tone { flex: 0 0 auto; min-width: 0; }
+.icom .vfo-relais-info { margin: 0 0 6px; }
+.icom .vfo-relais-info b { color: var(--icom-amber); }
 .icom .vfo-unit { font-size: 0.8rem; color: var(--icom-dim); }
 .icom .vfo-offset:disabled, .icom .vfo-tone:disabled { opacity: 0.4; }
 .icom-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.2rem; margin-bottom: 1.2rem; align-items: start; }
@@ -2744,6 +2751,54 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       })
       .catch(function (err) { showError("Nicht eingestellt: " + err.message); })
       .then(function () { applyBtn.disabled = false; applyBtn.textContent = "▶ Einstellen"; });
+  });
+
+  // ---- Relais-Speicherliste: Auswahl stellt sofort ein ----
+  var relaisSel = document.getElementById("vfo-relais");
+  var relaisInfo = document.getElementById("vfo-relais-info");
+  var relaisList = [];
+  function de(n, d) { return Number(n).toFixed(d).replace(".", ","); }
+  fetch("/api/rig/relais").then(function (r) { return r.json(); }).then(function (d) {
+    relaisList = d.relais || [];
+    ["10m", "2m", "70cm"].forEach(function (band) {
+      var items = relaisList.map(function (x, i) { return [x, i]; }).filter(function (p) { return p[0].band === band; });
+      if (!items.length) { return; }
+      var grp = document.createElement("optgroup");
+      grp.label = band + " · Ablage −" + (band === "70cm" ? "7,6 MHz" : (band === "2m" ? "600 kHz" : "100 kHz"));
+      items.forEach(function (p) {
+        var x = p[0], o = document.createElement("option");
+        o.value = String(p[1]);
+        o.textContent = x.call + " · " + de(x.rx_mhz, 4).replace(/0+$/, "").replace(/,$/, "") + " · " + x.qth + " (" + x.dist_km + " km)";
+        grp.appendChild(o);
+      });
+      relaisSel.appendChild(grp);
+    });
+  }).catch(function () { relaisSel.disabled = true; });
+
+  relaisSel.addEventListener("change", function () {
+    var x = relaisList[Number(relaisSel.value)];
+    if (!relaisSel.value || !x) { relaisInfo.hidden = true; return; }
+    freqEl.value = x.rx_mhz.toFixed(4);
+    modeEl.value = "FM";
+    offsetEl.value = String(x.offset_khz);
+    setShift(x.shift || "0");
+    shiftTouched = true;
+    if (x.ctcss_hz) {
+      var v = Number(x.ctcss_hz).toFixed(1);
+      if (Array.prototype.some.call(toneEl.options, function (o) { return o.value === v; })) { toneEl.value = v; }
+      setTone("tone");
+    } else {
+      setTone("off");
+    }
+    var info = "<b>" + x.call + "</b> " + x.qth + " · " + x.dist_km + " km";
+    if (x.ctcss_hz) { info += " · CTCSS " + de(x.ctcss_hz, 1) + " Hz"; }
+    if (x.access === "1750") { info += " · öffnet mit <b>1750-Hz-Tonruf</b> (am Gerät auslösen)"; }
+    if (x.note) { info += " · " + x.note; }
+    if (/ungeprüft/.test(x.source || "")) { info += " · <i>Quelle ungeprüft</i>"; }
+    relaisInfo.innerHTML = info;
+    relaisInfo.hidden = false;
+    updateHint();
+    if (form.requestSubmit) { form.requestSubmit(); } else { applyBtn.click(); }
   });
 
   setShift("0"); setTone("off");

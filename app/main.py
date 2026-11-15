@@ -2,6 +2,7 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import json
+from pathlib import Path
 from math import cos, radians, sin
 import re
 import asyncio
@@ -3081,6 +3082,18 @@ async def rig_state() -> dict:
         }
 
     return await asyncio.to_thread(_read)
+
+
+_RELAIS_FILE = Path(__file__).resolve().parent / "data" / "relais_berlin.json"
+
+
+@app.get("/api/rig/relais")
+async def rig_relais_list() -> dict:
+    """FM-Relais-Speicherliste (Berlin + Umland) fuer den Handbetrieb."""
+    try:
+        return json.loads(_RELAIS_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=500, detail=f"Relaisliste nicht lesbar: {exc}") from exc
 
 
 @app.get("/api/rig/vfo")
