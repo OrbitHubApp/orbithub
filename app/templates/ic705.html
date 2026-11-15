@@ -523,6 +523,8 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom-key.is-attention { animation: icom-attn 1s ease-in-out infinite; color: #fff; }
 @keyframes icom-attn { 50% { box-shadow: 0 0 0 2px var(--icom-green), 0 0 14px var(--icom-green); } }
 .icom-satblock.is-idle .icom-sat-name { color: #59636e; }
+.icom-satblock.is-relais .icom-sat-name { color: var(--icom-cyan); }
+.icom-satblock.is-relais .icom-sat-countdown { color: var(--icom-cyan); font-size: clamp(1.1rem, 2.2vw, 1.5rem); }
 .icom-satblock.is-past .icom-sat-name { color: #9aa5b1; }
 .icom-keygrid-4 { grid-template-columns: repeat(4, 1fr); }
 .icom-sql-slider { width: 100%; accent-color: var(--icom-amber); margin: 2px 0 6px; }
@@ -1955,6 +1957,22 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
   }
   function tickSat() {
     document.getElementById("rig-tracking-start").classList.remove("is-attention");
+    // Handbetrieb (Relais/VFO) hat Vorrang, bis Doppler oder Live-Beobachtung uebernimmt
+    var manual = window.ic705Manual;
+    if (manual && ((freqDisplay && freqDisplay.classList.contains("is-live")) || document.body.dataset.liveActive)) {
+      window.ic705SetManual(null);
+      manual = null;
+    }
+    if (manual) {
+      satBlock.className = "icom-satblock is-relais";
+      satName.textContent = manual.name;
+      satAlias.textContent = manual.tag || "";
+      satLabel.textContent = manual.label || "";
+      satTime.textContent = manual.freq || "";
+      satCount.textContent = manual.repeater || "";
+      satInfo.textContent = manual.info || "";
+      return;
+    }
     if (!shown) {
       satBlock.className = "icom-satblock is-idle";
       satName.textContent = (rigPanel && rigPanel.dataset.satName) || "Kein Satellit";
@@ -2679,6 +2697,9 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     setTone(b.dataset.tone);
   });
   freqEl.addEventListener("input", function () {
+    if (selectedRelais && Math.abs(x0(selectedRelais) - Math.round(num(freqEl.value) * 1e6)) >= 1000) {
+      selectedRelais = null; relaisSel.value = ""; relaisInfo.hidden = true;
+    }
     var d = bandDefault(num(freqEl.value));
     if (d) {
       offsetEl.value = String(d.khz);
@@ -2719,6 +2740,44 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     updateHint();
   }
 
+  // Anzeige im grossen Display (siehe tickSat): aktuelles Relais / Handbetrieb
+  var MANUAL_KEY = "ic705-manual";
+  window.ic705SetManual = function (m) {
+    window.ic705Manual = m;
+    try {
+      if (m) { localStorage.setItem(MANUAL_KEY, JSON.stringify(m)); } else { localStorage.removeItem(MANUAL_KEY); }
+    } catch (e) {}
+  };
+  var selectedRelais = null;
+  function manualFromReadback(d) {
+    var r = d.repeater || {};
+    var rep = "";
+    if (r.shift && r.shift !== "0") {
+      rep = "DUP" + (r.shift === "+" ? "+" : "−") + " " + (r.offset_hz >= 1e6 ? de(r.offset_hz / 1e6, 1) + " MHz" : (r.offset_hz / 1000) + " kHz");
+    } else {
+      rep = "Simplex";
+    }
+    if (r.tone_mode && r.tone_mode !== "off" && r.tone_hz) { rep += " · " + r.tone_mode.toUpperCase() + " " + de(r.tone_hz, 1) + " Hz"; }
+    var x = selectedRelais && Math.abs(x0(selectedRelais) - d.frequency_hz) < 1000 ? selectedRelais : null;
+    var m = {
+      freq_hz: d.frequency_hz,
+      freq: fmtMhz(d.frequency_hz) + " MHz " + (d.mode || ""),
+      repeater: rep,
+    };
+    if (x) {
+      m.name = x.call; m.tag = "Relais";
+      m.label = x.qth + " · " + x.dist_km + " km ·";
+      var info = [];
+      if (x.access === "1750") { info.push("öffnet mit 1750-Hz-Tonruf (am Gerät auslösen)"); }
+      if (x.note) { info.push(x.note); }
+      m.info = info.join(" · ");
+    } else {
+      m.name = "Handbetrieb"; m.tag = "VFO"; m.label = "frei eingestellt ·"; m.info = "";
+    }
+    return m;
+  }
+  function x0(x) { return Math.round(x.rx_mhz * 1e6); }
+
   function readFromRig(fill) {
     return fetch("/api/rig/vfo").then(function (r) { return r.json(); }).then(function (d) {
       showReadback(d);
@@ -2747,6 +2806,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       .then(function (d) {
         showReadback(d);
         if (d.repeater_error) { showError(d.repeater_error); }
+        window.ic705SetManual(manualFromReadback(d));
         document.dispatchEvent(new Event("rig-tracking-changed"));
       })
       .catch(function (err) { showError("Nicht eingestellt: " + err.message); })
@@ -2777,6 +2837,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
 
   relaisSel.addEventListener("change", function () {
     var x = relaisList[Number(relaisSel.value)];
+    selectedRelais = x || null;
     if (!relaisSel.value || !x) { relaisInfo.hidden = true; return; }
     freqEl.value = x.rx_mhz.toFixed(4);
     modeEl.value = "FM";
@@ -2802,7 +2863,15 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
   });
 
   setShift("0"); setTone("off");
-  readFromRig(true);
+  var savedManual = null;
+  try { savedManual = JSON.parse(localStorage.getItem(MANUAL_KEY) || "null"); } catch (e) {}
+  readFromRig(true).then(function (d) {
+    if (savedManual && d && d.reachable !== false && Math.abs(savedManual.freq_hz - d.frequency_hz) < 1000) {
+      window.ic705Manual = savedManual;
+    } else if (savedManual) {
+      window.ic705SetManual(null);
+    }
+  });
 })();
 </script>
 {% endblock %}
