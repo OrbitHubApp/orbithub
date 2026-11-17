@@ -215,6 +215,8 @@ OrbitHub &middot; {{ t('nav.digital') }}
 .dg-last-row.is-cq .m { color: var(--dg-green); }
 .dg-last-row.is-me .m { color: #ffb4a8; font-weight: 700; }
 .dg-last-empty { color: #4f5a66; font-size: 0.85rem; }
+.dg-last-row[data-seq] { cursor: pointer; border-radius: 3px; }
+.dg-last-row[data-seq]:hover { background: rgba(56,200,255,0.08); }
 .dg-msg { margin-top: 8px; font-size: 0.84rem; color: #ff9a8a; }
 .dg-msg.is-info { color: #cfd6dd; }
 .dg-keys { display: flex; flex-direction: column; gap: 10px; }
@@ -598,7 +600,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
     var html = '<div class="dg-last-head">Letzte Periode · ' + lastUtc.slice(11, 19) + " UTC · " + cur.length + (cur.length === 1 ? " Signal" : " Signale") + "</div>";
     cur.slice(0, 6).forEach(function (d) {
       var db = distBearing(d.grid), me = MY_CALL && d.to === MY_CALL;
-      html += '<div class="dg-last-row' + (d.cq ? " is-cq" : "") + (me ? " is-me" : "") + '"><span>' + (d.snr > 0 ? "+" : "") + d.snr + "</span><span>" + (isWspr() ? (d.freq_hz / 1e6).toFixed(4) : d.df) + '</span><span class="m">' + esc(d.message) + "</span><span>" + (db ? db.km.toLocaleString("de-DE") + " km" : "") + "</span></div>";
+      html += '<div class="dg-last-row' + (d.cq ? " is-cq" : "") + (me ? " is-me" : "") + '"' + (d.call && !d.hashed && !isWspr() ? ' data-seq="' + d.seq + '" title="Doppelklick: ' + esc(d.call) + ' anrufen"' : "") + '><span>' + (d.snr > 0 ? "+" : "") + d.snr + "</span><span>" + (isWspr() ? (d.freq_hz / 1e6).toFixed(4) : d.df) + '</span><span class="m">' + esc(d.message) + "</span><span>" + (db ? db.km.toLocaleString("de-DE") + " km" : "") + "</span></div>";
     });
     if (cur.length > 6) { html += '<div class="dg-last-empty">… und ' + (cur.length - 6) + " weitere (Liste unten)</div>"; }
     el.innerHTML = html;
@@ -715,6 +717,10 @@ OrbitHub &middot; {{ t('nav.digital') }}
   $("dg-beacon").addEventListener("change", function (ev) { txPost("config", { wspr_beacon: ev.target.checked }); });
   $("dg-wspr-pct").addEventListener("change", function (ev) { txPost("config", { wspr_pct: Number(ev.target.value) }); });
   $("dg-wspr-dbm").addEventListener("change", function (ev) { txPost("config", { wspr_dbm: Number(ev.target.value) }); });
+  $("dg-last").addEventListener("dblclick", function (ev) {
+    var row = ev.target.closest("[data-seq]");
+    if (row) { txPost("call", { seq: Number(row.dataset.seq) }); }
+  });
   $("dg-tbody").addEventListener("dblclick", function (ev) {
     var tr = ev.target.closest("tr[data-seq]");
     if (tr && !isWspr()) { txPost("call", { seq: Number(tr.dataset.seq) }); }
