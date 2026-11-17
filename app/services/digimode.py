@@ -82,7 +82,7 @@ async def configure(payload: dict) -> dict:
     return await _request("POST", "/config", payload)
 
 
-TX_ACTIONS = ("config", "cq", "call", "next", "halt", "clear")
+TX_ACTIONS = ("config", "cq", "call", "next", "halt", "clear", "test")
 
 
 async def tx(action: str, payload: dict) -> dict:

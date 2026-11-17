@@ -771,6 +771,94 @@ class Transmitter:
             self.meter = None
             self._record(plan, ok=note == "gesendet", note=note + (f" · {adj}" if adj else ""))
 
+    def start_test(self, seconds: float = 5.0) -> None:
+        """SWR-Test: ein paar Sekunden Dauerton auf der TX-Frequenz, Po/ALC/SWR messen."""
+        seconds = max(2.0, min(10.0, float(seconds)))
+        if self.transmitting:
+            raise ValueError("Es wird gerade gesendet.")
+        if self.cfg.get("dry_run", True):
+            raise ValueError("Probelauf ist an – der Test sendet echt. Erst den Probelauf ausschalten.")
+        if not self.cfg.get("running"):
+            raise ValueError("Empfang ist aus – erst Betriebsart und Band starten.")
+        if not self.band_allowed():
+            raise ValueError(f"Senden auf {self.cfg.get('band') or '?'} nicht freigegeben (Antenne?).")
+        plan = self.plan
+        if plan and plan["slot"] - time.time() < seconds + 2:
+            raise ValueError("Gleich steht eine Aussendung an – Test danach.")
+        self.e.rig.poll()
+        if not self.e.rig.on_frequency(int(self.cfg["dial_hz"])):
+            raise ValueError("IC-705 steht nicht auf der Frequenz in USB-D.")
+        threading.Thread(target=self._run_test, args=(seconds,), daemon=True).start()
+
+    def _run_test(self, seconds: float) -> None:
+        df = float(self.cfg.get("tx_df", 1500))
+        level = self.level()
+        n = int(seconds * RATE)
+        ramp = int(0.02 * RATE)
+        samples = array.array("h", bytes(2 * n))
+        for i in range(n):
+            a = min(1.0, i / ramp, (n - 1 - i) / ramp)
+            samples[i] = int(32767 * level * a * math.sin(2 * math.pi * df * i / RATE))
+        t0 = time.time()
+        plan = {"mode": self.cfg.get("mode", "FT8"), "slot": t0, "df": df,
+                "message": f"SWR-Test · Dauerton {int(df)} Hz · {seconds:.0f} s", "key": "test"}
+        self.halt_event.clear()
+        self.transmitting = True
+        self.sending = plan["message"]
+        note = "SWR-Test gesendet"
+        meters: list[dict] = []
+        try:
+            if not self._ptt(True):
+                raise RuntimeError("PTT ließ sich nicht einschalten.")
+            time.sleep(0.15)
+            self.proc = subprocess.Popen(
+                ["pacat", "--playback", f"--device={TX_SINK}", f"--rate={RATE}", "--channels=1",
+                 "--format=s16le", "--raw", "--latency-msec=60", "--client-name=OrbitHub-Test"],
+                stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            assert self.proc.stdin is not None
+            try:
+                self.proc.stdin.write(samples.tobytes())
+                self.proc.stdin.close()
+            except BrokenPipeError:
+                pass
+            deadline = time.time() + seconds + 2.0
+            next_meter = time.time() + 0.8
+            while self.proc.poll() is None and time.time() < deadline and not self.halt_event.is_set():
+                if time.time() >= next_meter:
+                    m = self._read_meters()
+                    next_meter = time.time() + 0.3
+                    if m and m["ptt"] and m["age"] < 1.5:
+                        meters.append(m)
+                        self.meter = meter_reading(m)
+                time.sleep(0.02)
+            if self.proc.poll() is None:
+                self.proc.kill()
+            if self.halt_event.is_set():
+                note = "SWR-Test – STOP"
+        except Exception as exc:  # noqa: BLE001
+            note = f"SWR-Test Fehler: {exc}"
+            self.last_error = note
+        finally:
+            self._ptt(False)
+            self.transmitting = False
+            self.sending = None
+            self.proc = None
+            if meters:
+                mx = meter_reading({"po": max(m["po"] for m in meters), "alc": max(m["alc"] for m in meters),
+                                    "swr": max(m["swr"] for m in meters)})
+                self.last_meters = {
+                    "utc": self.e.iso(t0), "band": self.cfg.get("band"), "level": round(level, 3),
+                    "n": len(meters), "test": True, "max": mx,
+                    "avg": meter_reading({"po": round(sum(m["po"] for m in meters) / len(meters)),
+                                          "alc": round(sum(m["alc"] for m in meters) / len(meters)),
+                                          "swr": round(sum(m["swr"] for m in meters) / len(meters))}),
+                }
+                note += f" · SWR {mx['swr']:.1f} : 1 · Po {mx['po_pct']:.0f} % · ALC {mx['alc_pct']:.0f} %".replace(".", ",")
+            else:
+                note += " · keine Messwerte"
+            self.meter = None
+            self._record(plan, ok=note.startswith("SWR-Test gesendet"), note=note)
+
     def _selfcheck(self, plan: dict, samples: array.array) -> None:
         """Probelauf: erzeugte Aussendung mit dem eigenen Decoder zurücklesen."""
         mode = plan["mode"]

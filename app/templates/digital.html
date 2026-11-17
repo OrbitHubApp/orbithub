@@ -129,6 +129,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
         <button type="button" class="dg-key dg-key-cq" id="dg-cq">CQ rufen</button>
         <button type="button" class="dg-key" id="dg-enable">TX frei</button>
         <button type="button" class="dg-key" id="dg-clear-qso">QSO beenden</button>
+        <button type="button" class="dg-key dg-key-test" id="dg-test" title="5 s Dauerton auf der TX-Frequenz senden und Po/ALC/SWR messen">TEST · SWR</button>
       </div>
       <div class="dg-qso" id="dg-qso">Kein QSO. „CQ rufen“ oder in der Liste eine Station <b>doppelt anklicken</b>.</div>
       <div class="dg-msgs" id="dg-msgs"></div>
@@ -360,6 +361,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
 .dg-txbands label.is-cur { box-shadow: 0 0 0 1px var(--dg-amber) inset; }
 .dg-txbands input { accent-color: var(--dg-green); margin: 0; }
 .dg-key-cq { color: #97E1A8; }
+.dg-key-test { color: #F2B705; }
 .dg-key.is-armed::before { background: var(--dg-red); box-shadow: 0 0 6px var(--dg-red); }
 .dg-qso { font-size: 0.86rem; color: #E2E5E2; }
 .dg-qso b { color: #FFFFFF; }
@@ -797,7 +799,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
     var sw = document.querySelector(".dg-meter-bar.is-swr");
     sw.classList.toggle("is-warn", m.swr >= 2 && m.swr < 3);
     sw.classList.toggle("is-hot", m.swr >= 3);
-    $("dg-m-note").textContent = live ? "● live beim Senden" : "Höchstwerte der letzten Aussendung " + tx.last_meters.utc.slice(11, 19) + " UTC";
+    $("dg-m-note").textContent = live ? "● live beim Senden" : (tx.last_meters.test ? "Höchstwerte SWR-Test " : "Höchstwerte der letzten Aussendung ") + tx.last_meters.utc.slice(11, 19) + " UTC";
   }
   function renderQsoBig(tx) {
     var q = tx.qso, el = $("dg-qsobig");
@@ -841,6 +843,10 @@ OrbitHub &middot; {{ t('nav.digital') }}
   $("dg-cq").addEventListener("click", function () { txPost("cq"); });
   $("dg-enable").addEventListener("click", function () { txPost("config", { tx_enabled: !(txst && txst.enabled) }); });
   $("dg-clear-qso").addEventListener("click", function () { txPost("clear"); });
+  $("dg-test").addEventListener("click", function () {
+    if (!confirm("SWR-Test: 5 Sekunden Dauerton auf " + (sel.band || "?") + " senden? (Abbruch mit STOP oder Esc)")) { return; }
+    txPost("test", { seconds: 5 });
+  });
   $("dg-halt").addEventListener("click", function () { txPost("halt"); });
   document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { txPost("halt"); } });
   $("dg-msgs").addEventListener("click", function (ev) {

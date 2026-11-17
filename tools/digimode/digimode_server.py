@@ -903,6 +903,8 @@ class Handler(BaseHTTPRequestHandler):
                 engine.tx.choose(str(data.get("key", "")))
             elif path == "/tx/halt":
                 engine.tx.halt("STOP")
+            elif path == "/tx/test":
+                engine.tx.start_test(float(data.get("seconds") or 5))
             elif path == "/tx/clear":
                 engine.tx.clear_qso()
             elif path == "/flush":
