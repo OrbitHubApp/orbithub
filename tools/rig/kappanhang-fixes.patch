@@ -1,8 +1,8 @@
 diff --git a/civcontrol.go b/civcontrol.go
-index 13d3fa5..8ad1ab7 100644
+index 13d3fa5..15fd307 100644
 --- a/civcontrol.go
 +++ b/civcontrol.go
-@@ -94,8 +94,23 @@ type civControlStruct struct {
+@@ -94,10 +94,27 @@ type civControlStruct struct {
  		mutex       sync.Mutex
  		pendingCmds []*civCmd
  
@@ -25,18 +25,26 @@ index 13d3fa5..8ad1ab7 100644
 +		getSQLStatus      civCmd
  		getOVF            civCmd
  		getSWR            civCmd
++		getPo             civCmd // OrbitHub: Sendeleistungs-Meter (CI-V 15 11)
++		getALC            civCmd // OrbitHub: ALC-Meter (CI-V 15 13)
  		getTransmitStatus civCmd
-@@ -147,6 +162,9 @@ type civControlStruct struct {
+ 		getPreamp         civCmd
+ 		getAGC            civCmd
+@@ -147,6 +164,13 @@ type civControlStruct struct {
  		pwrPercent          int
  		rfGainPercent       int
  		sqlPercent          int
 +		sqlRaw              int // 0..255 (BCD-Wert des IC-705)
 +		sRaw                int // S-Meter 0..255: 0 = S0, 120 = S9, 241 = S9+60 dB
++		poRaw               int // Po-Meter 0..255 (213 = 100 %)
++		alcRaw              int // ALC-Meter 0..255 (120 = Ende ALC-Bereich)
++		swrRaw              int // SWR-Meter 0..255 (0 = 1,0; 48 = 1,5; 80 = 2,0; 120 = 3,0)
++		lastTxMeterAt       time.Time
 +		sqlOpen             bool // Rauschsperre gerade offen (Signal da)
  		nrPercent           int
  		nrEnabled           bool
  		operatingModeIdx    int
-@@ -193,8 +211,12 @@ func (s *civControlStruct) decode(d []byte) bool {
+@@ -193,8 +217,12 @@ func (s *civControlStruct) decode(d []byte) bool {
  		return s.decodeMode(payload)
  	case 0x07:
  		return s.decodeVFO(payload)
@@ -49,7 +57,7 @@ index 13d3fa5..8ad1ab7 100644
  	case 0x10:
  		return s.decodeTS(payload)
  	case 0x1a:
-@@ -312,6 +334,47 @@ func (s *civControlStruct) decodeVFO(d []byte) bool {
+@@ -312,6 +340,47 @@ func (s *civControlStruct) decodeVFO(d []byte) bool {
  	return true
  }
  
@@ -97,7 +105,7 @@ index 13d3fa5..8ad1ab7 100644
  func (s *civControlStruct) decodeSplit(d []byte) bool {
  	if len(d) < 1 {
  		return !s.state.getSplit.pending && !s.state.setSplit.pending
-@@ -455,6 +518,7 @@ func (s *civControlStruct) decodePowerRFGainSQLNRPwr(d []byte) bool {
+@@ -455,6 +524,7 @@ func (s *civControlStruct) decodePowerRFGainSQLNRPwr(d []byte) bool {
  		}
  		hex := uint16(d[1])<<8 | uint16(d[2])
  		s.state.sqlPercent = int(math.Round((float64(hex) / 0x0255) * 100))
@@ -105,7 +113,7 @@ index 13d3fa5..8ad1ab7 100644
  		statusLog.reportSQL(s.state.sqlPercent)
  		if s.state.getSQL.pending {
  			s.removePendingCmd(&s.state.getSQL)
-@@ -560,6 +624,15 @@ func (s *civControlStruct) decodeTransmitStatus(d []byte) bool {
+@@ -560,6 +630,15 @@ func (s *civControlStruct) decodeTransmitStatus(d []byte) bool {
  
  func (s *civControlStruct) decodeVdSWRS(d []byte) bool {
  	switch d[0] {
@@ -121,7 +129,7 @@ index 13d3fa5..8ad1ab7 100644
  	case 0x02:
  		if len(d) < 3 {
  			return !s.state.getS.pending
-@@ -594,6 +667,7 @@ func (s *civControlStruct) decodeVdSWRS(d []byte) bool {
+@@ -594,6 +673,7 @@ func (s *civControlStruct) decodeVdSWRS(d []byte) bool {
  				sStr += "60"
  			}
  		}
@@ -129,7 +137,41 @@ index 13d3fa5..8ad1ab7 100644
  		s.state.lastSReceivedAt = time.Now()
  		statusLog.reportS(sStr)
  		if s.state.getS.pending {
-@@ -624,7 +698,36 @@ func (s *civControlStruct) decodeVdSWRS(d []byte) bool {
+@@ -605,11 +685,33 @@ func (s *civControlStruct) decodeVdSWRS(d []byte) bool {
+ 			return !s.state.getSWR.pending
+ 		}
+ 		s.state.lastSWRReceivedAt = time.Now()
++		s.state.swrRaw = bcdLevel(d[1], d[2])
++		s.state.lastTxMeterAt = time.Now()
+ 		statusLog.reportSWR(((float64(int(d[1])<<8)+float64(d[2]))/0x0120)*2 + 1)
+ 		if s.state.getSWR.pending {
+ 			s.removePendingCmd(&s.state.getSWR)
+ 			return false
+ 		}
++	case 0x11:
++		if len(d) < 3 {
++			return !s.state.getPo.pending
++		}
++		s.state.poRaw = bcdLevel(d[1], d[2])
++		s.state.lastTxMeterAt = time.Now()
++		if s.state.getPo.pending {
++			s.removePendingCmd(&s.state.getPo)
++			return false
++		}
++	case 0x13:
++		if len(d) < 3 {
++			return !s.state.getALC.pending
++		}
++		s.state.alcRaw = bcdLevel(d[1], d[2])
++		s.state.lastTxMeterAt = time.Now()
++		if s.state.getALC.pending {
++			s.removePendingCmd(&s.state.getALC)
++			return false
++		}
+ 	case 0x15:
+ 		if len(d) < 3 {
+ 			return !s.state.getVd.pending
+@@ -624,7 +726,36 @@ func (s *civControlStruct) decodeVdSWRS(d []byte) bool {
  }
  
  func (s *civControlStruct) decodePreampAGCNREnabled(d []byte) bool {
@@ -166,7 +208,7 @@ index 13d3fa5..8ad1ab7 100644
  	case 0x02:
  		if len(d) < 2 {
  			return !s.state.getPreamp.pending && !s.state.setPreamp.pending
-@@ -870,6 +973,26 @@ func (s *civControlStruct) setSQL(percent int) error {
+@@ -870,6 +1001,26 @@ func (s *civControlStruct) setSQL(percent int) error {
  	return s.sendCmd(&s.state.setSQL)
  }
  
@@ -193,7 +235,7 @@ index 13d3fa5..8ad1ab7 100644
  func (s *civControlStruct) incSQL() error {
  	if s.state.sqlPercent < 100 {
  		return s.setSQL(s.state.sqlPercent + 1)
-@@ -1167,6 +1290,87 @@ func (s *civControlStruct) setSplit(mode splitMode) error {
+@@ -1167,6 +1318,87 @@ func (s *civControlStruct) setSplit(mode splitMode) error {
  	return s.sendCmd(&s.state.setSplit)
  }
  
@@ -281,7 +323,7 @@ index 13d3fa5..8ad1ab7 100644
  func (s *civControlStruct) toggleSplit() error {
  	var mode splitMode
  	switch s.state.splitMode {
-@@ -1226,6 +1430,11 @@ func (s *civControlStruct) getVd() error {
+@@ -1226,6 +1458,11 @@ func (s *civControlStruct) getVd() error {
  	return s.sendCmd(&s.state.getVd)
  }
  
@@ -293,7 +335,34 @@ index 13d3fa5..8ad1ab7 100644
  func (s *civControlStruct) getS() error {
  	s.initCmd(&s.state.getS, "getS", []byte{254, 254, civAddress, 224, 0x15, 0x02, 253})
  	return s.sendCmd(&s.state.getS)
-@@ -1318,6 +1527,9 @@ func (s *civControlStruct) loop() {
+@@ -1241,6 +1478,16 @@ func (s *civControlStruct) getSWR() error {
+ 	return s.sendCmd(&s.state.getSWR)
+ }
+ 
++func (s *civControlStruct) getPo() error {
++	s.initCmd(&s.state.getPo, "getPo", []byte{254, 254, civAddress, 224, 0x15, 0x11, 253})
++	return s.sendCmd(&s.state.getPo)
++}
++
++func (s *civControlStruct) getALC() error {
++	s.initCmd(&s.state.getALC, "getALC", []byte{254, 254, civAddress, 224, 0x15, 0x13, 253})
++	return s.sendCmd(&s.state.getALC)
++}
++
+ func (s *civControlStruct) getTS() error {
+ 	s.initCmd(&s.state.getTS, "getTS", []byte{254, 254, civAddress, 224, 0x10, 253})
+ 	return s.sendCmd(&s.state.getTS)
+@@ -1314,10 +1561,19 @@ func (s *civControlStruct) loop() {
+ 				if !s.state.getSWR.pending && time.Since(s.state.lastSWRReceivedAt) >= statusPollInterval {
+ 					_ = s.getSWR()
+ 				}
++				if !s.state.getPo.pending {
++					_ = s.getPo()
++				}
++				if !s.state.getALC.pending {
++					_ = s.getALC()
++				}
+ 			} else {
  				if !s.state.getS.pending && time.Since(s.state.lastSReceivedAt) >= statusPollInterval {
  					_ = s.getS()
  				}
@@ -304,7 +373,7 @@ index 13d3fa5..8ad1ab7 100644
  					_ = s.getOVF()
  				}
 diff --git a/rigctld.go b/rigctld.go
-index 5431cf8..edb19ae 100644
+index 5431cf8..84021a2 100644
 --- a/rigctld.go
 +++ b/rigctld.go
 @@ -4,9 +4,11 @@ import (
@@ -346,7 +415,7 @@ index 5431cf8..edb19ae 100644
  			dataMode = 1
  			mode = mode[3:]
  		}
-@@ -348,12 +350,159 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
+@@ -348,12 +350,173 @@ func (s *rigctldStruct) processCmd(cmd string) (close bool, err error) {
  		} else if width <= 2400 {
  			filterCode = 1
  		}
@@ -382,6 +451,8 @@ index 5431cf8..edb19ae 100644
 +	case len(cmdSplit) >= 2 && (cmdSplit[0] == "l" || cmdSplit[0] == "\\get_level"):
 +		civControl.state.mutex.Lock()
 +		sqlRaw, sRaw, sqlOpen := civControl.state.sqlRaw, civControl.state.sRaw, civControl.state.sqlOpen
++		poRaw, alcRaw, swrRaw, ptt := civControl.state.poRaw, civControl.state.alcRaw, civControl.state.swrRaw, civControl.state.ptt
++		meterAge := time.Since(civControl.state.lastTxMeterAt).Seconds()
 +		civControl.state.mutex.Unlock()
 +		switch cmdSplit[1] {
 +		case "SQL":
@@ -394,6 +465,18 @@ index 5431cf8..edb19ae 100644
 +			}
 +		case "RAWSTR":
 +			err = s.send(fmt.Sprintf("%d\n", sRaw))
++		case "RFPOWER_METER": // Hamlib: 0..1
++			err = s.send(fmt.Sprintf("%.3f\n", math.Min(1, float64(poRaw)/213)))
++		case "ALC": // Hamlib: 0..1
++			err = s.send(fmt.Sprintf("%.3f\n", math.Min(1, float64(alcRaw)/120)))
++		case "SWR":
++			err = s.send(fmt.Sprintf("%.2f\n", swrFromRaw(swrRaw)))
++		case "METERS": // OrbitHub: "ptt po alc swr alter_s" (Rohwerte 0..255)
++			p := 0
++			if ptt {
++				p = 1
++			}
++			err = s.send(fmt.Sprintf("%d %d %d %d %.1f\n", p, poRaw, alcRaw, swrRaw, meterAge))
 +		case "STRENGTH":
 +			// Hamlib: dB relativ zu S9 (IC-705: 0 = S0, 120 = S9, 241 = S9+60)
 +			var db float64
@@ -507,3 +590,21 @@ index 5431cf8..edb19ae 100644
  	case cmd == "v": // Ignore this command.
  		_ = s.sendReplyCode(rigctldUnsupportedCmd)
  		return
+@@ -472,3 +635,17 @@ func (s *rigctldStruct) deinit() {
+ 		<-s.deinitFinishedChan
+ 	}
+ }
++
++// swrFromRaw rechnet den IC-705-SWR-Meterwert (0..255) in ein Stehwellenverhaeltnis um
++// (Eckpunkte laut CI-V-Referenz: 0 = 1,0; 48 = 1,5; 80 = 2,0; 120 = 3,0).
++func swrFromRaw(raw int) float64 {
++	pts := [][2]float64{{0, 1.0}, {48, 1.5}, {80, 2.0}, {120, 3.0}, {255, 6.0}}
++	r := float64(raw)
++	for i := 1; i < len(pts); i++ {
++		if r <= pts[i][0] {
++			a, b := pts[i-1], pts[i]
++			return a[1] + (r-a[0])/(b[0]-a[0])*(b[1]-a[1])
++		}
++	}
++	return 6.0
++}

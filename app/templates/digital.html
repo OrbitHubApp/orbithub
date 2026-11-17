@@ -42,6 +42,12 @@ OrbitHub &middot; {{ t('nav.digital') }}
         <div class="dg-freqblock">
           <div class="dg-freq" id="dg-freq">--.---.---</div>
           <div class="dg-freq-unit">MHz · USB-D (Dial)</div>
+          <div class="dg-meters" id="dg-meters">
+            <div class="dg-meter"><span class="dg-meter-k">Po</span><span class="dg-meter-bar"><i id="dg-m-po"></i></span><span class="dg-meter-v" id="dg-m-po-v">–</span></div>
+            <div class="dg-meter"><span class="dg-meter-k">ALC</span><span class="dg-meter-bar is-alc"><i id="dg-m-alc"></i></span><span class="dg-meter-v" id="dg-m-alc-v">–</span></div>
+            <div class="dg-meter"><span class="dg-meter-k">SWR</span><span class="dg-meter-bar is-swr"><i id="dg-m-swr"></i></span><span class="dg-meter-v" id="dg-m-swr-v">–</span></div>
+            <div class="dg-meter-note" id="dg-m-note">Messwerte erscheinen beim Senden</div>
+          </div>
         </div>
         <div class="dg-cycle">
           <div class="dg-cycle-label" id="dg-cycle-label">Periode</div>
@@ -50,6 +56,18 @@ OrbitHub &middot; {{ t('nav.digital') }}
         </div>
       </div>
 
+      <div class="dg-qsobig" id="dg-qsobig" hidden>
+        <div class="dg-qb-call" id="dg-qb-call">—</div>
+        <div class="dg-qb-info">
+          <div class="dg-qb-country" id="dg-qb-country"></div>
+          <div class="dg-qb-dist" id="dg-qb-dist"></div>
+        </div>
+        <div class="dg-qb-rst">
+          <div><span>gesendet</span><b id="dg-qb-sent">–</b></div>
+          <div><span>erhalten</span><b id="dg-qb-rcvd">–</b></div>
+        </div>
+        <div class="dg-qb-state" id="dg-qb-state"></div>
+      </div>
       <div class="dg-last" id="dg-last"></div>
       <div class="dg-msg" id="dg-msg" hidden></div>
     </div>
@@ -99,7 +117,9 @@ OrbitHub &middot; {{ t('nav.digital') }}
       <div class="dg-tx-row">
         <label>TX-Frequenz <input type="number" id="dg-txdf" min="200" max="2900" step="10"> Hz</label>
         <label>Pegel <input type="range" id="dg-txlevel" min="0.02" max="1" step="0.01"> <span id="dg-txlevel-v"></span></label>
+        <label class="dg-check" title="Pegel nach jeder Aussendung anhand der ALC nachführen (je Band gemerkt)"><input type="checkbox" id="dg-autolevel"> Pegel automatisch (ALC)</label>
       </div>
+      <div class="dg-hint" id="dg-autolevel-info"></div>
       <div class="dg-hint">Am IC-705: USB-D mit <b>DATA MOD = WLAN</b> (Menu › Set › Connectors › MOD Input), Leistung am Gerät einstellen, ALC möglichst ruhig.</div>
     </div>
 
@@ -202,6 +222,31 @@ OrbitHub &middot; {{ t('nav.digital') }}
 .dg.is-stopped .dg-freq { color: #59636e; text-shadow: none; }
 .dg-freq-unit { font-size: 0.78rem; color: var(--dg-dim); text-align: right; margin-top: 4px; }
 .dg-cycle { flex: 1 1 240px; max-width: 420px; }
+.dg-meters { margin-top: 10px; display: grid; gap: 4px; min-width: 300px; }
+.dg-meter { display: grid; grid-template-columns: 2.6em minmax(0, 1fr) 5.2em; gap: 8px; align-items: center; font-family: var(--dg-mono); font-size: 0.74rem; color: var(--dg-dim); }
+.dg-meter-k { letter-spacing: 0.08em; }
+.dg-meter-bar { position: relative; height: 9px; border-radius: 2px; background: #11171f; border: 1px solid #263240; overflow: hidden; }
+.dg-meter-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #1e7fd0, var(--dg-cyan)); transition: width 0.25s; }
+.dg-meter-bar.is-alc i { background: linear-gradient(90deg, #2c9a52, var(--dg-green)); }
+.dg-meter-bar.is-alc.is-hot i { background: linear-gradient(90deg, #b06a00, var(--dg-red)); }
+.dg-meter-bar.is-swr i { background: linear-gradient(90deg, #2c9a52, var(--dg-green)); }
+.dg-meter-bar.is-swr.is-warn i { background: linear-gradient(90deg, #b06a00, var(--dg-amber)); }
+.dg-meter-bar.is-swr.is-hot i { background: linear-gradient(90deg, #b06a00, var(--dg-red)); }
+.dg-meter-v { text-align: right; color: #e6eaee; font-variant-numeric: tabular-nums; }
+.dg-meters.is-idle .dg-meter-v, .dg-meters.is-idle .dg-meter-bar i { opacity: 0.45; }
+.dg-meter-note { font-size: 0.66rem; color: #5f6c79; text-align: right; }
+.dg-meters.is-live .dg-meter-note { color: var(--dg-red); }
+.dg-qsobig { margin-top: 12px; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,90,74,0.45); background: linear-gradient(90deg, rgba(255,90,74,0.12), rgba(255,90,74,0.03)); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "call info rst" "state state state"; gap: 4px 18px; align-items: center; }
+.dg-qsobig.is-done { border-color: rgba(60,224,122,0.5); background: linear-gradient(90deg, rgba(60,224,122,0.12), rgba(60,224,122,0.03)); }
+.dg-qb-call { grid-area: call; font-family: var(--dg-mono); font-weight: 800; font-size: clamp(1.8rem, 4vw, 2.8rem); color: #fff; letter-spacing: 0.04em; line-height: 1; }
+.dg-qb-info { grid-area: info; min-width: 0; }
+.dg-qb-country { font-size: 1.15rem; font-weight: 700; color: #ffd38a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dg-qb-dist { font-family: var(--dg-mono); font-size: 0.86rem; color: #cfd6dd; }
+.dg-qb-rst { grid-area: rst; display: flex; gap: 16px; }
+.dg-qb-rst div { display: flex; flex-direction: column; align-items: center; }
+.dg-qb-rst span { font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dg-dim); }
+.dg-qb-rst b { font-family: var(--dg-mono); font-size: 1.6rem; color: #fff; }
+.dg-qb-state { grid-area: state; font-family: var(--dg-mono); font-size: 0.8rem; color: var(--dg-amber); }
 .dg-cycle-label { font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dg-cyan); }
 .dg-cycle-bar { height: 10px; border-radius: 5px; background: #121820; border: 1px solid #263240; overflow: hidden; margin: 4px 0; }
 .dg-cycle-bar span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #1e7fd0, var(--dg-cyan)); }
@@ -209,7 +254,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
 .dg-cycle-info { font-family: var(--dg-mono); font-size: 0.78rem; color: #cfd6dd; }
 .dg-last { margin-top: 12px; border-top: 1px solid var(--dg-line); padding-top: 8px; font-family: var(--dg-mono); font-size: 0.95rem; min-height: 7.5em; }
 .dg-last-head { font-size: 0.62rem; letter-spacing: 0.14em; color: var(--dg-cyan); text-transform: uppercase; margin-bottom: 4px; font-family: inherit; }
-.dg-last-row { display: grid; grid-template-columns: 3.2em 4.2em minmax(0, 1fr) 6em; gap: 10px; color: #e8edf2; white-space: nowrap; }
+.dg-last-row { display: grid; grid-template-columns: 3.2em 4.2em minmax(0, 1fr) 14em; gap: 10px; color: #e8edf2; white-space: nowrap; }
 .dg-last-row span:last-child { text-align: right; color: var(--dg-dim); }
 .dg-last-row .m { overflow: hidden; text-overflow: ellipsis; }
 .dg-last-row.is-cq .m { color: var(--dg-green); }
@@ -530,8 +575,8 @@ OrbitHub &middot; {{ t('nav.digital') }}
     $("dg-only-cq").parentNode.hidden = isWspr();
     $("dg-list-title").textContent = isWspr() ? "WSPR-SPOTS" : "BANDAKTIVITÄT · " + sel.mode;
     $("dg-thead").innerHTML = isWspr()
-      ? '<tr><th class="l">UTC</th><th>dB</th><th>DT</th><th>MHz</th><th>Drift</th><th class="l">Rufzeichen</th><th class="l">Locator</th><th>Leistung</th><th>km</th><th></th></tr>'
-      : '<tr><th class="l">UTC</th><th>dB</th><th>DT</th><th>Hz</th><th class="l">Nachricht</th><th>km</th><th>Richtung</th><th></th></tr>';
+      ? '<tr><th class="l">UTC</th><th>dB</th><th>DT</th><th>MHz</th><th>Drift</th><th class="l">Rufzeichen</th><th class="l">Locator</th><th class="l">Land</th><th>Leistung</th><th>km</th><th></th></tr>'
+      : '<tr><th class="l">UTC</th><th>dB</th><th>DT</th><th>Hz</th><th class="l">Nachricht</th><th class="l">Land</th><th>km</th><th>Richtung</th><th></th></tr>';
   }
   function visible() {
     var d0 = dial(sel.mode, sel.band), onlyCq = $("dg-only-cq").checked;
@@ -555,13 +600,13 @@ OrbitHub &middot; {{ t('nav.digital') }}
       var d = rows[i];
       if (d.utc !== lastUtc) {
         var n = 0; for (var j = i; j >= 0 && rows[j].utc === d.utc; j--) { n++; }
-        html += '<tr class="dg-sep"><td colspan="10">' + d.utc.slice(11, 19) + " UTC · " + n + (n === 1 ? " Signal" : " Signale") + "</td></tr>";
+        html += '<tr class="dg-sep"><td colspan="11">' + d.utc.slice(11, 19) + " UTC · " + n + (n === 1 ? " Signal" : " Signale") + "</td></tr>";
         lastUtc = d.utc;
       }
       var db = distBearing(d.grid);
       var cls = [];
       if (d.tx) {
-        html += '<tr class="is-tx' + (d.dry_run ? " is-dry" : "") + (d.seq >= newSeqFrom ? " is-new" : "") + '"><td class="l">' + d.utc.slice(11, isWspr() ? 16 : 19) + '</td><td>TX</td><td></td><td>' + (isWspr() ? (d.freq_hz / 1e6).toFixed(6) : d.df) + '</td><td class="l msg" colspan="' + (isWspr() ? 5 : 3) + '">' + esc(d.message) + " · " + esc(d.tx_note || "") + "</td><td>" + (d.tx_ok ? "✓" : "✗") + "</td></tr>";
+        html += '<tr class="is-tx' + (d.dry_run ? " is-dry" : "") + (d.seq >= newSeqFrom ? " is-new" : "") + '"><td class="l">' + d.utc.slice(11, isWspr() ? 16 : 19) + '</td><td>TX</td><td></td><td>' + (isWspr() ? (d.freq_hz / 1e6).toFixed(6) : d.df) + '</td><td class="l msg" colspan="' + (isWspr() ? 6 : 4) + '">' + esc(d.message) + " · " + esc(d.tx_note || "") + "</td><td>" + (d.tx_ok ? "✓" : "✗") + "</td></tr>";
         continue;
       }
       if (d.cq) { cls.push("is-cq"); }
@@ -570,9 +615,9 @@ OrbitHub &middot; {{ t('nav.digital') }}
       var snrCls = d.snr >= -10 ? "snr-good" : d.snr <= -20 ? "snr-weak" : "";
       var up = d.uploaded ? '<td class="up" title="gemeldet">↑</td>' : "<td></td>";
       if (isWspr()) {
-        html += '<tr class="' + cls.join(" ") + '"><td class="l">' + d.utc.slice(11, 16) + '</td><td class="' + snrCls + '">' + d.snr + "</td><td>" + d.dt.toFixed(1) + "</td><td>" + (d.freq_hz / 1e6).toFixed(6) + "</td><td>" + (d.drift || 0) + '</td><td class="l msg">' + esc(d.call || d.message) + '</td><td class="l">' + esc(d.grid || "") + "</td><td>" + dbmW(d.dbm) + "</td><td>" + (db ? db.km.toLocaleString("de-DE") : "") + "</td>" + up + "</tr>";
+        html += '<tr class="' + cls.join(" ") + '"><td class="l">' + d.utc.slice(11, 16) + '</td><td class="' + snrCls + '">' + d.snr + "</td><td>" + d.dt.toFixed(1) + "</td><td>" + (d.freq_hz / 1e6).toFixed(6) + "</td><td>" + (d.drift || 0) + '</td><td class="l msg">' + esc(d.call || d.message) + '</td><td class="l">' + esc(d.grid || "") + '</td><td class="l">' + esc(d.country || "") + "</td><td>" + dbmW(d.dbm) + "</td><td>" + (db ? db.km.toLocaleString("de-DE") : "") + "</td>" + up + "</tr>";
       } else {
-        html += '<tr class="' + cls.join(" ") + '"' + (d.call && !d.hashed ? ' data-seq="' + d.seq + '" title="Doppelklick: ' + esc(d.call) + ' anrufen"' : "") + '><td class="l">' + d.utc.slice(11, 19) + '</td><td class="' + snrCls + '">' + (d.snr > 0 ? "+" : "") + d.snr + "</td><td>" + d.dt.toFixed(1) + "</td><td>" + d.df + '</td><td class="l msg">' + esc(d.message) + "</td><td>" + (db ? db.km.toLocaleString("de-DE") : "") + "</td><td>" + (db ? db.deg + "°" : "") + "</td>" + up + "</tr>";
+        html += '<tr class="' + cls.join(" ") + '"' + (d.call && !d.hashed ? ' data-seq="' + d.seq + '" title="Doppelklick: ' + esc(d.call) + ' anrufen"' : "") + '><td class="l">' + d.utc.slice(11, 19) + '</td><td class="' + snrCls + '">' + (d.snr > 0 ? "+" : "") + d.snr + "</td><td>" + d.dt.toFixed(1) + "</td><td>" + d.df + '</td><td class="l msg">' + esc(d.message) + '</td><td class="l">' + esc(d.country || "") + "</td><td>" + (db ? db.km.toLocaleString("de-DE") : "") + "</td><td>" + (db ? db.deg + "°" : "") + "</td>" + up + "</tr>";
       }
     }
     rows.forEach(function (d) {
@@ -600,7 +645,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
     var html = '<div class="dg-last-head">Letzte Periode · ' + lastUtc.slice(11, 19) + " UTC · " + cur.length + (cur.length === 1 ? " Signal" : " Signale") + "</div>";
     cur.slice(0, 6).forEach(function (d) {
       var db = distBearing(d.grid), me = MY_CALL && d.to === MY_CALL;
-      html += '<div class="dg-last-row' + (d.cq ? " is-cq" : "") + (me ? " is-me" : "") + '"' + (d.call && !d.hashed && !isWspr() ? ' data-seq="' + d.seq + '" title="Doppelklick: ' + esc(d.call) + ' anrufen"' : "") + '><span>' + (d.snr > 0 ? "+" : "") + d.snr + "</span><span>" + (isWspr() ? (d.freq_hz / 1e6).toFixed(4) : d.df) + '</span><span class="m">' + esc(d.message) + "</span><span>" + (db ? db.km.toLocaleString("de-DE") + " km" : "") + "</span></div>";
+      html += '<div class="dg-last-row' + (d.cq ? " is-cq" : "") + (me ? " is-me" : "") + '"' + (d.call && !d.hashed && !isWspr() ? ' data-seq="' + d.seq + '" title="Doppelklick: ' + esc(d.call) + ' anrufen"' : "") + '><span>' + (d.snr > 0 ? "+" : "") + d.snr + "</span><span>" + (isWspr() ? (d.freq_hz / 1e6).toFixed(4) : d.df) + '</span><span class="m">' + esc(d.message) + "</span><span>" + esc(d.country || "") + (db ? " · " + db.km.toLocaleString("de-DE") + " km" : "") + "</span></div>";
     });
     if (cur.length > 6) { html += '<div class="dg-last-empty">… und ' + (cur.length - 6) + " weitere (Liste unten)</div>"; }
     el.innerHTML = html;
@@ -658,6 +703,11 @@ OrbitHub &middot; {{ t('nav.digital') }}
     setVal($("dg-txdf"), tx.df);
     setVal($("dg-txlevel"), tx.level);
     $("dg-txlevel-v").textContent = Math.round(tx.level * 100) + " %";
+    $("dg-autolevel").checked = !!tx.auto_level;
+    var lm = tx.last_meters;
+    $("dg-autolevel-info").textContent = tx.auto_level ? "Auto-Pegel für " + cur + ": " + Math.round(tx.level * 100) + " %" + (lm && lm.adjust ? " (zuletzt " + lm.adjust + ")" : lm && lm.band === cur ? " – ALC passt" : " – wird bei der nächsten Aussendung eingemessen") : "";
+    renderMeters(tx);
+    renderQsoBig(tx);
     // FT8/FT4
     $("dg-enable").classList.toggle("is-armed", !!tx.enabled);
     $("dg-enable").textContent = tx.enabled ? "TX frei ✓" : "TX frei";
@@ -687,6 +737,44 @@ OrbitHub &middot; {{ t('nav.digital') }}
     err.hidden = !tx.error; err.textContent = tx.error || "";
     err.classList.toggle("is-info", /beendet|geloggt/.test(tx.error || ""));
   }
+  function bar(id, pct, txt) {
+    $(id).style.width = Math.max(0, Math.min(100, pct)) + "%";
+    $(id + "-v").textContent = txt;
+  }
+  function renderMeters(tx) {
+    var live = tx.transmitting && tx.meter, m = live ? tx.meter : (tx.last_meters ? tx.last_meters.max : null);
+    var box = $("dg-meters");
+    box.classList.toggle("is-live", !!live);
+    box.classList.toggle("is-idle", !live);
+    if (!m) {
+      bar("dg-m-po", 0, "–"); bar("dg-m-alc", 0, "–"); bar("dg-m-swr", 0, "–");
+      $("dg-m-note").textContent = "Messwerte erscheinen beim Senden";
+      return;
+    }
+    bar("dg-m-po", m.po_pct, Math.round(m.po_pct) + " %");
+    bar("dg-m-alc", m.alc_pct, Math.round(m.alc_pct) + " %");
+    bar("dg-m-swr", (m.swr - 1) / 2 * 100, m.swr.toFixed(1).replace(".", ",") + " : 1");
+    document.querySelector(".dg-meter-bar.is-alc").classList.toggle("is-hot", m.alc_pct > 60);
+    var sw = document.querySelector(".dg-meter-bar.is-swr");
+    sw.classList.toggle("is-warn", m.swr >= 2 && m.swr < 3);
+    sw.classList.toggle("is-hot", m.swr >= 3);
+    $("dg-m-note").textContent = live ? "● live beim Senden" : "Höchstwerte der letzten Aussendung " + tx.last_meters.utc.slice(11, 19) + " UTC";
+  }
+  function renderQsoBig(tx) {
+    var q = tx.qso, el = $("dg-qsobig");
+    el.hidden = !(q && q.call);
+    if (!q || !q.call) { return; }
+    var db = distBearing(q.grid);
+    $("dg-qb-call").textContent = q.call;
+    $("dg-qb-country").textContent = q.country || "";
+    $("dg-qb-dist").textContent = db ? db.km.toLocaleString("de-DE") + " km · Richtung " + db.deg + "°" + (q.grid ? " · " + q.grid : "") : (q.grid || "");
+    $("dg-qb-sent").textContent = q.rep_sent || "–";
+    $("dg-qb-rcvd").textContent = q.rep_rcvd || "–";
+    var names = { call: "ruft an", report: "Rapport gesendet", rreport: "R-Rapport gesendet", rr73: "RR73 gesendet – QSO komplett", "73": "73 gesendet – QSO komplett", done: "QSO beendet ✓", cq: "Antwort auf CQ" };
+    $("dg-qb-state").textContent = (names[q.state] || q.state) + (q.tries && q.state !== "done" ? " · Versuch " + q.tries : "") + (tx.next ? " · nächste Aussendung " + tx.next.utc.slice(11, 19) + " UTC" : "") + (q.rx_snr != null ? " · zuletzt gehört mit " + (q.rx_snr > 0 ? "+" : "") + q.rx_snr + " dB" : "");
+    el.classList.toggle("is-done", q.state === "done" || q.state === "rr73" || q.state === "73");
+  }
+  $("dg-autolevel").addEventListener("change", function (ev) { txPost("config", { auto_level: ev.target.checked }); });
   $("dg-dry").addEventListener("change", function (ev) {
     var dry = ev.target.checked;
     if (!dry) {
@@ -839,6 +927,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
   poll();
   setInterval(tickClock, 250);
   setInterval(poll, 2000);
+  setInterval(function () { if (st && st.tx && (st.tx.transmitting || st.tx.next)) { poll(); } }, 500);
   loadLog();
   setInterval(loadLog, 30000);
 })();

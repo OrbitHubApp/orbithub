@@ -49,6 +49,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import digimode_cty
 import digimode_tx
 
 VERSION = "1.1"
@@ -532,6 +533,7 @@ class Engine:
             # Senden (Voreinstellung: Probelauf, nur 2 m / 70 cm freigegeben)
             "tx_bands": ["2m", "70cm"], "dry_run": True, "tx_df": 1500, "tx_level": 0.3,
             "wspr_beacon": False, "wspr_pct": 20, "wspr_dbm": 37, "tx_enabled": False,
+            "auto_level": True, "tx_levels": {},
         }
         self.audio = AudioRing()
         self.rig = RigWatch()
@@ -553,6 +555,7 @@ class Engine:
         self.cfg["tx_enabled"] = False
         self.cfg["wspr_beacon"] = False
         self.tx = digimode_tx.Transmitter(self)
+        self.cty = digimode_cty.Cty(BASE_DIR / "cty.dat")
 
     # -- Hilfen für den Sender
     env = staticmethod(lambda: _env())
@@ -714,6 +717,11 @@ class Engine:
             if key not in seen:
                 seen.add(key)
                 unique.append(d)
+        for d in unique:
+            hit = self.cty.lookup(d.get("call"))
+            if hit:
+                d["country"] = hit["country"]
+                d["cont"] = hit["cont"]
         with self.lock:
             for d in unique:
                 self.seq += 1

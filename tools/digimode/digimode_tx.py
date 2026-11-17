@@ -217,6 +217,28 @@ def band_of(freq_hz: int) -> str:
     return ""
 
 
+# ------------------------------------------------------------ Messwerte ---
+
+def swr_from_raw(raw: int) -> float:
+    pts = ((0, 1.0), (48, 1.5), (80, 2.0), (120, 3.0), (255, 6.0))
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        if raw <= x1:
+            return round(y0 + (raw - x0) / (x1 - x0) * (y1 - y0), 2)
+    return 6.0
+
+
+def meter_reading(raw: dict) -> dict:
+    """Rohwerte (0..255) -> Anzeige: Po in % (213 = 100 %), ALC in % des
+    ALC-Bereichs (120 = 100 %), SWR als Verhältnis."""
+    return {
+        "ptt": bool(raw.get("ptt")),
+        "po_pct": round(min(120.0, raw.get("po", 0) / 213 * 100), 1),
+        "alc_pct": round(min(200.0, raw.get("alc", 0) / 120 * 100), 1),
+        "swr": swr_from_raw(raw.get("swr", 0)),
+        "po_raw": raw.get("po", 0), "alc_raw": raw.get("alc", 0), "swr_raw": raw.get("swr", 0),
+    }
+
+
 # --------------------------------------------------------------- Sender ---
 
 class Transmitter:
@@ -235,6 +257,8 @@ class Transmitter:
         self.proc: subprocess.Popen | None = None
         self.wspr_decided: float = 0.0
         self.log_path = self.e.log_dir / "orbithub.adi"
+        self.meter: dict | None = None        # letzte Live-Messung (während TX)
+        self.last_meters: dict | None = None  # Zusammenfassung der letzten Aussendung
         threading.Thread(target=self._run, name="tx", daemon=True).start()
 
     # -- Einstellungen
@@ -262,6 +286,13 @@ class Transmitter:
             cfg["tx_df"] = max(200, min(2900, int(float(data["tx_df"]))))
         if "tx_level" in data:
             cfg["tx_level"] = max(0.02, min(1.0, float(data["tx_level"])))
+            if cfg.get("auto_level", True):
+                # Hand-Eingabe gilt als Startwert für das aktuelle Band
+                levels = dict(cfg.get("tx_levels") or {})
+                levels[cfg.get("band", "")] = cfg["tx_level"]
+                cfg["tx_levels"] = levels
+        if "auto_level" in data:
+            cfg["auto_level"] = bool(data["auto_level"])
         if "wspr_beacon" in data:
             cfg["wspr_beacon"] = bool(data["wspr_beacon"])
             if cfg["wspr_beacon"]:
@@ -292,6 +323,51 @@ class Transmitter:
 
     def parity(self, slot_start: float) -> int:
         return int(round(slot_start / self.period())) % 2
+
+    def level(self) -> float:
+        """Sendepegel: bei Auto-Pegel der gelernte Wert für das Band."""
+        if self.cfg.get("auto_level", True):
+            return float((self.cfg.get("tx_levels") or {}).get(self.cfg.get("band", ""), self.cfg.get("tx_level", 0.3)))
+        return float(self.cfg.get("tx_level", 0.3))
+
+    def _read_meters(self) -> dict | None:
+        try:
+            with socket.create_connection(self.e.rigctld, timeout=1) as sock:
+                sock.settimeout(1)
+                sock.sendall(b"l METERS\n")
+                parts = sock.recv(128).decode(errors="replace").split()
+            if len(parts) >= 4 and all(p.isdigit() for p in parts[:4]):
+                return {"ptt": int(parts[0]), "po": int(parts[1]), "alc": int(parts[2]), "swr": int(parts[3]),
+                        "age": float(parts[4]) if len(parts) > 4 else 0.0, "t": time.time()}
+        except (OSError, ValueError):
+            pass
+        return None
+
+    def _auto_adjust(self, samples: list[dict]) -> str | None:
+        """Pegel nach der Aussendung nachführen: Ziel ist volle Leistung bei
+        kaum ausschlagender ALC (wie die Auto-Pegelung in SDR-Control)."""
+        if not self.cfg.get("auto_level", True) or len(samples) < 3:
+            return None
+        alc = [m["alc"] for m in samples]
+        alc_avg = sum(alc) / len(alc)
+        alc_max = max(alc)
+        old = self.level()
+        if alc_max > 90 or alc_avg > 40:
+            new = old * 0.7
+        elif alc_avg > 12:
+            new = old * 0.85
+        elif alc_max < 2:
+            new = old * 1.2
+        else:
+            return None  # ALC knapp im Bereich – passt
+        new = round(max(0.03, min(0.9, new)), 3)
+        if abs(new - old) < 0.005:
+            return None
+        levels = dict(self.cfg.get("tx_levels") or {})
+        levels[self.cfg.get("band", "")] = new
+        self.cfg["tx_levels"] = levels
+        self.e.save()
+        return f"Pegel {round(old * 100)} % → {round(new * 100)} %"
 
     def band_allowed(self) -> bool:
         return self.cfg.get("band") in (self.cfg.get("tx_bands") or [])
@@ -370,7 +446,8 @@ class Transmitter:
             self.qso = {"call": his, "grid": decode.get("grid"), "state": "call", "tx": "tx1",
                         "parity": self.parity(slot) ^ 1, "rep_sent": report(decode["snr"]),
                         "rep_rcvd": None, "tries": 0, "started": time.time(), "logged": False,
-                        "cq": False, "freq_hz": decode.get("freq_hz")}
+                        "cq": False, "freq_hz": decode.get("freq_hz"), "country": decode.get("country"),
+                        "rx_snr": decode.get("snr")}
             if decode.get("to") == me:
                 self._react(decode)
             self.cfg["tx_enabled"] = True
@@ -405,6 +482,8 @@ class Transmitter:
         words = d["message"].replace("<", "").replace(">", "").split()
         last = words[2] if len(words) >= 3 else ""
         q["call"] = q.get("call") or d.get("call")
+        q["country"] = q.get("country") or d.get("country")
+        q["rx_snr"] = d.get("snr")
         if d.get("grid"):
             q["grid"] = d["grid"]
         if q.get("rep_sent") is None:
@@ -618,7 +697,7 @@ class Transmitter:
                 self.cfg["tx_enabled"] = False
             self._record(plan, ok=False, note=reason)
             return
-        samples = build_samples(mode, plan["message"], plan["df"], float(self.cfg.get("tx_level", 0.3)),
+        samples = build_samples(mode, plan["message"], plan["df"], self.level(),
                                 self.e.wsjtx_bin, self.e.env())
         if self.qso and plan["key"] != "wspr":
             self.qso["tries"] += 1
@@ -632,6 +711,7 @@ class Transmitter:
         self.transmitting = True
         self.tx_slots.add(plan["slot"])
         note = "gesendet"
+        meters: list[dict] = []
         try:
             if not self._ptt(True):
                 raise RuntimeError("PTT ließ sich nicht einschalten.")
@@ -651,7 +731,14 @@ class Transmitter:
             except BrokenPipeError:
                 pass
             deadline = time.time() + len(samples) / RATE + 2.0
+            next_meter = time.time() + 1.0  # erste Sekunde (Einschwingen) auslassen
             while self.proc.poll() is None and time.time() < deadline and not self.halt_event.is_set():
+                if time.time() >= next_meter:
+                    m = self._read_meters()
+                    next_meter = time.time() + 0.4
+                    if m and m["ptt"] and m["age"] < 1.5:
+                        meters.append(m)
+                        self.meter = meter_reading(m)
                 time.sleep(0.02)
             if self.proc.poll() is None:
                 self.proc.kill()
@@ -665,7 +752,22 @@ class Transmitter:
             self._ptt(False)
             self.transmitting = False
             self.proc = None
-            self._record(plan, ok=note == "gesendet", note=note)
+            adj = None
+            if meters:
+                self.last_meters = {
+                    "utc": self.e.iso(plan["slot"]), "band": self.cfg.get("band"),
+                    "level": round(self.level(), 3), "n": len(meters),
+                    "max": meter_reading({"po": max(m["po"] for m in meters), "alc": max(m["alc"] for m in meters),
+                                          "swr": max(m["swr"] for m in meters)}),
+                    "avg": meter_reading({"po": round(sum(m["po"] for m in meters) / len(meters)),
+                                          "alc": round(sum(m["alc"] for m in meters) / len(meters)),
+                                          "swr": round(sum(m["swr"] for m in meters) / len(meters))}),
+                }
+                if note == "gesendet":
+                    adj = self._auto_adjust(meters)
+                    self.last_meters["adjust"] = adj
+            self.meter = None
+            self._record(plan, ok=note == "gesendet", note=note + (f" · {adj}" if adj else ""))
 
     def _selfcheck(self, plan: dict, samples: array.array) -> None:
         """Probelauf: erzeugte Aussendung mit dem eigenen Decoder zurücklesen."""
@@ -709,7 +811,9 @@ class Transmitter:
             "dry_run": bool(self.cfg.get("dry_run", True)),
             "tx_bands": self.cfg.get("tx_bands", []),
             "band_ok": self.band_allowed(),
-            "df": self.cfg.get("tx_df", 1500), "level": self.cfg.get("tx_level", 0.3),
+            "df": self.cfg.get("tx_df", 1500), "level": round(self.level(), 3),
+            "auto_level": bool(self.cfg.get("auto_level", True)),
+            "meter": self.meter, "last_meters": self.last_meters,
             "wspr_beacon": bool(self.cfg.get("wspr_beacon")), "wspr_pct": self.cfg.get("wspr_pct", 20),
             "wspr_dbm": self.cfg.get("wspr_dbm", 37),
             "transmitting": self.transmitting, "ptt": self.ptt,
