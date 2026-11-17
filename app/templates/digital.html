@@ -1,0 +1,617 @@
+{% extends "base.html" %}
+
+{% block title %}
+OrbitHub &middot; {{ t('nav.digital') }}
+{% endblock %}
+
+{% block nav_digital %}active{% endblock %}
+
+{% block page_heading %}
+{{ t('nav.digital') }}
+{% endblock %}
+
+{% block content %}
+{# Seite aktualisiert sich selbst per fetch - kein Auto-Reload (dashboard.js) #}
+<span data-pause-auto-refresh></span>
+
+<div class="dg" id="dg" data-call="{{ callsign }}" data-grid="{{ locator }}">
+
+<section class="dg-console" aria-label="Digimode-Steuerung">
+  <div class="dg-top">
+    <span class="dg-brand">DIGITAL</span>
+    <span class="dg-sub">FT8 · FT4 · WSPR · IC-705 · WSJT-X-Decoder</span>
+    <span class="dg-top-spacer"></span>
+    <span class="dg-led" id="dg-led" title="Digimode-Dienst"></span>
+    <span class="dg-top-label" id="dg-service">Dienst …</span>
+  </div>
+
+  <div class="dg-face">
+    <div class="dg-screen">
+      <div class="dg-statusbar">
+        <span class="dg-chip dg-chip-mode" id="dg-chip-mode">--</span>
+        <span class="dg-chip" id="dg-chip-band">--</span>
+        <span class="dg-chip" id="dg-chip-state">STOP</span>
+        <span class="dg-chip" id="dg-chip-qrg" title="Steht der IC-705 auf der Digimode-Frequenz?">QRG --</span>
+        <span class="dg-chip" id="dg-chip-audio" title="Audio vom IC-705">AF --</span>
+        <span class="dg-spacer"></span>
+        <span class="dg-clock" id="dg-clock">--:--:-- UTC</span>
+      </div>
+
+      <div class="dg-main">
+        <div class="dg-freqblock">
+          <div class="dg-freq" id="dg-freq">--.---.---</div>
+          <div class="dg-freq-unit">MHz · USB-D (Dial)</div>
+        </div>
+        <div class="dg-cycle">
+          <div class="dg-cycle-label" id="dg-cycle-label">Periode</div>
+          <div class="dg-cycle-bar"><span id="dg-cycle-fill"></span></div>
+          <div class="dg-cycle-info" id="dg-cycle-info">–</div>
+        </div>
+      </div>
+
+      <div class="dg-last" id="dg-last"></div>
+      <div class="dg-msg" id="dg-msg" hidden></div>
+    </div>
+
+    <div class="dg-keys">
+      <div>
+        <div class="dg-keylabel">BETRIEBSART</div>
+        <div class="dg-keygrid dg-keygrid-3" id="dg-modes">
+          <button type="button" class="dg-key" data-mode="FT8">FT8</button>
+          <button type="button" class="dg-key" data-mode="FT4">FT4</button>
+          <button type="button" class="dg-key" data-mode="WSPR">WSPR</button>
+        </div>
+      </div>
+      <div>
+        <div class="dg-keylabel">BAND</div>
+        <div class="dg-keygrid dg-keygrid-4" id="dg-bands"></div>
+      </div>
+      <div class="dg-keygrid dg-keygrid-2">
+        <button type="button" class="dg-key dg-key-go" id="dg-start">▶ Empfang</button>
+        <button type="button" class="dg-key dg-key-stop" id="dg-stop">■ Stop</button>
+      </div>
+      <div class="dg-uploads">
+        <label><input type="checkbox" id="dg-up-psk"> PSK Reporter <small id="dg-up-psk-n"></small></label>
+        <label><input type="checkbox" id="dg-up-wspr"> WSPRnet <small id="dg-up-wspr-n"></small></label>
+        <div class="dg-hint">Gemeldet wird als <b>{{ callsign }}</b> / {{ locator }} – nur, wenn der IC-705 wirklich auf der Frequenz steht.</div>
+        <a class="dg-hint dg-link" id="dg-psk-map" target="_blank" rel="noopener" href="https://pskreporter.info/pskmap.html?preset&callsign={{ callsign }}&timerange=3600&hidelight=1&hideunrec=1">Karte: Wer wurde gehört? ↗</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="dg-card dg-wf" aria-label="Wasserfall">
+  <div class="dg-card-head">
+    <span class="dg-card-title">WASSERFALL · NF 0–3 kHz</span>
+    <span class="dg-wf-ctl">Pegel <input type="range" id="dg-wf-gain" min="-130" max="-60" step="1" value="-110"></span>
+    <button type="button" class="dg-btn" id="dg-wf-toggle">▶ Wasserfall an</button>
+  </div>
+  <div class="dg-wf-scale" id="dg-wf-scale"></div>
+  <canvas class="dg-wf-canvas" id="dg-wf-canvas" height="140"></canvas>
+  <div class="dg-wf-marks" id="dg-wf-marks"></div>
+  <div class="dg-hint" id="dg-wf-error" hidden></div>
+</section>
+
+<section class="dg-card" aria-label="Dekodierungen">
+  <div class="dg-card-head">
+    <span class="dg-card-title" id="dg-list-title">BANDAKTIVITÄT</span>
+    <span class="dg-stats" id="dg-stats"></span>
+    <span class="dg-spacer"></span>
+    <label class="dg-filter"><input type="checkbox" id="dg-only-cq"> nur CQ</label>
+    <button type="button" class="dg-btn" id="dg-clear">Liste leeren</button>
+  </div>
+  <div class="dg-table-wrap">
+    <table class="dg-table" id="dg-table">
+      <thead id="dg-thead"></thead>
+      <tbody id="dg-tbody"></tbody>
+    </table>
+    <div class="dg-empty" id="dg-empty">Noch keine Dekodierungen.</div>
+  </div>
+</section>
+
+</div>
+
+<style>
+.dg {
+  --dg-case: #1d2025; --dg-case-hi: #33363c; --dg-screen: #05070a; --dg-line: #2a3038;
+  --dg-text: #eef2f6; --dg-dim: #8a96a3; --dg-amber: #ffad1f; --dg-green: #3ce07a;
+  --dg-red: #ff5a4a; --dg-cyan: #38c8ff;
+  --dg-mono: "SF Mono", "SFMono-Regular", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+}
+.dg [hidden] { display: none !important; }
+.dg-console {
+  background: linear-gradient(180deg, var(--dg-case-hi) 0%, var(--dg-case) 22%, #141619 100%);
+  border: 1px solid rgba(255,173,31,0.35); border-radius: 20px; padding: 12px 16px 16px; margin-bottom: 1.1rem;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.1) inset, 0 16px 36px rgba(0,0,0,0.4);
+}
+.dg-top { display: flex; align-items: baseline; gap: 0.8em; flex-wrap: wrap; padding: 2px 4px 10px; }
+.dg-brand { font-weight: 900; font-style: italic; letter-spacing: 0.12em; color: var(--dg-amber); font-size: 1.2rem; }
+.dg-sub { font-size: 0.68rem; letter-spacing: 0.14em; color: var(--dg-dim); }
+.dg-top-spacer, .dg-spacer { flex: 1; }
+.dg-led { width: 9px; height: 9px; border-radius: 50%; background: #444; align-self: center; }
+.dg-led.is-ok { background: var(--dg-green); box-shadow: 0 0 6px var(--dg-green); }
+.dg-led.is-bad { background: var(--dg-red); box-shadow: 0 0 6px var(--dg-red); }
+.dg-top-label { font-size: 0.7rem; letter-spacing: 0.1em; color: var(--dg-dim); }
+.dg-face { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 16px; }
+@media (max-width: 980px) { .dg-face { grid-template-columns: 1fr; } }
+.dg-screen {
+  background: radial-gradient(ellipse at 50% -20%, #121a24 0%, var(--dg-screen) 60%);
+  border: 3px solid #0a0b0d; border-radius: 8px; box-shadow: 0 0 0 1px #45494f, inset 0 0 30px rgba(0,0,0,0.8);
+  padding: 8px 12px 12px; color: var(--dg-text); min-width: 0;
+}
+.dg-statusbar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding-bottom: 6px; border-bottom: 1px solid var(--dg-line); }
+.dg-chip { font-family: var(--dg-mono); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; padding: 1px 7px; border-radius: 3px; border: 1px solid #5d646d; background: #161a1f; color: #e6eaee; }
+.dg-chip-mode { background: var(--dg-amber); border-color: var(--dg-amber); color: #120900; min-width: 3.4em; text-align: center; }
+.dg-chip.is-ok { color: var(--dg-green); border-color: var(--dg-green); background: rgba(60,224,122,0.12); }
+.dg-chip.is-bad { color: var(--dg-red); border-color: var(--dg-red); background: rgba(255,90,74,0.12); }
+.dg-chip.is-run { color: var(--dg-cyan); border-color: var(--dg-cyan); background: rgba(56,200,255,0.14); }
+.dg-clock { font-family: var(--dg-mono); font-size: 0.8rem; color: var(--dg-dim); font-variant-numeric: tabular-nums; }
+.dg-main { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 28px; padding: 14px 4px 4px; }
+.dg-freq { font-family: var(--dg-mono); font-weight: 700; font-variant-numeric: tabular-nums; font-size: clamp(2.2rem, 5.4vw, 3.5rem); line-height: 1; color: #fff; text-shadow: 0 0 10px rgba(200,230,255,0.25); }
+.dg.is-stopped .dg-freq { color: #59636e; text-shadow: none; }
+.dg-freq-unit { font-size: 0.78rem; color: var(--dg-dim); text-align: right; margin-top: 4px; }
+.dg-cycle { flex: 1 1 240px; max-width: 420px; }
+.dg-cycle-label { font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dg-cyan); }
+.dg-cycle-bar { height: 10px; border-radius: 5px; background: #121820; border: 1px solid #263240; overflow: hidden; margin: 4px 0; }
+.dg-cycle-bar span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #1e7fd0, var(--dg-cyan)); }
+.dg-cycle-bar.is-decoding span { background: linear-gradient(90deg, #b06a00, var(--dg-amber)); }
+.dg-cycle-info { font-family: var(--dg-mono); font-size: 0.78rem; color: #cfd6dd; }
+.dg-last { margin-top: 12px; border-top: 1px solid var(--dg-line); padding-top: 8px; font-family: var(--dg-mono); font-size: 0.95rem; min-height: 7.5em; }
+.dg-last-head { font-size: 0.62rem; letter-spacing: 0.14em; color: var(--dg-cyan); text-transform: uppercase; margin-bottom: 4px; font-family: inherit; }
+.dg-last-row { display: grid; grid-template-columns: 3.2em 4.2em minmax(0, 1fr) 6em; gap: 10px; color: #e8edf2; white-space: nowrap; }
+.dg-last-row span:last-child { text-align: right; color: var(--dg-dim); }
+.dg-last-row .m { overflow: hidden; text-overflow: ellipsis; }
+.dg-last-row.is-cq .m { color: var(--dg-green); }
+.dg-last-row.is-me .m { color: #ffb4a8; font-weight: 700; }
+.dg-last-empty { color: #4f5a66; font-size: 0.85rem; }
+.dg-msg { margin-top: 8px; font-size: 0.84rem; color: #ff9a8a; }
+.dg-msg.is-info { color: #cfd6dd; }
+.dg-keys { display: flex; flex-direction: column; gap: 10px; }
+.dg-keylabel { font-size: 0.62rem; letter-spacing: 0.16em; color: var(--dg-dim); margin: 0 0 4px 2px; }
+.dg-keygrid { display: grid; gap: 6px; }
+.dg-keygrid-2 { grid-template-columns: repeat(2, 1fr); }
+.dg-keygrid-3 { grid-template-columns: repeat(3, 1fr); }
+.dg-keygrid-4 { grid-template-columns: repeat(4, 1fr); }
+.dg-key {
+  position: relative; padding: 9px 2px 7px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.04em; color: #e9ecef;
+  background: linear-gradient(180deg, #4a4e54 0%, #33363b 55%, #2a2c30 100%); border: 1px solid #0f1012;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 2px 0 #0c0d0f, 0 3px 6px rgba(0,0,0,0.35);
+}
+.dg-key::before { content: ""; position: absolute; left: 30%; right: 30%; top: 3px; height: 2px; border-radius: 2px; background: #1c1e21; }
+.dg-key:hover:not(:disabled) { background: linear-gradient(180deg, #555a61 0%, #3a3d43 55%, #2e3034 100%); }
+.dg-key:disabled { opacity: 0.35; cursor: default; }
+.dg-key.is-active::before { background: var(--dg-amber); box-shadow: 0 0 6px var(--dg-amber); }
+.dg-key.is-active { color: #fff; }
+.dg-key-go { color: #b6f5c9; }
+.dg-key-go.is-active::before { background: var(--dg-green); box-shadow: 0 0 6px var(--dg-green); }
+.dg-key-stop { color: #ffc2b8; }
+.dg-uploads { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--dg-text); }
+.dg-uploads label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.dg-uploads input { accent-color: var(--dg-amber); }
+.dg-uploads small { color: var(--dg-dim); font-family: var(--dg-mono); }
+.dg-hint { font-size: 0.72rem; color: var(--dg-dim); line-height: 1.35; }
+.dg-link { color: var(--dg-cyan); text-decoration: none; }
+.dg-card { background: rgba(8,18,30,0.75); border: 1px solid rgba(56,120,180,0.28); border-radius: 16px; padding: 10px 14px 12px; margin-bottom: 1.1rem; }
+.dg-card-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 8px; }
+.dg-card-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; color: var(--dg-cyan); }
+.dg-stats { font-size: 0.78rem; color: var(--dg-dim); }
+.dg-filter { font-size: 0.8rem; color: var(--dg-text); display: flex; gap: 5px; align-items: center; }
+.dg-btn { font: inherit; font-size: 0.76rem; padding: 4px 10px; border-radius: 6px; border: 1px solid #3d4a58; background: #121c27; color: #dbe4ee; cursor: pointer; }
+.dg-btn:hover { border-color: var(--dg-cyan); }
+.dg-btn.is-on { border-color: var(--dg-amber); color: var(--dg-amber); }
+.dg-wf-ctl { font-size: 0.72rem; color: var(--dg-dim); display: flex; gap: 6px; align-items: center; margin-left: auto; }
+.dg-wf-ctl input { width: 110px; accent-color: var(--dg-cyan); }
+.dg-wf-scale { position: relative; height: 1.3em; border: 1px solid #263240; border-bottom: none; background: #0a1018; font-size: 0.66rem; color: var(--dg-dim); overflow: hidden; }
+.dg-wf-scale span { position: absolute; top: 0.15em; transform: translateX(-50%); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dg-wf-canvas { display: block; width: 100%; height: 140px; background: #020611; border: 1px solid #263240; border-top: none; image-rendering: pixelated; }
+.dg-wf-marks { position: relative; height: 1.4em; font-size: 0.62rem; overflow: hidden; }
+.dg-wf-marks span { position: absolute; transform: translateX(-50%); white-space: nowrap; color: var(--dg-amber); font-family: var(--dg-mono); }
+.dg-wf-marks span.is-cq { color: var(--dg-green); }
+.dg-table-wrap { max-height: 62vh; overflow: auto; border-radius: 8px; border: 1px solid #1d2a38; }
+.dg-table { width: 100%; border-collapse: collapse; font-family: var(--dg-mono); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.dg-table th { position: sticky; top: 0; background: #0d1621; color: var(--dg-dim); font-weight: 600; font-size: 0.68rem; letter-spacing: 0.08em; text-align: right; padding: 5px 8px; z-index: 1; }
+.dg-table td { padding: 3px 8px; text-align: right; color: #d5dde6; white-space: nowrap; border-top: 1px solid rgba(255,255,255,0.03); }
+.dg-table th.l, .dg-table td.l { text-align: left; }
+.dg-table td.msg { color: #fff; }
+.dg-table tr.is-cq td.msg { color: var(--dg-green); }
+.dg-table tr.is-me td { background: rgba(255,90,74,0.16); }
+.dg-table tr.is-me td.msg { color: #ffb4a8; font-weight: 700; }
+.dg-table tr.is-new td { animation: dg-new 1.6s ease-out; }
+@keyframes dg-new { 0% { background: rgba(255,173,31,0.28); } 100% { background: transparent; } }
+.dg-table tr.dg-sep td { padding: 1px 8px; background: #0b131c; color: #5f6c79; font-size: 0.66rem; text-align: left; }
+.dg-table td.up { color: var(--dg-amber); }
+.dg-table td.snr-good { color: var(--dg-green); }
+.dg-table td.snr-weak { color: #8a96a3; }
+.dg-empty { padding: 18px; text-align: center; color: var(--dg-dim); font-size: 0.86rem; }
+</style>
+
+<script>
+(function () {
+  "use strict";
+  var root = document.getElementById("dg");
+  var BANDS = {{ bands | tojson }};
+  var MY_CALL = (root.dataset.call || "").toUpperCase();
+  var MY_GRID = (root.dataset.grid || "").toUpperCase();
+  var PERIOD = { FT8: 15, FT4: 7.5, WSPR: 120 };
+  var $ = function (id) { return document.getElementById(id); };
+
+  var sel = { mode: "FT8", band: "40m" };
+  try {
+    var saved = JSON.parse(localStorage.getItem("digital-sel") || "null");
+    if (saved && saved.mode && saved.band) { sel = saved; }
+  } catch (e) {}
+  var st = null;          // letzter Status vom Dienst
+  var clockOffset = 0;    // Serverzeit - Browserzeit (s)
+  var lastSeq = 0;
+  var decodes = [];       // alle empfangenen Dekodierungen (neueste hinten)
+  var busy = false;
+  var prevRunning = null;
+
+  function dial(mode, band) {
+    for (var i = 0; i < BANDS.length; i++) { if (BANDS[i].band === band) { return BANDS[i][mode] || null; } }
+    return null;
+  }
+  function fmtFreq(hz) {
+    if (!hz) { return "--.---.---"; }
+    var s = String(Math.round(hz)), out = "";
+    while (s.length > 3) { out = "." + s.slice(-3) + out; s = s.slice(0, -3); }
+    return s + out;
+  }
+  var actionMsg = null, actionInfo = false;
+  function msg(text, info) { actionMsg = text || null; actionInfo = !!info; showMsg(null); }
+  function showMsg(warn) {
+    var el = $("dg-msg"), text = actionMsg || warn;
+    el.hidden = !text; el.textContent = text || "";
+    el.classList.toggle("is-info", !!(actionMsg && actionInfo));
+  }
+
+  // ---- Locator -> Entfernung/Richtung
+  function grid2ll(g) {
+    g = (g || "").toUpperCase();
+    if (!/^[A-R]{2}[0-9]{2}([A-X]{2})?$/.test(g)) { return null; }
+    var lon = (g.charCodeAt(0) - 65) * 20 - 180 + Number(g[2]) * 2;
+    var lat = (g.charCodeAt(1) - 65) * 10 - 90 + Number(g[3]);
+    if (g.length >= 6) { lon += (g.charCodeAt(4) - 65) / 12 + 1 / 24; lat += (g.charCodeAt(5) - 65) / 24 + 1 / 48; }
+    else { lon += 1; lat += 0.5; }
+    return [lat, lon];
+  }
+  var ME = grid2ll(MY_GRID);
+  function distBearing(g) {
+    var p = grid2ll(g);
+    if (!p || !ME) { return null; }
+    var r = Math.PI / 180, la1 = ME[0] * r, la2 = p[0] * r, dl = (p[1] - ME[1]) * r;
+    var d = Math.acos(Math.min(1, Math.sin(la1) * Math.sin(la2) + Math.cos(la1) * Math.cos(la2) * Math.cos(dl))) * 6371;
+    var b = Math.atan2(Math.sin(dl) * Math.cos(la2), Math.cos(la1) * Math.sin(la2) - Math.sin(la1) * Math.cos(la2) * Math.cos(dl)) / r;
+    return { km: Math.round(d), deg: Math.round((b + 360) % 360) };
+  }
+
+  // ---- Tasten
+  function renderBands() {
+    var html = "";
+    BANDS.forEach(function (b) {
+      var ok = !!b[sel.mode];
+      html += '<button type="button" class="dg-key' + (b.band === sel.band ? " is-active" : "") + '" data-band="' + b.band + '"' + (ok ? "" : " disabled") + ">" + b.band + "</button>";
+    });
+    $("dg-bands").innerHTML = html;
+    Array.prototype.forEach.call(document.querySelectorAll("#dg-modes .dg-key"), function (k) {
+      k.classList.toggle("is-active", k.dataset.mode === sel.mode);
+    });
+  }
+  function choose(mode, band) {
+    if (!dial(mode, band)) {
+      // Band hat diese Betriebsart nicht -> naechstes passendes Band
+      for (var i = 0; i < BANDS.length; i++) { if (BANDS[i][mode]) { band = BANDS[i].band; if (BANDS[i].band === "40m") { break; } } }
+    }
+    sel = { mode: mode, band: band };
+    try { localStorage.setItem("digital-sel", JSON.stringify(sel)); } catch (e) {}
+    renderBands();
+    renderHead();
+    renderTable();
+    if (st && st.running) { start(); } else { renderStatus(); }
+  }
+  $("dg-modes").addEventListener("click", function (ev) {
+    var k = ev.target.closest("[data-mode]");
+    if (k && !busy) { choose(k.dataset.mode, sel.band); }
+  });
+  $("dg-bands").addEventListener("click", function (ev) {
+    var k = ev.target.closest("[data-band]");
+    if (k && !k.disabled && !busy) { choose(sel.mode, k.dataset.band); }
+  });
+
+  function post(url, body) {
+    return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          if (!r.ok) { throw new Error(d.detail || d.error || ("Fehler " + r.status)); }
+          return d;
+        });
+      });
+  }
+  function start() {
+    busy = true;
+    msg("IC-705 wird auf " + sel.band + " " + sel.mode + " gestellt …", true);
+    $("dg-start").disabled = true;
+    post("/api/digital/start", { mode: sel.mode, band: sel.band, upload_psk: $("dg-up-psk").checked, upload_wsprnet: $("dg-up-wspr").checked })
+      .then(function (d) { msg(""); st = d.status; renderStatus(); })
+      .catch(function (err) { msg(err.message); })
+      .then(function () { busy = false; $("dg-start").disabled = false; poll(); });
+  }
+  $("dg-start").addEventListener("click", start);
+  $("dg-stop").addEventListener("click", function () {
+    post("/api/digital/stop").then(function (d) { st = d.status; renderStatus(); }).catch(function (err) { msg(err.message); });
+  });
+  function saveUpload() {
+    post("/api/digital/config", { upload_psk: $("dg-up-psk").checked, upload_wsprnet: $("dg-up-wspr").checked })
+      .then(function (d) { st = d.status; renderStatus(); }).catch(function (err) { msg(err.message); });
+  }
+  $("dg-up-psk").addEventListener("change", saveUpload);
+  $("dg-up-wspr").addEventListener("change", saveUpload);
+
+  // ---- Status
+  function chip(id, text, cls) {
+    var el = $(id); el.textContent = text;
+    el.classList.remove("is-ok", "is-bad", "is-run");
+    if (cls) { el.classList.add(cls); }
+  }
+  function renderStatus() {
+    var running = !!(st && st.running);
+    root.classList.toggle("is-stopped", !running);
+    $("dg-led").className = "dg-led " + (st && st.ok ? "is-ok" : "is-bad");
+    $("dg-service").textContent = st && st.ok ? "Dienst bereit" : "Dienst nicht erreichbar";
+    var warn = null;
+    if (st && !st.ok) {
+      warn = (st.error || "Digimode-Dienst nicht erreichbar.") + " Einrichtung auf dem Host: sh ~/orbithub/tools/digimode/install.sh";
+    }
+    var mode = running ? st.mode : sel.mode, band = running ? st.band : sel.band;
+    chip("dg-chip-mode", mode);
+    chip("dg-chip-band", band || "--");
+    chip("dg-chip-state", running ? "RX" : "STOP", running ? "is-run" : null);
+    $("dg-freq").textContent = fmtFreq(running ? st.dial_hz : dial(sel.mode, sel.band));
+    var rig = st && st.rig;
+    if (running && rig) {
+      if (!rig.reachable) { chip("dg-chip-qrg", "IC-705 ?", "is-bad"); }
+      else if (rig.on_freq) { chip("dg-chip-qrg", "QRG ✓", "is-ok"); }
+      else { chip("dg-chip-qrg", "QRG ✗ " + (rig.freq_hz ? (rig.freq_hz / 1e6).toFixed(3) : "") + " " + (rig.mode || ""), "is-bad"); }
+    } else { chip("dg-chip-qrg", "QRG --"); }
+    var au = st && st.audio;
+    if (running && au) {
+      chip("dg-chip-audio", au.ok ? "AF " + (au.level_dbfs != null ? Math.round(au.level_dbfs) + " dB" : "ok") : "AF ✗", au.ok ? "is-ok" : "is-bad");
+    } else { chip("dg-chip-audio", "AF --"); }
+    if (running && rig && rig.reachable && !rig.on_freq && !busy) {
+      warn = ("Der IC-705 steht nicht mehr auf " + (st.dial_hz / 1e6).toFixed(4) + " MHz USB-D – es wird nichts gemeldet. „▶ Empfang“ stellt ihn wieder ein.");
+    } else if (running && rig && !rig.reachable) {
+      warn = "IC-705 antwortet nicht (rigctld) – Dekodieren läuft weiter, gemeldet wird nichts.";
+    } else if (running && st.audio && !st.audio.ok) {
+      warn = "Kein Audio vom IC-705" + (st.audio.error ? ": " + st.audio.error : "") + " – läuft kappanhang?";
+    }
+    showMsg(warn);
+    if (running !== prevRunning) { prevRunning = running; renderTable(); }
+    $("dg-start").classList.toggle("is-active", running);
+    var up = st && st.upload;
+    if (st && st.ok) {
+      $("dg-up-psk").checked = !!st.upload_psk;
+      $("dg-up-wspr").checked = !!st.upload_wsprnet;
+    }
+    $("dg-up-psk-n").textContent = up && up.psk ? up.psk.sent + " gemeldet" + (up.psk.pending ? ", " + up.psk.pending + " wartend" : "") + (up.psk.error ? " ⚠" : "") : "";
+    $("dg-up-wspr-n").textContent = up && up.wsprnet ? up.wsprnet.sent + " gemeldet" + (up.wsprnet.pending ? ", " + up.wsprnet.pending + " wartend" : "") + (up.wsprnet.error ? " ⚠" : "") : "";
+    if (running && (!sel || sel.mode !== st.mode || sel.band !== st.band) && !busy && st.band) {
+      sel = { mode: st.mode, band: st.band };
+      renderBands(); renderHead(); renderTable();
+    }
+  }
+
+  function tickClock() {
+    var now = Date.now() / 1000 + clockOffset;
+    var d = new Date(now * 1000);
+    $("dg-clock").textContent = d.toISOString().slice(11, 19) + " UTC";
+    var running = !!(st && st.running);
+    var period = PERIOD[running ? st.mode : sel.mode];
+    var pos = now % period;
+    $("dg-cycle-fill").style.width = running ? (pos / period * 100).toFixed(1) + "%" : "0";
+    var bar = document.querySelector(".dg-cycle-bar");
+    bar.classList.toggle("is-decoding", !!(st && st.busy));
+    $("dg-cycle-label").textContent = (running ? st.mode : sel.mode) + "-Periode " + String(period).replace(".", ",") + " s";
+    var info = "gestoppt";
+    if (running) {
+      var left = period - pos;
+      info = (st.busy ? "dekodiere … · " : "") + "nächste Auswertung in " + (left >= 60 ? Math.floor(left / 60) + ":" + String(Math.floor(left % 60)).padStart(2, "0") : Math.ceil(left) + " s");
+      var lc = st.last_cycle || {};
+      if (lc.utc) {
+        info += " · zuletzt " + lc.utc.slice(11, 19) + ": " + (lc.skipped ? "übersprungen (" + lc.reason + ")" : (lc.count || 0) + " dekodiert" + (lc.seconds != null ? " in " + String(lc.seconds).replace(".", ",") + " s" : "") + (lc.error ? " ⚠ " + lc.error : ""));
+      }
+    }
+    $("dg-cycle-info").textContent = info;
+  }
+
+  // ---- Liste
+  function isWspr() { return sel.mode === "WSPR"; }
+  function renderHead() {
+    $("dg-only-cq").parentNode.hidden = isWspr();
+    $("dg-list-title").textContent = isWspr() ? "WSPR-SPOTS" : "BANDAKTIVITÄT · " + sel.mode;
+    $("dg-thead").innerHTML = isWspr()
+      ? '<tr><th class="l">UTC</th><th>dB</th><th>DT</th><th>MHz</th><th>Drift</th><th class="l">Rufzeichen</th><th class="l">Locator</th><th>Leistung</th><th>km</th><th></th></tr>'
+      : '<tr><th class="l">UTC</th><th>dB</th><th>DT</th><th>Hz</th><th class="l">Nachricht</th><th>km</th><th>Richtung</th><th></th></tr>';
+  }
+  function visible() {
+    var d0 = dial(sel.mode, sel.band), onlyCq = $("dg-only-cq").checked;
+    return decodes.filter(function (d) {
+      return d.mode === sel.mode && (!d0 || d.dial_hz === d0) && (!onlyCq || d.cq || d.mode === "WSPR");
+    });
+  }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function dbmW(dbm) {
+    if (dbm == null) { return ""; }
+    var w = Math.pow(10, dbm / 10) / 1000;
+    return dbm + " dBm (" + (w >= 1 ? w.toLocaleString("de-DE", { maximumFractionDigits: 0 }) + " W" : (w * 1000).toLocaleString("de-DE", { maximumFractionDigits: 0 }) + " mW") + ")";
+  }
+  var newSeqFrom = Infinity;
+  function renderTable() {
+    var rows = visible();
+    $("dg-empty").hidden = rows.length > 0;
+    $("dg-empty").textContent = st && st.running ? "Noch keine Dekodierungen auf " + sel.band + " " + sel.mode + " – die erste Auswertung folgt am Ende der Periode." : "Noch keine Dekodierungen. Betriebsart und Band wählen, dann „▶ Empfang“.";
+    var html = "", lastUtc = null, calls = {}, best = null;
+    for (var i = rows.length - 1; i >= 0 && i >= rows.length - 400; i--) {
+      var d = rows[i];
+      if (d.utc !== lastUtc) {
+        var n = 0; for (var j = i; j >= 0 && rows[j].utc === d.utc; j--) { n++; }
+        html += '<tr class="dg-sep"><td colspan="10">' + d.utc.slice(11, 19) + " UTC · " + n + (n === 1 ? " Signal" : " Signale") + "</td></tr>";
+        lastUtc = d.utc;
+      }
+      var db = distBearing(d.grid);
+      var cls = [];
+      if (d.cq) { cls.push("is-cq"); }
+      if (MY_CALL && (d.to === MY_CALL || (d.message || "").split(" ").indexOf(MY_CALL) === 0)) { cls.push("is-me"); }
+      if (d.seq >= newSeqFrom) { cls.push("is-new"); }
+      var snrCls = d.snr >= -10 ? "snr-good" : d.snr <= -20 ? "snr-weak" : "";
+      var up = d.uploaded ? '<td class="up" title="gemeldet">↑</td>' : "<td></td>";
+      if (isWspr()) {
+        html += '<tr class="' + cls.join(" ") + '"><td class="l">' + d.utc.slice(11, 16) + '</td><td class="' + snrCls + '">' + d.snr + "</td><td>" + d.dt.toFixed(1) + "</td><td>" + (d.freq_hz / 1e6).toFixed(6) + "</td><td>" + (d.drift || 0) + '</td><td class="l msg">' + esc(d.call || d.message) + '</td><td class="l">' + esc(d.grid || "") + "</td><td>" + dbmW(d.dbm) + "</td><td>" + (db ? db.km.toLocaleString("de-DE") : "") + "</td>" + up + "</tr>";
+      } else {
+        html += '<tr class="' + cls.join(" ") + '"><td class="l">' + d.utc.slice(11, 19) + '</td><td class="' + snrCls + '">' + (d.snr > 0 ? "+" : "") + d.snr + "</td><td>" + d.dt.toFixed(1) + "</td><td>" + d.df + '</td><td class="l msg">' + esc(d.message) + "</td><td>" + (db ? db.km.toLocaleString("de-DE") : "") + "</td><td>" + (db ? db.deg + "°" : "") + "</td>" + up + "</tr>";
+      }
+    }
+    rows.forEach(function (d) {
+      if (d.call) { calls[d.call] = true; }
+      var db = distBearing(d.grid);
+      if (db && (!best || db.km > best.km)) { best = { km: db.km, call: d.call }; }
+    });
+    $("dg-tbody").innerHTML = html;
+    renderLast(rows);
+    var nCalls = Object.keys(calls).length;
+    $("dg-stats").textContent = rows.length ? rows.length + " Dekodierungen · " + nCalls + " Stationen" + (best ? " · am weitesten " + best.call + " (" + best.km.toLocaleString("de-DE") + " km)" : "") : "";
+    renderMarks(rows);
+  }
+  $("dg-only-cq").addEventListener("change", renderTable);
+  $("dg-clear").addEventListener("click", function () { decodes = []; renderTable(); });
+
+  function renderLast(rows) {
+    var el = $("dg-last");
+    if (!rows.length) { el.innerHTML = '<div class="dg-last-head">Letzte Periode</div><div class="dg-last-empty">' + (st && st.running ? "warte auf die erste Auswertung …" : "Empfang ist aus.") + "</div>"; return; }
+    var lastUtc = rows[rows.length - 1].utc;
+    var cur = rows.filter(function (d) { return d.utc === lastUtc; });
+    cur.sort(function (a, b) { return (b.cq ? 1 : 0) - (a.cq ? 1 : 0) || b.snr - a.snr; });
+    var html = '<div class="dg-last-head">Letzte Periode · ' + lastUtc.slice(11, 19) + " UTC · " + cur.length + (cur.length === 1 ? " Signal" : " Signale") + "</div>";
+    cur.slice(0, 6).forEach(function (d) {
+      var db = distBearing(d.grid), me = MY_CALL && d.to === MY_CALL;
+      html += '<div class="dg-last-row' + (d.cq ? " is-cq" : "") + (me ? " is-me" : "") + '"><span>' + (d.snr > 0 ? "+" : "") + d.snr + "</span><span>" + (isWspr() ? (d.freq_hz / 1e6).toFixed(4) : d.df) + '</span><span class="m">' + esc(d.message) + "</span><span>" + (db ? db.km.toLocaleString("de-DE") + " km" : "") + "</span></div>";
+    });
+    if (cur.length > 6) { html += '<div class="dg-last-empty">… und ' + (cur.length - 6) + " weitere (Liste unten)</div>"; }
+    el.innerHTML = html;
+  }
+
+  function renderMarks(rows) {
+    var el = $("dg-wf-marks");
+    if (isWspr() || !rows.length) { el.innerHTML = ""; return; }
+    var lastUtc = rows[rows.length - 1].utc, html = "";
+    rows.filter(function (d) { return d.utc === lastUtc; }).forEach(function (d) {
+      html += '<span class="' + (d.cq ? "is-cq" : "") + '" style="left:' + (d.df / 3000 * 100).toFixed(2) + '%">' + esc(d.call || "?") + "</span>";
+    });
+    el.innerHTML = html;
+  }
+
+  // ---- Abfragen
+  function poll() {
+    fetch("/api/digital/status").then(function (r) { return r.json(); }).then(function (d) {
+      st = d;
+      if (d.server_time) { clockOffset = d.server_time - Date.now() / 1000; }
+      if (d.ok && d.seq < lastSeq) { lastSeq = 0; decodes = []; }  // Dienst neu gestartet
+      renderStatus();
+      if (d.ok && d.seq > lastSeq) { return loadDecodes(); }
+    }).catch(function () {
+      st = { ok: false, error: "OrbitHub nicht erreichbar." };
+      renderStatus();
+    });
+  }
+  function loadDecodes() {
+    return fetch("/api/digital/decodes?since=" + lastSeq).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.decodes) { return; }
+      newSeqFrom = lastSeq ? lastSeq + 1 : Infinity;
+      decodes = decodes.concat(d.decodes);
+      if (decodes.length > 3000) { decodes = decodes.slice(-3000); }
+      lastSeq = d.seq;
+      renderTable();
+    });
+  }
+
+  // ---- Wasserfall (NF aus dem Audio-Stream des Hosts, Port 8766)
+  var wf = (function () {
+    var canvas = $("dg-wf-canvas"), ctx2d = canvas.getContext("2d"), gain = $("dg-wf-gain");
+    var audio = null, actx = null, analyser = null, bins = null, timer = null, rowImg = null, SPAN = 3000;
+    try { gain.value = localStorage.getItem("digital-wf-gain") || gain.value; } catch (e) {}
+    var stops = [[2, 6, 17], [10, 30, 110], [20, 140, 200], [90, 230, 180], [250, 230, 60], [255, 90, 40], [255, 255, 255]], palette = [];
+    for (var i = 0; i < 256; i++) {
+      var p = i / 255 * (stops.length - 1), k = Math.floor(p), f = p - k, a = stops[k], b = stops[Math.min(k + 1, stops.length - 1)];
+      palette.push([0, 1, 2].map(function (c) { return Math.round(a[c] + (b[c] - a[c]) * f); }));
+    }
+    var scale = "";
+    for (var hz = 500; hz < SPAN; hz += 500) { scale += '<span style="left:' + (hz / SPAN * 100) + '%">' + hz + "</span>"; }
+    $("dg-wf-scale").innerHTML = scale;
+    function err(t) { $("dg-wf-error").hidden = !t; $("dg-wf-error").textContent = t || ""; }
+    function resize() {
+      var w = Math.max(200, Math.round(canvas.clientWidth));
+      if (canvas.width !== w) { canvas.width = w; ctx2d.fillStyle = "#020611"; ctx2d.fillRect(0, 0, w, canvas.height); rowImg = ctx2d.createImageData(w, 1); }
+    }
+    function row() {
+      if (!analyser) { return; }
+      analyser.getByteFrequencyData(bins);
+      var w = canvas.width, h = canvas.height, maxBin = Math.min(bins.length - 1, Math.floor(SPAN / (actx.sampleRate / 2) * bins.length)), data = rowImg.data;
+      ctx2d.drawImage(canvas, 0, 0, w, h - 1, 0, 1, w, h - 1);
+      for (var x = 0; x < w; x++) {
+        var b0 = Math.floor(x / w * maxBin), b1 = Math.max(b0 + 1, Math.floor((x + 1) / w * maxBin)), v = 0;
+        for (var bi = b0; bi < b1; bi++) { if (bins[bi] > v) { v = bins[bi]; } }
+        var c = palette[v], o = x * 4;
+        data[o] = c[0]; data[o + 1] = c[1]; data[o + 2] = c[2]; data[o + 3] = 255;
+      }
+      ctx2d.putImageData(rowImg, 0, 0);
+    }
+    function on() {
+      err(null);
+      try {
+        actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+        audio = new Audio();
+        audio.crossOrigin = "anonymous";
+        audio.src = "http://" + window.location.hostname + ":8766/stream.mp3?dg=" + Date.now();
+        var src = actx.createMediaElementSource(audio);
+        analyser = actx.createAnalyser();
+        analyser.fftSize = 8192;
+        analyser.smoothingTimeConstant = 0.3;
+        analyser.minDecibels = Number(gain.value);
+        analyser.maxDecibels = Number(gain.value) + 70;
+        bins = new Uint8Array(analyser.frequencyBinCount);
+        var mute = actx.createGain(); mute.gain.value = 0;
+        src.connect(analyser); analyser.connect(mute); mute.connect(actx.destination);
+        actx.resume();
+        audio.play().catch(function (e) { err("Stream nicht startbar: " + e.message); off(); });
+        audio.addEventListener("error", function () { if (audio) { err("Audio-Stream (Port 8766) nicht erreichbar – läuft audio-stream.service?"); off(); } });
+      } catch (e) { err("Wasserfall nicht möglich: " + e.message); off(); return; }
+      resize();
+      timer = setInterval(row, 80);
+      $("dg-wf-toggle").textContent = "■ Wasserfall aus";
+      $("dg-wf-toggle").classList.add("is-on");
+    }
+    function off() {
+      if (timer) { clearInterval(timer); timer = null; }
+      if (audio) { var a = audio; audio = null; a.pause(); a.removeAttribute("src"); a.load(); }
+      analyser = null;
+      $("dg-wf-toggle").textContent = "▶ Wasserfall an";
+      $("dg-wf-toggle").classList.remove("is-on");
+    }
+    $("dg-wf-toggle").addEventListener("click", function () { if (timer) { off(); } else { on(); } });
+    gain.addEventListener("input", function () {
+      try { localStorage.setItem("digital-wf-gain", gain.value); } catch (e) {}
+      if (analyser) { analyser.minDecibels = Number(gain.value); analyser.maxDecibels = Number(gain.value) + 70; }
+    });
+    window.addEventListener("resize", function () { if (timer) { resize(); } });
+    return { on: on, off: off };
+  })();
+
+  renderBands();
+  renderHead();
+  renderTable();
+  tickClock();
+  poll();
+  setInterval(tickClock, 250);
+  setInterval(poll, 2000);
+})();
+</script>
+{% endblock %}

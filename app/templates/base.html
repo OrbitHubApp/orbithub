@@ -104,11 +104,6 @@
 <span>{{ t('nav.passes') }}</span>
 </a>
 
-<a class="nav-item {% block nav_ic705 %}{% endblock %}" href="/ic705">
-<span class="nav-icon">📻</span>
-<span>{{ t('nav.ic705') }}</span>
-</a>
-
 <a class="nav-item {% block nav_amsat %}{% endblock %}" href="/amsat">
 <span class="nav-icon">📡</span>
 <span>{{ t('nav.amsat') }}</span>
@@ -118,6 +113,18 @@
 <span class="nav-icon">☉</span>
 <span>{{ t('nav.visibility') }}</span>
 </a>
+
+<div class="nav-group nav-group-radio" role="group" aria-label="{{ t('nav.group_radio') }}">
+<div class="nav-group-label">{{ t('nav.group_radio') }}</div>
+<a class="nav-item {% block nav_ic705 %}{% endblock %}" href="/ic705">
+<span class="nav-icon">📻</span>
+<span>{{ t('nav.ic705') }}</span>
+</a>
+<a class="nav-item {% block nav_digital %}{% endblock %}" href="/digital">
+<span class="nav-icon">〰</span>
+<span>{{ t('nav.digital') }}</span>
+</a>
+</div>
 
 <a class="nav-item {% block nav_downloads %}{% endblock %}" href="/downloads">
 <span class="nav-icon">⇩</span>

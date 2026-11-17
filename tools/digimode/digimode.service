@@ -1,0 +1,12 @@
+[Unit]
+Description=OrbitHub Digimode-Dienst (FT8/FT4/WSPR, Port 8767)
+After=kappanhang.service pipewire-pulse.service
+Wants=kappanhang.service
+
+[Service]
+ExecStart=/usr/bin/python3 %h/orbithub/tools/digimode/digimode_server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

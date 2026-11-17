@@ -70,6 +70,7 @@ from app.models.tle_record import TLERecord
 from app.services.satnogs_tle import fetch_and_save_satnogs_tles, load_satnogs_tles, satnogs_record
 from app.services.rig_tracking import tracking_session
 from app.services.relais_scan import relais_scanner
+from app.services import digimode
 from app.services.live_observer import MIN_ELEVATION_DEG as LIVE_MIN_ELEVATION_DEG, live_observer
 from app.services.tinygs_aliases import (
     fetch_and_save_tinygs_aliases,
@@ -2955,6 +2956,7 @@ async def start_rig_tracking(request: Request) -> dict:
     # Manuelles Tracking hat Vorrang vor der automatischen Live-Beobachtung
     live_observer.stop(stop_tracking=False)
     relais_scanner.stop("Doppler-Verfolgung gestartet")
+    await digimode.stop_quietly()
     tracking_session.start(
         norad_id=norad_id,
         satellite=satellite,
@@ -3129,6 +3131,7 @@ async def rig_scan_start(request: Request) -> dict:
             detail="Rauschsperre ist offen – der Scan würde auf jedem Relais anhalten. "
             "Bitte die Rauschsperre (SQL) erst so weit schließen, dass das Rauschen weg ist.",
         )
+    await digimode.stop_quietly()
     live_observer.stop(stop_tracking=False)
     tracking_session.stop()
     relais_scanner.start(relais, band)
@@ -3217,6 +3220,7 @@ async def rig_vfo_set(request: Request) -> dict:
     live_observer.stop(stop_tracking=False)
     tracking_session.stop()
     relais_scanner.stop("von Hand eingestellt")
+    await digimode.stop_quietly()
 
     def _apply() -> dict:
         if mode:
@@ -3396,6 +3400,114 @@ async def ic705_page(request: Request, satellite: str | None = None):
             "horizon_shadow_segments": horizon_shadow_segments,
         },
     )
+
+
+# ------------------------------------------------- Digitale Betriebsarten ---
+
+@app.get("/digital")
+async def digital_page(request: Request):
+    """FT8 / FT4 / WSPR mit dem IC-705 (Digimode-Dienst auf dem Host)."""
+    observer = load_observer_settings()
+    return templates.TemplateResponse(
+        name="digital.html",
+        context={
+            "request": request,
+            "app_name": APP_NAME,
+            "app_slogan": APP_SLOGAN,
+            "version": VERSION,
+            "codename": CODENAME,
+            "bands": digimode.BANDS,
+            "callsign": observer.callsign,
+            "locator": observer.locator,
+        },
+    )
+
+
+@app.get("/api/digital/status")
+async def digital_status() -> dict:
+    try:
+        return await digimode.status()
+    except digimode.DigimodeError as exc:
+        return {"ok": False, "error": str(exc)}
+
+
+@app.get("/api/digital/decodes")
+async def digital_decodes(since: int = 0) -> dict:
+    try:
+        return await digimode.decodes(since)
+    except digimode.DigimodeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/api/digital/start")
+async def digital_start(request: Request) -> dict:
+    """Stellt den IC-705 auf die Standardfrequenz (USB-D) und startet den Empfang.
+    Beendet dafuer Doppler-Tracking, Live-Beobachtung und Relais-Scan."""
+    payload = await request.json()
+    mode = str(payload.get("mode") or "").strip().upper()
+    band = str(payload.get("band") or "").strip()
+    if mode not in digimode.MODES:
+        raise HTTPException(status_code=400, detail="Betriebsart muss FT8, FT4 oder WSPR sein.")
+    dial_hz = digimode.dial_for(mode, band)
+    if not dial_hz:
+        raise HTTPException(status_code=400, detail=f"{mode} ist auf {band or '?'} nicht vorgesehen.")
+    observer = load_observer_settings()
+    callsign = (observer.callsign or "").strip().upper()
+    locator = (observer.locator or "").strip().upper()
+    if not callsign or callsign == "N0CALL":
+        raise HTTPException(status_code=400, detail="Bitte zuerst in den Einstellungen das Rufzeichen eintragen.")
+
+    live_observer.stop(stop_tracking=False)
+    tracking_session.stop()
+    relais_scanner.stop("Digimode gestartet")
+
+    def _tune() -> dict:
+        rig_control.set_mode("PKTUSB", 3000)
+        rig_control.set_frequency(dial_hz)
+        actual = rig_control.get_frequency()
+        for _ in range(8):
+            if abs(actual - dial_hz) < 10:
+                break
+            time.sleep(0.25)
+            actual = rig_control.get_frequency()
+        return {"frequency_hz": actual, "mode": rig_control.get_mode()[0]}
+
+    try:
+        rig = await asyncio.to_thread(_tune)
+    except RigControlError as exc:
+        raise HTTPException(status_code=502, detail=f"IC-705 nicht erreichbar: {exc}") from exc
+    if abs(rig["frequency_hz"] - dial_hz) >= 10:
+        raise HTTPException(
+            status_code=502,
+            detail=f"IC-705 übernimmt die Frequenz nicht (steht auf {rig['frequency_hz'] / 1e6:.6f} MHz).",
+        )
+    body = {"mode": mode, "band": band, "dial_hz": dial_hz, "call": callsign, "grid": locator}
+    for key in ("upload_psk", "upload_wsprnet"):
+        if key in payload:
+            body[key] = bool(payload[key])
+    try:
+        state = await digimode.start(body)
+    except digimode.DigimodeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return {"ok": True, "rig": rig, "status": state}
+
+
+@app.post("/api/digital/stop")
+async def digital_stop() -> dict:
+    try:
+        return {"ok": True, "status": await digimode.stop()}
+    except digimode.DigimodeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/api/digital/config")
+async def digital_config(request: Request) -> dict:
+    payload = await request.json()
+    body = {k: bool(payload[k]) for k in ("upload_psk", "upload_wsprnet") if k in payload}
+    try:
+        return {"ok": True, "status": await digimode.configure(body)}
+    except digimode.DigimodeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @app.get("/amsat")
@@ -3631,6 +3743,7 @@ async def start_live_observation(request: Request) -> dict:
     if hours not in (6, 12, 24, 48):
         hours = 24
     relais_scanner.stop("Live-Beobachtung gestartet")
+    await digimode.stop_quietly()
     live_observer.start(hours, _live_observer_candidates)
     return {"ok": True, "status": asdict(live_observer.status)}
 
