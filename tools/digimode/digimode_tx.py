@@ -249,6 +249,7 @@ class Transmitter:
         self.plan: dict | None = None        # nächste Aussendung
         self.qso: dict | None = None
         self.transmitting = False
+        self.sending: str | None = None
         self.ptt = False
         self.last_tx: dict | None = None
         self.last_error: str | None = None
@@ -389,10 +390,10 @@ class Transmitter:
         return messages(me, grid4, q.get("call"), q.get("rep_sent"))
 
     # -- Bedienung
-    def halt(self, reason: str = "Not-Aus") -> None:
+    def halt(self, reason: str = "STOP") -> None:
         with self.lock:
             self.cfg["tx_enabled"] = False
-            self.cfg["wspr_beacon"] = False if reason == "Not-Aus" else self.cfg.get("wspr_beacon")
+            self.cfg["wspr_beacon"] = False if reason == "STOP" else self.cfg.get("wspr_beacon")
             self.plan = None
         self.halt_event.set()
         proc = self.proc
@@ -709,6 +710,7 @@ class Transmitter:
         self.halt_event.clear()
         t_audio = plan["slot"] + TX_TIMING[mode]["offset"] - AUDIO_LEAD
         self.transmitting = True
+        self.sending = plan["message"]
         self.tx_slots.add(plan["slot"])
         note = "gesendet"
         meters: list[dict] = []
@@ -718,7 +720,7 @@ class Transmitter:
             while time.time() < t_audio and not self.halt_event.is_set():
                 time.sleep(0.005)
             if self.halt_event.is_set():
-                note = "Not-Aus"
+                note = "STOP"
                 return
             self.proc = subprocess.Popen(
                 ["pacat", "--playback", f"--device={TX_SINK}", f"--rate={RATE}", "--channels=1",
@@ -744,7 +746,7 @@ class Transmitter:
                 self.proc.kill()
                 note = "abgebrochen (Zeitlimit)"
             if self.halt_event.is_set():
-                note = "Not-Aus – abgebrochen"
+                note = "STOP – abgebrochen"
         except Exception as exc:  # noqa: BLE001
             note = f"Fehler: {exc}"
             self.last_error = note
@@ -817,6 +819,7 @@ class Transmitter:
             "wspr_beacon": bool(self.cfg.get("wspr_beacon")), "wspr_pct": self.cfg.get("wspr_pct", 20),
             "wspr_dbm": self.cfg.get("wspr_dbm", 37),
             "transmitting": self.transmitting, "ptt": self.ptt,
+            "sending": self.sending if self.transmitting else None,
             "qso": q, "messages": self.msgs(),
             "next": {"utc": self.e.iso(plan["slot"]), "message": plan["message"], "key": plan["key"]} if plan else None,
             "last": self.last_tx, "error": self.last_error,

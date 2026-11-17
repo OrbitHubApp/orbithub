@@ -902,7 +902,7 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/tx/next":
                 engine.tx.choose(str(data.get("key", "")))
             elif path == "/tx/halt":
-                engine.tx.halt("Not-Aus")
+                engine.tx.halt("STOP")
             elif path == "/tx/clear":
                 engine.tx.clear_qso()
             elif path == "/flush":

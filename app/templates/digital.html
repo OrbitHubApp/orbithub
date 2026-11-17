@@ -67,6 +67,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
           <div><span>erhalten</span><b id="dg-qb-rcvd">–</b></div>
         </div>
         <div class="dg-qb-state" id="dg-qb-state"></div>
+        <div class="dg-qb-tx" id="dg-qb-tx"></div>
       </div>
       <div class="dg-last" id="dg-last"></div>
       <div class="dg-msg" id="dg-msg" hidden></div>
@@ -107,7 +108,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
     <label class="dg-dry" title="Probelauf: Aussendung wird nur erzeugt und mit dem eigenen Decoder geprüft – kein PTT, kein Ton">
       <input type="checkbox" id="dg-dry"> Probelauf (ohne PTT)
     </label>
-    <button type="button" class="dg-halt" id="dg-halt" title="Sofort aufhören zu senden (Taste Esc)">■ NOT-AUS</button>
+    <button type="button" class="dg-halt" id="dg-halt" title="Sofort aufhören zu senden (Taste Esc)">■ STOP</button>
   </div>
 
   <div class="dg-tx-grid">
@@ -236,7 +237,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
 .dg-meters.is-idle .dg-meter-v, .dg-meters.is-idle .dg-meter-bar i { opacity: 0.45; }
 .dg-meter-note { font-size: 0.66rem; color: #505861; text-align: right; }
 .dg-meters.is-live .dg-meter-note { color: var(--dg-red); }
-.dg-qsobig { margin-top: 12px; padding: 10px 14px; border-radius: 3px; border: 1px solid rgba(255, 76, 76,0.45); background: linear-gradient(90deg, rgba(255, 76, 76,0.12), rgba(255, 76, 76,0.03)); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "call info rst" "state state state"; gap: 4px 18px; align-items: center; }
+.dg-qsobig { margin-top: 12px; padding: 10px 14px; border-radius: 3px; border: 1px solid rgba(255, 76, 76,0.45); background: linear-gradient(90deg, rgba(255, 76, 76,0.12), rgba(255, 76, 76,0.03)); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "call info rst" "state state state" "tx tx tx"; gap: 4px 18px; align-items: center; }
 .dg-qsobig.is-done { border-color: rgba(106, 212, 131,0.5); background: linear-gradient(90deg, rgba(106, 212, 131,0.12), rgba(106, 212, 131,0.03)); }
 .dg-qb-call { grid-area: call; font-family: var(--dg-mono); font-weight: 800; font-size: clamp(1.8rem, 4vw, 2.8rem); color: #FFFFFF; letter-spacing: 0.04em; line-height: 1; transition: color 0.3s; }
 .dg-qb-call.is-connected { color: #FF8D24; text-shadow: 0 0 18px rgba(255, 141, 36,0.35); }
@@ -247,6 +248,10 @@ OrbitHub &middot; {{ t('nav.digital') }}
 .dg-qb-rst div { display: flex; flex-direction: column; align-items: center; }
 .dg-qb-rst span { font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dg-dim); }
 .dg-qb-rst b { font-family: var(--dg-mono); font-size: 1.6rem; color: #FFFFFF; }
+.dg-qb-tx { grid-area: tx; margin-top: 4px; padding: 5px 10px; border-radius: 3px; background: #0B0D0F; border: 1px solid #3A424B; font-family: var(--dg-mono); font-size: 1.05rem; color: #C9CDD0; letter-spacing: 0.04em; }
+.dg-qb-tx b { font-size: 0.66rem; letter-spacing: 0.14em; color: #9AA1A8; font-weight: 600; margin-right: 10px; }
+.dg-qb-tx.is-live { border-color: #FF4D4D; color: #fff; }
+.dg-qb-tx.is-live b { color: #FF4D4D; }
 .dg-qb-state { grid-area: state; font-family: var(--dg-mono); font-size: 0.8rem; color: var(--dg-amber); }
 .dg-cycle-label { font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dg-cyan); }
 .dg-cycle-bar { height: 10px; border-radius: 3px; background: #121619; border: 1px solid #232930; overflow: hidden; margin: 4px 0; }
@@ -808,6 +813,11 @@ OrbitHub &middot; {{ t('nav.digital') }}
     $("dg-qb-state").textContent = (names[q.state] || q.state) + (q.tries && q.state !== "done" ? " · Versuch " + q.tries : "") + (tx.next ? " · nächste Aussendung " + tx.next.utc.slice(11, 19) + " UTC" : "") + (q.rx_snr != null ? " · zuletzt gehört mit " + (q.rx_snr > 0 ? "+" : "") + q.rx_snr + " dB" : "");
     var finished = q.state === "done" || q.state === "rr73" || q.state === "73";
     el.classList.toggle("is-done", finished);
+    var txl = $("dg-qb-tx"), live = tx.transmitting && tx.sending;
+    var msg = live ? tx.sending : (tx.next ? tx.next.message : (tx.last ? tx.last.message : ""));
+    txl.innerHTML = msg ? "<b>" + (live ? "● SENDE JETZT" : tx.next ? "NÄCHSTE AUSSENDUNG " + tx.next.utc.slice(11, 19) : "ZULETZT GESENDET") + "</b>" + esc(msg) : "";
+    txl.hidden = !msg;
+    txl.classList.toggle("is-live", !!live);
     $("dg-qb-call").classList.toggle("is-connected", !finished && !!(q.rep_rcvd || (q.cq && q.call)));
   }
   $("dg-autolevel").addEventListener("change", function (ev) { txPost("config", { auto_level: ev.target.checked }); });
