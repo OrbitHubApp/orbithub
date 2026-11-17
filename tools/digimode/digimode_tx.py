@@ -619,7 +619,9 @@ class Transmitter:
                 time.sleep(0.02)
             if self.proc.poll() is None:
                 self.proc.kill()
-                note = "Not-Aus" if self.halt_event.is_set() else "abgebrochen (Zeitlimit)"
+                note = "abgebrochen (Zeitlimit)"
+            if self.halt_event.is_set():
+                note = "Not-Aus – abgebrochen"
         except Exception as exc:  # noqa: BLE001
             note = f"Fehler: {exc}"
             self.last_error = note
