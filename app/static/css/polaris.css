@@ -4566,7 +4566,24 @@ a.source-action-button {
 html, body { background: var(--iss-bg) !important; color: var(--iss-ink); font-family: var(--iss-sans); }
 body::before, body::after { display: none !important; }
 *, *::before, *::after { text-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-.sidebar, .mission-sidebar { background: #E6E7E2 !important; border-right: 1px solid var(--iss-line) !important; }
+.sidebar, .mission-sidebar { background: #1B2026 !important; border-right: 1px solid #000 !important; color: #E8EAE6; }
+.mission-sidebar, .mission-sidebar a, .mission-sidebar span, .mission-sidebar div, .mission-sidebar strong, .mission-sidebar p, .mission-sidebar small, .mission-sidebar button { color: #E8EAE6; }
+.mission-sidebar .nav-item { color: #C9CDD0 !important; }
+.mission-sidebar .nav-item:hover { background: #2B3138 !important; color: #fff !important; }
+.mission-sidebar .nav-icon { color: #9AA1A8 !important; }
+.mission-sidebar .nav-count { background: #2B3138 !important; color: #E8EAE6 !important; }
+.mission-sidebar .nav-group-label, .mission-sidebar .sidebar-brand-operator { color: #9AA1A8 !important; }
+.mission-sidebar .sidebar-brand-operator strong { color: #5FB0FF !important; }
+.mission-sidebar .nav-group-radio { background: #232930 !important; border-color: #3A424B !important; }
+.mission-sidebar .nav-divider { background: #3A424B !important; }
+.mission-sidebar .sidebar-lang-switch { background: #0E1114 !important; border-color: #3A424B !important; }
+.mission-sidebar .lang-switch-option { color: #9AA1A8 !important; }
+.mission-sidebar .lang-switch-option.is-active { background: #0B4EA2 !important; color: #fff !important; }
+.mission-sidebar .operator-station-card { background: #232930 !important; border-color: #3A424B !important; }
+.mission-sidebar .update-check-button, .mission-sidebar .update-check-result { background: #2B3138 !important; color: #E8EAE6 !important; border-color: #3A424B !important; }
+.mission-footer { background: #1B2026 !important; border-top: 1px solid #000 !important; color: #C9CDD0; }
+.mission-footer, .mission-footer a, .mission-footer span, .mission-footer div, .mission-footer p, .mission-footer small { color: #C9CDD0; }
+.mission-footer strong { color: #5FB0FF !important; }
 .nav-item.active, .mission-navigation .nav-item.active { background: var(--iss-blue) !important; color: #fff !important; border-color: var(--iss-blue) !important; }
 .nav-item.active * { color: #fff !important; }
 .nav-group-radio { background: var(--iss-rack) !important; border: 1px solid var(--iss-line) !important; border-top: 6px solid transparent !important; border-image: var(--iss-stripe) 6 0 0 0 stretch !important; }
