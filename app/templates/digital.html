@@ -319,6 +319,12 @@ OrbitHub &middot; {{ t('nav.digital') }}
 .dg-table tr.is-new td { animation: dg-new 1.6s ease-out; }
 @keyframes dg-new { 0% { background: rgba(255,173,31,0.28); } 100% { background: transparent; } }
 .dg-table tr.dg-sep td { padding: 1px 8px; background: #0b131c; color: #5f6c79; font-size: 0.66rem; text-align: left; }
+.dg-table tr.dg-sep b { color: var(--dg-cyan); font-weight: 600; }
+.dg-table tr.dg-bandchg td { padding: 4px 8px; background: rgba(255,154,46,0.14); border-top: 2px solid #ff9a2e; border-bottom: 2px solid #ff9a2e; color: #ffb35c; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.04em; text-align: left; }
+.dg-last-band { color: #fff; }
+.dg-last-band.is-stale { color: #8a96a3; text-decoration: line-through; }
+.dg-bandflag { margin-left: 6px; padding: 1px 6px; border-radius: 3px; background: rgba(255,154,46,0.18); border: 1px solid #ff9a2e; color: #ffb35c; letter-spacing: 0.04em; text-transform: none; }
+.dg-last.is-stale .dg-last-row { opacity: 0.4; }
 .dg-table td.up { color: var(--dg-amber); }
 .dg-table td.snr-good { color: var(--dg-green); }
 .dg-table td.snr-weak { color: #8a96a3; }
@@ -581,11 +587,19 @@ OrbitHub &middot; {{ t('nav.digital') }}
       : '<tr><th class="l">UTC</th><th>dB</th><th>DT</th><th>Hz</th><th class="l">Nachricht</th><th class="l">Land</th><th>km</th><th>Richtung</th><th></th></tr>';
   }
   function visible() {
-    var d0 = dial(sel.mode, sel.band), onlyCq = $("dg-only-cq").checked;
+    var onlyCq = $("dg-only-cq").checked;
     return decodes.filter(function (d) {
-      return d.mode === sel.mode && (!d0 || d.dial_hz === d0) && (!onlyCq || d.cq || d.tx || d.mode === "WSPR");
+      return d.mode === sel.mode && (!onlyCq || d.cq || d.tx || d.mode === "WSPR");
     });
   }
+  function bandOf(d) {
+    for (var i = 0; i < BANDS.length; i++) {
+      var b = BANDS[i];
+      if (d.dial_hz && (b.FT8 === d.dial_hz || b.FT4 === d.dial_hz || b.WSPR === d.dial_hz)) { return b.band; }
+    }
+    return d.dial_hz ? (d.dial_hz / 1e6).toFixed(3) + " MHz" : "?";
+  }
+  function onSelBand(d) { return bandOf(d) === sel.band; }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function dbmW(dbm) {
     if (dbm == null) { return ""; }
@@ -597,12 +611,17 @@ OrbitHub &middot; {{ t('nav.digital') }}
     var rows = visible();
     $("dg-empty").hidden = rows.length > 0;
     $("dg-empty").textContent = st && st.running ? "Noch keine Dekodierungen auf " + sel.band + " " + sel.mode + " – die erste Auswertung folgt am Ende der Periode." : "Noch keine Dekodierungen. Betriebsart und Band wählen, dann „▶ Empfang“.";
-    var html = "", lastUtc = null, calls = {}, best = null;
+    var html = "", lastUtc = null, lastBand = null, calls = {}, best = null;
     for (var i = rows.length - 1; i >= 0 && i >= rows.length - 400; i--) {
-      var d = rows[i];
+      var d = rows[i], bd = bandOf(d);
+      if (lastBand !== null && bd !== lastBand) {
+        html += '<tr class="dg-bandchg"><td colspan="11">⇅ Bandwechsel ' + esc(bd) + " → " + esc(lastBand) + " &nbsp;·&nbsp; ▲ " + esc(lastBand) + " &nbsp; ▼ " + esc(bd) + "</td></tr>";
+        lastUtc = null;
+      }
+      lastBand = bd;
       if (d.utc !== lastUtc) {
-        var n = 0; for (var j = i; j >= 0 && rows[j].utc === d.utc; j--) { n++; }
-        html += '<tr class="dg-sep"><td colspan="11">' + d.utc.slice(11, 19) + " UTC · " + n + (n === 1 ? " Signal" : " Signale") + "</td></tr>";
+        var n = 0; for (var j = i; j >= 0 && rows[j].utc === d.utc && bandOf(rows[j]) === bd; j--) { n++; }
+        html += '<tr class="dg-sep"><td colspan="11">' + d.utc.slice(11, 19) + " UTC · <b>" + esc(bd) + "</b> · " + n + (n === 1 ? " Signal" : " Signale") + "</td></tr>";
         lastUtc = d.utc;
       }
       var db = distBearing(d.grid);
@@ -622,8 +641,10 @@ OrbitHub &middot; {{ t('nav.digital') }}
         html += '<tr class="' + cls.join(" ") + '"' + (d.call && !d.hashed ? ' data-seq="' + d.seq + '" title="Doppelklick: ' + esc(d.call) + ' anrufen"' : "") + '><td class="l">' + d.utc.slice(11, 19) + '</td><td class="' + snrCls + '">' + (d.snr > 0 ? "+" : "") + d.snr + "</td><td>" + d.dt.toFixed(1) + "</td><td>" + d.df + '</td><td class="l msg">' + esc(d.message) + '</td><td class="l">' + esc(d.country || "") + "</td><td>" + (db ? db.km.toLocaleString("de-DE") : "") + "</td><td>" + (db ? db.deg + "°" : "") + "</td>" + up + "</tr>";
       }
     }
+    var nBand = 0;
     rows.forEach(function (d) {
-      if (d.tx) { return; }
+      if (d.tx || !onSelBand(d)) { return; }
+      nBand++;
       if (d.call) { calls[d.call] = true; }
       var db = distBearing(d.grid);
       if (db && (!best || db.km > best.km)) { best = { km: db.km, call: d.call }; }
@@ -631,7 +652,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
     $("dg-tbody").innerHTML = html;
     renderLast(rows);
     var nCalls = Object.keys(calls).length;
-    $("dg-stats").textContent = rows.length ? rows.length + " Dekodierungen · " + nCalls + " Stationen" + (best ? " · am weitesten " + best.call + " (" + best.km.toLocaleString("de-DE") + " km)" : "") : "";
+    $("dg-stats").textContent = nBand ? sel.band + ": " + nBand + " Dekodierungen · " + nCalls + " Stationen" + (best ? " · am weitesten " + best.call + " (" + best.km.toLocaleString("de-DE") + " km)" : "") : "";
     renderMarks(rows);
   }
   $("dg-only-cq").addEventListener("change", renderTable);
@@ -641,20 +662,25 @@ OrbitHub &middot; {{ t('nav.digital') }}
     rows = rows.filter(function (d) { return !d.tx; });
     var el = $("dg-last");
     if (!rows.length) { el.innerHTML = '<div class="dg-last-head">Letzte Periode</div><div class="dg-last-empty">' + (st && st.running ? "warte auf die erste Auswertung …" : "Empfang ist aus.") + "</div>"; return; }
-    var lastUtc = rows[rows.length - 1].utc;
-    var cur = rows.filter(function (d) { return d.utc === lastUtc; });
+    var lastD = rows[rows.length - 1], lastUtc = lastD.utc, lastBand = bandOf(lastD);
+    var cur = rows.filter(function (d) { return d.utc === lastUtc && bandOf(d) === lastBand; });
     cur.sort(function (a, b) { return (b.cq ? 1 : 0) - (a.cq ? 1 : 0) || b.snr - a.snr; });
-    var html = '<div class="dg-last-head">Letzte Periode · ' + lastUtc.slice(11, 19) + " UTC · " + cur.length + (cur.length === 1 ? " Signal" : " Signale") + "</div>";
+    var prev = null;
+    for (var k = rows.length - 1; k >= 0; k--) { if (rows[k].utc !== lastUtc) { prev = rows[k]; break; } }
+    var stale = lastBand !== sel.band, changed = !stale && prev && bandOf(prev) !== lastBand;
+    var html = '<div class="dg-last-head">Letzte Periode · <b class="dg-last-band' + (stale ? " is-stale" : "") + '">' + esc(lastBand) + "</b> · " + lastUtc.slice(11, 19) + " UTC · " + cur.length + (cur.length === 1 ? " Signal" : " Signale") +
+      (stale ? ' <span class="dg-bandflag">Bandwechsel auf ' + esc(sel.band) + " – warte auf die erste Auswertung</span>" : changed ? ' <span class="dg-bandflag">neu nach Bandwechsel ' + esc(bandOf(prev)) + " → " + esc(lastBand) + "</span>" : "") + "</div>";
     cur.slice(0, 6).forEach(function (d) {
       var db = distBearing(d.grid), me = MY_CALL && d.to === MY_CALL;
       html += '<div class="dg-last-row' + (d.cq ? " is-cq" : "") + (me ? " is-me" : "") + '"' + (d.call && !d.hashed && !isWspr() ? ' data-seq="' + d.seq + '" title="Doppelklick: ' + esc(d.call) + ' anrufen"' : "") + '><span>' + (d.snr > 0 ? "+" : "") + d.snr + "</span><span>" + (isWspr() ? (d.freq_hz / 1e6).toFixed(4) : d.df) + '</span><span class="m">' + esc(d.message) + "</span><span>" + esc(d.country || "") + (db ? " · " + db.km.toLocaleString("de-DE") + " km" : "") + "</span></div>";
     });
     if (cur.length > 6) { html += '<div class="dg-last-empty">… und ' + (cur.length - 6) + " weitere (Liste unten)</div>"; }
     el.innerHTML = html;
+    el.classList.toggle("is-stale", stale);
   }
 
   function renderMarks(rows) {
-    rows = rows.filter(function (d) { return !d.tx; });
+    rows = rows.filter(function (d) { return !d.tx && onSelBand(d); });
     var el = $("dg-wf-marks");
     if (isWspr() || !rows.length) { el.innerHTML = ""; return; }
     var lastUtc = rows[rows.length - 1].utc, html = "", W = el.clientWidth || 1000, CH = 7, ends = [];
