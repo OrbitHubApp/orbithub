@@ -1003,7 +1003,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
     if (out) { out.textContent = "kappanhang wird neu gestartet – bis zu 30 s …"; out.className = "rig-reconnect-msg"; }
     fetch("/api/rig/reconnect", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
       .then(function (r) { return r.json().then(function (d) { if (!r.ok) { throw new Error(d.detail || ("HTTP " + r.status)); } return d; }); })
-      .then(function (d) { if (out) { out.textContent = d.message; out.className = "rig-reconnect-msg is-ok"; } })
+      .then(function (d) { if (out) { out.textContent = d.message + " Starte Empfang …"; out.className = "rig-reconnect-msg is-ok"; } var go = document.getElementById("dg-start"); if (go) { go.disabled = false; go.click(); } })
       .catch(function (e) { if (out) { out.textContent = "Neu verbinden fehlgeschlagen: " + e.message; out.className = "rig-reconnect-msg is-err"; } })
       .then(function () { b.disabled = false; b.textContent = label; });
   });
