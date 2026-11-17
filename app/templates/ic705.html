@@ -465,17 +465,17 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 <style>
 /* ===== IC-705-Seite im Stil des Funkgeraets ===== */
 .icom {
-  --icom-case-hi: #333628;
-  --icom-case: #24261C;
-  --icom-case-lo: #181911;
-  --icom-screen: #0F100B;
-  --icom-line: #2D2F23;
-  --icom-text: #EEE7CF;
-  --icom-dim: #999478;
-  --icom-cyan: #B1D47D;
-  --icom-amber: #F2C22E;
-  --icom-red: #D55639;
-  --icom-green: #9DBF5E;
+  --icom-case-hi: #272C32;
+  --icom-case: #1E2329;
+  --icom-case-lo: #121619;
+  --icom-screen: #0C0E11;
+  --icom-line: #22282F;
+  --icom-text: #F7F7F6;
+  --icom-dim: #8E969D;
+  --icom-cyan: #73D68A;
+  --icom-amber: #FABF0D;
+  --icom-red: #FF4747;
+  --icom-green: #6AD483;
   --icom-mono: "SF Mono", "SFMono-Regular", Menlo, Consolas, "DejaVu Sans Mono", monospace;
 }
 .icom [hidden], .icom-dialog [hidden] { display: none !important; }
@@ -483,18 +483,18 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 /* --- Gehaeuse --- */
 .icom-radio {
   background: linear-gradient(180deg, var(--icom-case-hi) 0%, var(--icom-case) 18%, var(--icom-case-lo) 100%);
-  border-radius: 2px;
+  border-radius: 3px;
   padding: 14px 18px 18px;
-  box-shadow: 0 1px 0 rgba(244, 238, 216,0.12) inset, 0 -2px 0 rgba(11, 12, 8,0.5) inset, 0 18px 40px rgba(11, 12, 8,0.45);
-  border: 1px solid #12130D;
+  box-shadow: 0 1px 0 rgba(255, 255, 255,0.12) inset, 0 -2px 0 rgba(11, 13, 15,0.5) inset, 0 18px 40px rgba(11, 13, 15,0.45);
+  border: 1px solid #0D1013;
   margin-bottom: 1.2rem;
 }
 .icom-radio-top { display: flex; align-items: baseline; gap: 0.9em; padding: 2px 6px 12px; flex-wrap: wrap; }
-.icom-logo { font-weight: 900; font-size: 1.35rem; letter-spacing: 0.08em; color: #F0E9D1; font-style: italic; }
-.icom-model { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.06em; color: #E4DCC0; }
+.icom-logo { font-weight: 900; font-size: 1.35rem; letter-spacing: 0.08em; color: #F9FAF9; font-style: italic; }
+.icom-model { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.06em; color: #E9EBE8; }
 .icom-tag { font-size: 0.66rem; letter-spacing: 0.14em; color: var(--icom-dim); }
 .icom-pwr { margin-left: auto; display: flex; align-items: center; gap: 0.45em; font-size: 0.66rem; letter-spacing: 0.14em; color: var(--icom-dim); }
-.icom .ic705-dot { width: 9px; height: 9px; border-radius: 50%; background: #36392B; display: inline-block; }
+.icom .ic705-dot { width: 9px; height: 9px; border-radius: 50%; background: #2A2E33; display: inline-block; }
 .icom .ic705-dot.is-ok { background: var(--icom-green); box-shadow: 0 0 6px var(--icom-green); }
 .icom .ic705-dot.is-bad { background: var(--icom-red); box-shadow: 0 0 6px var(--icom-red); }
 
@@ -503,10 +503,10 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 
 /* --- Display (Touchscreen) --- */
 .icom-screen {
-  background: radial-gradient(ellipse at 50% -20%, #191B12 0%, var(--icom-screen) 60%);
-  border-radius: 2px;
-  border: 3px solid #11120C;
-  box-shadow: 0 0 0 1px #3B3E2E, inset 0 0 30px rgba(11, 12, 8,0.8);
+  background: radial-gradient(ellipse at 50% -20%, #14171C 0%, var(--icom-screen) 60%);
+  border-radius: 3px;
+  border: 3px solid #0D0F12;
+  box-shadow: 0 0 0 1px #2D3136, inset 0 0 30px rgba(11, 13, 15,0.8);
   padding: 8px 12px 10px;
   color: var(--icom-text);
   min-width: 0;
@@ -515,11 +515,11 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom-statusbar-spacer { flex: 1; }
 .icom-chip {
   font-family: var(--icom-mono); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
-  padding: 1px 7px; border-radius: 3px; border: 1px solid #5B5F48; background: #191A12; color: #EAE3C9;
+  padding: 1px 7px; border-radius: 3px; border: 1px solid #474F57; background: #13171B; color: #F1F3F0;
 }
-.icom-chip-mode { background: #EBE4CB; color: #0F100B; border-color: #EBE4CB; min-width: 3.2em; text-align: center; }
-.icom-chip.is-live { background: rgba(177, 212, 125,0.18); border-color: var(--icom-cyan); color: var(--icom-cyan); }
-.icom-chip.is-track { background: rgba(242, 194, 46,0.16); border-color: var(--icom-amber); color: var(--icom-amber); }
+.icom-chip-mode { background: #F3F4F2; color: #0C0E11; border-color: #F3F4F2; min-width: 3.2em; text-align: center; }
+.icom-chip.is-live { background: rgba(115, 214, 138,0.18); border-color: var(--icom-cyan); color: var(--icom-cyan); }
+.icom-chip.is-track { background: rgba(250, 191, 13,0.16); border-color: var(--icom-amber); color: var(--icom-amber); }
 .icom-clock { font-family: var(--icom-mono); font-size: 0.78rem; color: var(--icom-dim); font-variant-numeric: tabular-nums; }
 
 .icom-main-freq { display: flex; align-items: baseline; justify-content: flex-end; gap: 0.35em; padding: 10px 4px 0; }
@@ -528,57 +528,57 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom-satblock { min-width: 0; flex: 1 1 300px; padding: 2px 4px; }
 .icom-sat-name { font-size: clamp(1.6rem, 3.4vw, 2.3rem); font-weight: 800; line-height: 1.05; color: var(--icom-amber); letter-spacing: 0.01em; }
 .icom-sat-name small { display: inline-block; margin-left: 0.5em; font-size: 0.5em; font-weight: 600; color: var(--icom-dim); vertical-align: middle; }
-.icom-sat-when { margin-top: 6px; font-size: 0.95rem; color: #DFD7B9; }
-.icom-sat-when b { font-family: var(--icom-mono); font-size: 1.15rem; color: #F4EED8; }
+.icom-sat-when { margin-top: 6px; font-size: 0.95rem; color: #E2E5E2; }
+.icom-sat-when b { font-family: var(--icom-mono); font-size: 1.15rem; color: #FFFFFF; }
 .icom-sat-countdown { font-family: var(--icom-mono); font-variant-numeric: tabular-nums; font-weight: 700; font-size: clamp(1.5rem, 3vw, 2rem); color: var(--icom-amber); margin-top: 2px; }
 .icom-sat-info { font-size: 0.8rem; color: var(--icom-dim); margin-top: 3px; }
-.icom-satblock.is-live .icom-sat-name, .icom-satblock.is-live .icom-sat-countdown { color: var(--icom-green); text-shadow: 0 0 10px rgba(157, 191, 94,0.35); }
+.icom-satblock.is-live .icom-sat-name, .icom-satblock.is-live .icom-sat-countdown { color: var(--icom-green); text-shadow: 0 0 10px rgba(106, 212, 131,0.35); }
 .icom-satblock.is-soon .icom-sat-countdown { animation: icom-blink 1s ease-in-out infinite; }
-.icom-satblock.is-nodoppler .icom-sat-when { color: #D9674D; font-weight: 700; }
-.icom-key.is-attention { animation: icom-attn 1s ease-in-out infinite; color: #F4EED8; }
+.icom-satblock.is-nodoppler .icom-sat-when { color: #FF5F5F; font-weight: 700; }
+.icom-key.is-attention { animation: icom-attn 1s ease-in-out infinite; color: #FFFFFF; }
 @keyframes icom-attn { 50% { box-shadow: 0 0 0 2px var(--icom-green), 0 0 14px var(--icom-green); } }
-.icom-satblock.is-idle .icom-sat-name { color: #595D47; }
+.icom-satblock.is-idle .icom-sat-name { color: #454D55; }
 .icom-satblock.is-relais .icom-sat-name { color: var(--icom-cyan); }
 .icom-satblock.is-relais .icom-sat-countdown { color: var(--icom-cyan); font-size: clamp(1.1rem, 2.2vw, 1.5rem); }
-.icom-satblock.is-past .icom-sat-name { color: #ADA587; }
+.icom-satblock.is-past .icom-sat-name { color: #A4ABB1; }
 .icom-keygrid-4 { grid-template-columns: repeat(4, 1fr); }
 .icom-sql-slider { width: 100%; accent-color: var(--icom-amber); margin: 2px 0 6px; }
 .icom-sql-hint { font-size: 0.68rem; color: var(--icom-dim); margin-top: 4px; line-height: 1.3; }
 #icom-sql-val { color: var(--icom-amber); font-family: var(--icom-mono); letter-spacing: 0; }
-.icom-chip-sql.is-open { background: rgba(157, 191, 94,0.18); border-color: var(--icom-green); color: var(--icom-green); }
+.icom-chip-sql.is-open { background: rgba(106, 212, 131,0.18); border-color: var(--icom-green); color: var(--icom-green); }
 .icom-chip-sql.is-closed { color: var(--icom-dim); }
 .icom-meter { display: flex; align-items: center; gap: 8px; padding: 6px 4px 8px; }
 .icom-meter-label { font-family: var(--icom-mono); font-weight: 700; color: var(--icom-cyan); }
 .icom-meter-track { position: relative; flex: 1; height: 26px; }
 .icom-meter-fill { position: absolute; left: 0; top: 2px; height: 9px; width: 0; border-radius: 1px;
-  background: linear-gradient(90deg, #EBE4CB 0%, #EBE4CB 49.8%, #D55639 49.8%, #D55639 100%); background-size: var(--icom-meter-w, 100%) 100%; transition: width 0.25s ease-out; }
-.icom-meter-scale { position: absolute; left: 0; right: 0; top: 13px; height: 13px; border-top: 1px solid #36382A; font-family: var(--icom-mono); font-size: 0.6rem; color: var(--icom-dim); }
+  background: linear-gradient(90deg, #F3F4F2 0%, #F3F4F2 49.8%, #FF4747 49.8%, #FF4747 100%); background-size: var(--icom-meter-w, 100%) 100%; transition: width 0.25s ease-out; }
+.icom-meter-scale { position: absolute; left: 0; right: 0; top: 13px; height: 13px; border-top: 1px solid #292E32; font-family: var(--icom-mono); font-size: 0.6rem; color: var(--icom-dim); }
 .icom-meter-scale span { position: absolute; top: 1px; transform: translateX(-50%); }
-.icom-meter-scale span.is-plus { color: #D9674D; }
-.icom-meter-val { min-width: 4.8em; text-align: right; font-family: var(--icom-mono); font-size: 0.85rem; color: #F4EED8; }
-.icom-row.is-selected { box-shadow: inset 3px 0 0 var(--icom-cyan); background: rgba(177, 212, 125,0.06); }
+.icom-meter-scale span.is-plus { color: #FF5F5F; }
+.icom-meter-val { min-width: 4.8em; text-align: right; font-family: var(--icom-mono); font-size: 0.85rem; color: #FFFFFF; }
+.icom-row.is-selected { box-shadow: inset 3px 0 0 var(--icom-cyan); background: rgba(115, 214, 138,0.06); }
 .icom-alias { font-size: 0.74rem; color: var(--icom-dim); font-weight: 500; margin-left: 4px; }
 .icom .ic705-radio-freq {
   font-family: var(--icom-mono); font-weight: 700; font-variant-numeric: tabular-nums;
   font-size: clamp(2.2rem, 5.6vw, 3.6rem); letter-spacing: 0.02em; line-height: 1;
-  color: #F4EED8; text-shadow: 0 0 10px rgba(246, 212, 110,0.25);
+  color: #FFFFFF; text-shadow: 0 0 10px rgba(137, 197, 255,0.25);
 }
 .icom .ic705-radio-unit { font-size: 0.9rem; color: var(--icom-dim); }
-.icom .ic705-radio-lcd.is-offline .ic705-radio-freq { color: #36392A; text-shadow: none; }
+.icom .ic705-radio-lcd.is-offline .ic705-radio-freq { color: #292E32; text-shadow: none; }
 .icom .ic705-radio-meta { text-align: right; font-size: 0.72rem; color: var(--icom-dim); padding: 2px 4px 8px; }
 
 /* Sub-Anzeige: Doppler */
 .icom .rig-freq-display { border-top: 1px solid var(--icom-line); border-bottom: 1px solid var(--icom-line); padding: 7px 2px 8px; }
 .icom-sub-head { display: flex; align-items: center; gap: 0.5em; font-size: 0.8rem; color: var(--icom-dim); min-height: 1.3em; }
 .icom .rig-freq-display.is-live .icom-sub-head { color: var(--icom-text); }
-.icom .rig-freq-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #323427; flex-shrink: 0; }
+.icom .rig-freq-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #262B31; flex-shrink: 0; }
 .icom .rig-freq-display.is-live .rig-freq-live-dot { background: var(--icom-amber); box-shadow: 0 0 6px var(--icom-amber); animation: icom-blink 1.4s ease-in-out infinite; }
 @keyframes icom-blink { 50% { opacity: 0.3; } }
 .icom-sub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 4px 14px; margin-top: 5px; }
 .icom-sub-cell { display: flex; flex-direction: column; min-width: 0; }
 .icom-sub-label { font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--icom-cyan); opacity: 0.85; }
-.icom-sub-value { font-family: var(--icom-mono); font-variant-numeric: tabular-nums; font-size: 1.35rem; font-weight: 700; color: #595D47; white-space: nowrap; }
-.icom .rig-freq-display.is-live .icom-sub-rx .icom-sub-value { color: #F4EED8; }
+.icom-sub-value { font-family: var(--icom-mono); font-variant-numeric: tabular-nums; font-size: 1.35rem; font-weight: 700; color: #454D55; white-space: nowrap; }
+.icom .rig-freq-display.is-live .icom-sub-rx .icom-sub-value { color: #FFFFFF; }
 .icom .rig-freq-display.is-live .icom-sub-tx .icom-sub-value { color: var(--icom-red); }
 .icom .rig-freq-display.is-live .rig-countdown-digits, .icom .rig-countdown-digits { color: var(--icom-amber); }
 .icom .rig-freq-digits.rig-freq-flash { animation: icom-flash 0.3s ease-out; }
@@ -589,14 +589,14 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom-scope-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.68rem; letter-spacing: 0.1em; color: var(--icom-dim); padding-bottom: 4px; }
 .icom-scope-title { color: var(--icom-cyan); font-weight: 700; }
 .icom-scope-ctl { display: flex; align-items: center; gap: 6px; }
-.icom-scope-ctl select { background: #161810; color: var(--icom-text); border: 1px solid #37392B; border-radius: 3px; font: inherit; font-size: 0.72rem; letter-spacing: 0; padding: 1px 4px; }
+.icom-scope-ctl select { background: #101316; color: var(--icom-text); border: 1px solid #2A2E33; border-radius: 3px; font: inherit; font-size: 0.72rem; letter-spacing: 0; padding: 1px 4px; }
 .icom-scope-ctl input[type="range"] { width: 110px; accent-color: var(--icom-cyan); }
-.icom-scope-help { margin-left: auto; width: 1.5em; height: 1.5em; border-radius: 50%; border: 1px solid #454936; display: inline-flex; align-items: center; justify-content: center; cursor: help; }
-.icom .ic705-wf-scale { position: relative; height: 1.3em; border: 1px solid #2E3024; border-bottom: none; background: #13140E; font-size: 0.66rem; font-variant-numeric: tabular-nums; overflow: hidden; color: var(--icom-dim); }
+.icom-scope-help { margin-left: auto; width: 1.5em; height: 1.5em; border-radius: 50%; border: 1px solid #333940; display: inline-flex; align-items: center; justify-content: center; cursor: help; }
+.icom .ic705-wf-scale { position: relative; height: 1.3em; border: 1px solid #232930; border-bottom: none; background: #0E1013; font-size: 0.66rem; font-variant-numeric: tabular-nums; overflow: hidden; color: var(--icom-dim); }
 .icom .ic705-wf-scale span { position: absolute; top: 0.15em; transform: translateX(-50%); white-space: nowrap; }
-.icom .ic705-wf-canvas { display: block; width: 100%; height: 150px; background: #10110B; border: 1px solid #2E3024; border-top: none; image-rendering: pixelated; }
+.icom .ic705-wf-canvas { display: block; width: 100%; height: 150px; background: #0C0F11; border: 1px solid #232930; border-top: none; image-rendering: pixelated; }
 .icom-screen-msg { margin: 6px 0 0; font-size: 0.8rem; }
-.icom .rig-control-error { color: #D9674D; }
+.icom .rig-control-error { color: #FF5F5F; }
 
 /* --- Tasten --- */
 .icom-keys { display: flex; flex-direction: column; gap: 10px; }
@@ -605,36 +605,36 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom-keygrid-2 { grid-template-columns: repeat(2, 1fr); }
 .icom-keygrid-1 { grid-template-columns: 1fr; }
 .icom-key {
-  position: relative; padding: 9px 4px 7px; border-radius: 2px; cursor: pointer;
-  font: inherit; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.05em; color: #EBE4CA;
-  background: linear-gradient(180deg, #414433 0%, #303226 55%, #282A1F 100%);
-  border: 1px solid #13140E;
-  box-shadow: 0 1px 0 rgba(244, 238, 216,0.18) inset, 0 2px 0 #12130D, 0 3px 6px rgba(11, 12, 8,0.35);
+  position: relative; padding: 9px 4px 7px; border-radius: 3px; cursor: pointer;
+  font: inherit; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.05em; color: #F3F4F2;
+  background: linear-gradient(180deg, #31363C 0%, #252A31 55%, #20252C 100%);
+  border: 1px solid #0D1013;
+  box-shadow: 0 1px 0 rgba(255, 255, 255,0.18) inset, 0 2px 0 #0D1012, 0 3px 6px rgba(11, 13, 15,0.35);
 }
-.icom-key::before { content: ""; position: absolute; left: 30%; right: 30%; top: 3px; height: 2px; border-radius: 2px; background: #1C1D14; }
-.icom-key:hover:not(:disabled) { background: linear-gradient(180deg, #4F533E 0%, #343629 55%, #2C2E22 100%); }
-.icom-key:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 rgba(244, 238, 216,0.1) inset, 0 1px 0 #12130D; }
+.icom-key::before { content: ""; position: absolute; left: 30%; right: 30%; top: 3px; height: 2px; border-radius: 2px; background: #171B20; }
+.icom-key:hover:not(:disabled) { background: linear-gradient(180deg, #39414A 0%, #282C32 55%, #22282F 100%); }
+.icom-key:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 rgba(255, 255, 255,0.1) inset, 0 1px 0 #0D1012; }
 .icom-key:disabled { opacity: 0.45; cursor: default; }
-.icom-key.is-active { color: #F4EED8; }
+.icom-key.is-active { color: #FFFFFF; }
 .icom-key.is-active::before { background: var(--icom-amber); box-shadow: 0 0 6px var(--icom-amber); }
-.icom-key-go { color: #B6CF87; }
+.icom-key-go { color: #97E1A8; }
 .icom-key-go:disabled::before { background: var(--icom-green); box-shadow: 0 0 6px var(--icom-green); }
-.icom-key-stop { color: #DC755D; }
+.icom-key-stop { color: #FF7373; }
 .icom #ic705-wf-toggle.is-on::before { background: var(--icom-cyan); box-shadow: 0 0 6px var(--icom-cyan); }
-.icom-key-amsat { color: #E19D58; }
+.icom-key-amsat { color: #FFA049; }
 
 /* --- Menue-Karten (wie die Menues im IC-705-Display) --- */
-.icom .vfo-seg { display: inline-flex; border: 1px solid #36382A; border-radius: 2px; overflow: hidden; }
-.icom .vfo-seg button { background: #15160F; color: var(--icom-dim); border: 0; border-right: 1px solid #36382A; padding: 5px 8px; min-width: 2.2em; font: inherit; font-size: 0.82rem; cursor: pointer; }
+.icom .vfo-seg { display: inline-flex; border: 1px solid #292E32; border-radius: 3px; overflow: hidden; }
+.icom .vfo-seg button { background: #0E1114; color: var(--icom-dim); border: 0; border-right: 1px solid #292E32; padding: 5px 8px; min-width: 2.2em; font: inherit; font-size: 0.82rem; cursor: pointer; }
 .icom .vfo-seg button:last-child { border-right: 0; }
-.icom .vfo-seg button.is-active { background: #25271C; color: var(--icom-amber); font-weight: 700; }
+.icom .vfo-seg button.is-active { background: #1E232A; color: var(--icom-amber); font-weight: 700; }
 .icom .vfo-offset-wrap { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .icom .vfo-offset { flex: 0 0 4.6em; min-width: 0; width: 4.6em; }
 .icom .vfo-tone { flex: 0 0 auto; min-width: 0; }
 .icom .vfo-relais-info { margin: 0 0 6px; }
 .icom .vfo-scan-band { flex: 1 1 auto; min-width: 7em; }
-.icom .vfo-scan-status { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; margin: 2px 0 8px; padding: 6px 8px; border: 1px solid #404433; border-radius: 2px; background: #171810; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
-.icom .vfo-scan-status.is-paused { border-color: var(--icom-amber); background: rgba(242, 194, 46,0.08); }
+.icom .vfo-scan-status { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; margin: 2px 0 8px; padding: 6px 8px; border: 1px solid #30363B; border-radius: 3px; background: #101417; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.icom .vfo-scan-status.is-paused { border-color: var(--icom-amber); background: rgba(250, 191, 13,0.08); }
 .icom .vfo-scan-status.is-paused .vfo-scan-text b { color: var(--icom-amber); }
 .icom .vfo-scan-actions { display: inline-flex; gap: 6px; }
 .icom .vfo-relais-info b { color: var(--icom-amber); }
@@ -644,16 +644,16 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom-overview { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
 @media (max-width: 1250px) { .icom-overview { grid-template-columns: 1fr 1fr; } }
 .icom-col { display: flex; flex-direction: column; gap: 1.2rem; min-width: 0; }
-.sstv-screen { position: relative; background: #0D0E0A; border: 1px solid #202218; border-radius: 2px; overflow: hidden; aspect-ratio: 320 / 256; box-shadow: 0 0 0 1px #0B0C08 inset, 0 0 18px rgba(177, 212, 125,0.06) inset; }
+.sstv-screen { position: relative; background: #0C0E10; border: 1px solid #1B2027; border-radius: 3px; overflow: hidden; aspect-ratio: 320 / 256; box-shadow: 0 0 0 1px #0B0D0F inset, 0 0 18px rgba(115, 214, 138,0.06) inset; }
 .sstv-screen canvas { display: block; width: 100%; height: 100%; }
-.sstv-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 1.2em; font-size: 0.82rem; color: var(--icom-dim); background: radial-gradient(ellipse at center, rgba(19, 20, 14,0.6), rgba(13, 14, 10,0.92)); }
+.sstv-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 1.2em; font-size: 0.82rem; color: var(--icom-dim); background: radial-gradient(ellipse at center, rgba(14, 16, 19,0.6), rgba(12, 14, 16,0.92)); }
 .sstv-meta { display: flex; gap: 0.8em; align-items: baseline; margin: 8px 0 4px; font-family: var(--icom-mono); font-size: 0.8rem; color: var(--icom-dim); flex-wrap: wrap; }
 .sstv-mode { color: var(--icom-amber); font-weight: 700; font-size: 0.95rem; }
 .sstv-tone { margin-left: auto; color: var(--icom-cyan); }
-.sstv-bar { height: 4px; background: #191A12; border-radius: 2px; overflow: hidden; }
+.sstv-bar { height: 4px; background: #13171B; border-radius: 2px; overflow: hidden; }
 .sstv-bar div { height: 100%; width: 0; background: var(--icom-green); box-shadow: 0 0 6px var(--icom-green); transition: width 0.3s; }
-.sstv-tonebar { position: relative; height: 8px; margin: 7px 0 10px; border-radius: 3px; background: linear-gradient(90deg, #25271C 0%, #25271C 20.8%, #13140E 20.8%, #13140E 33.3%, #0B0C08 33.3%, #F4EED8 100%); opacity: 0.85; }
-.sstv-tonebar i { position: absolute; top: -2px; bottom: -2px; width: 1px; background: #5E614A; }
+.sstv-tonebar { position: relative; height: 8px; margin: 7px 0 10px; border-radius: 3px; background: linear-gradient(90deg, #1E242A 0%, #1E242A 20.8%, #0E1013 20.8%, #0E1013 33.3%, #0B0D0F 33.3%, #FFFFFF 100%); opacity: 0.85; }
+.sstv-tonebar i { position: absolute; top: -2px; bottom: -2px; width: 1px; background: #4A525B; }
 .sstv-tonebar b { position: absolute; top: -3px; width: 3px; height: 14px; margin-left: -1px; background: var(--icom-cyan); box-shadow: 0 0 5px var(--icom-cyan); display: none; }
 .sstv-keys { margin-bottom: 6px; }
 .icom #sstv-toggle.is-on::before { background: var(--icom-green); box-shadow: 0 0 6px var(--icom-green); }
@@ -661,16 +661,16 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .sstv-file { display: inline-block; margin: 2px 0 4px; }
 .sstv-gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0 4px; }
 .sstv-gallery:empty { display: none; }
-.sstv-thumb { position: relative; display: block; border: 1px solid #2F3125; border-radius: 2px; overflow: hidden; background: #0B0C08; cursor: pointer; padding: 0; }
+.sstv-thumb { position: relative; display: block; border: 1px solid #242A30; border-radius: 3px; overflow: hidden; background: #0B0D0F; cursor: pointer; padding: 0; }
 .sstv-thumb img { display: block; width: 100%; aspect-ratio: 320 / 256; object-fit: cover; }
-.sstv-thumb span { position: absolute; left: 0; right: 0; bottom: 0; font-size: 0.6rem; padding: 1px 3px; background: rgba(11, 12, 8,0.65); color: #E9E1C7; font-family: var(--icom-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sstv-thumb span { position: absolute; left: 0; right: 0; bottom: 0; font-size: 0.6rem; padding: 1px 3px; background: rgba(11, 13, 15,0.65); color: #F0F1EE; font-family: var(--icom-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sstv-thumb:hover { border-color: var(--icom-cyan); }
 @media (max-width: 820px) { .icom-overview { grid-template-columns: 1fr; } }
-.icom-menu, .icom-dialog { background: #10110B; border: 1px solid #2F3125; border-radius: 2px; overflow: hidden; color: var(--icom-text); box-shadow: 0 8px 22px rgba(11, 12, 8,0.3); }
+.icom-menu, .icom-dialog { background: #0C0F11; border: 1px solid #242A30; border-radius: 3px; overflow: hidden; color: var(--icom-text); box-shadow: 0 8px 22px rgba(11, 13, 15,0.3); }
 .icom-menu-bar {
   display: flex; justify-content: space-between; align-items: center; gap: 1em;
-  padding: 6px 12px; background: linear-gradient(180deg, #2F3225, #1F2117); border-bottom: 1px solid #35382A;
-  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; color: #E9E1C7;
+  padding: 6px 12px; background: linear-gradient(180deg, #242A30, #1B2026); border-bottom: 1px solid #292D32;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; color: #F0F1EE;
 }
 .icom-menu-bar a { color: var(--icom-cyan); text-decoration: none; letter-spacing: 0.04em; font-weight: 600; }
 .icom-menu-note { font-weight: 500; letter-spacing: 0.02em; color: var(--icom-dim); }
@@ -679,18 +679,18 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom-field { display: flex; align-items: center; gap: 8px; margin: 6px 0; flex-wrap: wrap; }
 .icom-field-label { min-width: 6.6em; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--icom-dim); }
 .icom-field-label-short { min-width: 0; }
-.icom-input { flex: 1; min-width: 8em; padding: 6px 8px; border-radius: 2px; border: 1px solid #36382A; background: #15160F; color: var(--icom-text); font: inherit; font-size: 0.92rem; }
+.icom-input { flex: 1; min-width: 8em; padding: 6px 8px; border-radius: 3px; border: 1px solid #292E32; background: #0E1114; color: var(--icom-text); font: inherit; font-size: 0.92rem; }
 .icom-input:focus { outline: none; border-color: var(--icom-cyan); box-shadow: 0 0 0 1px var(--icom-cyan); }
 .icom-input:disabled { opacity: 0.5; }
 .icom-input-time { flex: 0 0 5.5em; min-width: 0; font-family: var(--icom-mono); }
-select.icom-input option { color: #0B0C08; }
-.icom-btn { padding: 6px 12px; border-radius: 2px; border: 1px solid #464A37; background: linear-gradient(180deg, #323427, #23251A); color: #EBE4CA; font: inherit; font-size: 0.86rem; font-weight: 600; cursor: pointer; }
+select.icom-input option { color: #0B0D0F; }
+.icom-btn { padding: 6px 12px; border-radius: 3px; border: 1px solid #343A41; background: linear-gradient(180deg, #262B31, #1D2228); color: #F3F4F2; font: inherit; font-size: 0.86rem; font-weight: 600; cursor: pointer; }
 .icom-btn:hover:not(:disabled) { border-color: var(--icom-cyan); }
 .icom-btn:disabled { opacity: 0.45; cursor: default; }
 .icom-btn-small { padding: 4px 8px; font-size: 0.78rem; }
 .icom-btn-live { color: var(--icom-cyan); }
-.icom-btn-stop { color: #D9674D; }
-.icom-btn-go { color: #12130D; background: linear-gradient(180deg, #F4CC51, #F2C22E); border-color: #F2C22E; }
+.icom-btn-stop { color: #FF5F5F; }
+.icom-btn-go { color: #0D1012; background: linear-gradient(180deg, #FBC830, #FABF0D); border-color: #FABF0D; }
 .icom-hint { font-size: 0.8rem; color: var(--icom-dim); margin: 8px 0 0; }
 .icom .rig-mode-note { color: var(--icom-amber); }
 .icom .ic705-audio-health.is-ok { color: var(--icom-green); }
@@ -700,37 +700,37 @@ select.icom-input option { color: #0B0C08; }
 /* AMSAT-Schnellwahl im Transponder-Menue */
 .icom .rig-amsat-modes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0 0; }
 .icom .rig-amsat-label { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--icom-dim); min-width: 6.6em; }
-.icom .rig-amsat-btn { padding: 4px 9px; border-radius: 2px; border: 1px solid #404433; background: #171810; color: inherit; font: inherit; font-size: 0.82rem; cursor: pointer; font-variant-numeric: tabular-nums; }
+.icom .rig-amsat-btn { padding: 4px 9px; border-radius: 3px; border: 1px solid #30363B; background: #101417; color: inherit; font: inherit; font-size: 0.82rem; cursor: pointer; font-variant-numeric: tabular-nums; }
 .icom .rig-amsat-btn b { color: var(--icom-cyan); }
-.icom .rig-amsat-btn.is-active { border-color: var(--icom-amber); box-shadow: 0 0 0 1px rgba(242, 194, 46,0.4); }
+.icom .rig-amsat-btn.is-active { border-color: var(--icom-amber); box-shadow: 0 0 0 1px rgba(250, 191, 13,0.4); }
 .icom .rig-amsat-btn.is-active b { color: var(--icom-amber); }
 .icom .rig-amsat-btn.is-silent { opacity: 0.55; }
 
 /* Live-Beobachtung */
-#ic705-live-panel.is-live { border-color: var(--icom-cyan); box-shadow: 0 0 0 1px rgba(177, 212, 125,0.3), 0 0 22px rgba(177, 212, 125,0.12); }
-#ic705-live-panel.is-live .icom-menu-bar { background: linear-gradient(180deg, #313326, #24261B); }
+#ic705-live-panel.is-live { border-color: var(--icom-cyan); box-shadow: 0 0 0 1px rgba(115, 214, 138,0.3), 0 0 22px rgba(115, 214, 138,0.12); }
+#ic705-live-panel.is-live .icom-menu-bar { background: linear-gradient(180deg, #252B31, #1E2329); }
 .ic705-live-head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
 .ic705-live-head h3 { margin: 0; }
 .ic705-live-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .ic705-live-actions .icom-input { flex: 0 0 auto; min-width: 0; }
 .ic705-bell-toggle { display: flex; gap: 0.3em; align-items: center; cursor: pointer; }
-.ic705-live-now { display: flex; flex-wrap: wrap; gap: 0.4em 1.2em; align-items: baseline; padding: 0.7em 0.9em; border-radius: 2px; background: rgba(177, 212, 125,0.07); border: 1px solid rgba(177, 212, 125,0.35); margin: 0.6em 0; }
-.ic705-live-now.is-idle { background: rgba(244, 238, 216,0.03); border-color: #2F3125; }
+.ic705-live-now { display: flex; flex-wrap: wrap; gap: 0.4em 1.2em; align-items: baseline; padding: 0.7em 0.9em; border-radius: 3px; background: rgba(115, 214, 138,0.07); border: 1px solid rgba(115, 214, 138,0.35); margin: 0.6em 0; }
+.ic705-live-now.is-idle { background: rgba(255, 255, 255,0.03); border-color: #242A30; }
 .ic705-live-sat { font-size: 1.25em; font-weight: 800; }
 .ic705-live-dot { display: inline-block; width: 0.6em; height: 0.6em; border-radius: 50%; background: var(--icom-cyan); margin-right: 0.4em; animation: icom-blink 1.4s infinite; }
-.ic705-live-mode { font-family: var(--icom-mono); font-size: 0.85em; padding: 0 0.45em; border-radius: 3px; background: #EBE4CB; color: #0F100B; }
+.ic705-live-mode { font-family: var(--icom-mono); font-size: 0.85em; padding: 0 0.45em; border-radius: 3px; background: #F3F4F2; color: #0C0E11; }
 .ic705-live-figs { font-variant-numeric: tabular-nums; }
 .ic705-tick { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ic705-variants { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 0.4em; }
 .ic705-variants-label { font-size: 0.8em; color: var(--icom-dim); }
-.ic705-variant-btn { padding: 4px 9px; border-radius: 2px; border: 1px solid #404433; background: #171810; color: inherit; font: inherit; font-size: 0.85em; cursor: pointer; font-variant-numeric: tabular-nums; }
+.ic705-variant-btn { padding: 4px 9px; border-radius: 3px; border: 1px solid #30363B; background: #101417; color: inherit; font: inherit; font-size: 0.85em; cursor: pointer; font-variant-numeric: tabular-nums; }
 .ic705-variant-btn b { color: var(--icom-cyan); }
 .ic705-variant-btn.is-active { border-color: var(--icom-amber); }
 .ic705-variant-btn.is-active b { color: var(--icom-amber); }
 .ic705-live-list { display: flex; flex-wrap: wrap; gap: 0.4em; margin: 0.3em 0 0.4em; }
-.ic705-live-chip { padding: 0.15em 0.6em; border-radius: 3px; border: 1px solid #36382A; font-size: 0.82em; font-variant-numeric: tabular-nums; }
+.ic705-live-chip { padding: 0.15em 0.6em; border-radius: 3px; border: 1px solid #292E32; font-size: 0.82em; font-variant-numeric: tabular-nums; }
 .ic705-live-chip.is-current { border-color: var(--icom-cyan); color: var(--icom-cyan); }
-.icom .ic705-live-chip { background: #171810; color: inherit; font-family: inherit; cursor: pointer; }
+.icom .ic705-live-chip { background: #101417; color: inherit; font-family: inherit; cursor: pointer; }
 .icom .ic705-live-chip:hover:not(:disabled) { border-color: var(--icom-amber); }
 .icom .ic705-live-chip.is-pinned { border-color: var(--icom-amber); color: var(--icom-amber); }
 .icom .ic705-live-chip.is-auto { border-style: dashed; }
@@ -741,9 +741,9 @@ select.icom-input option { color: #0B0C08; }
 .icom-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .icom-legend-note { margin-left: auto; }
 .icom-list { display: flex; flex-direction: column; max-height: 420px; overflow-y: auto; }
-.icom-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 4px; border-bottom: 1px solid #1D1F16; }
+.icom-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 4px; border-bottom: 1px solid #191D23; }
 .icom-row:last-child { border-bottom: none; }
-.icom-row.is-now { background: rgba(242, 194, 46,0.07); box-shadow: inset 3px 0 0 var(--icom-amber); }
+.icom-row.is-now { background: rgba(250, 191, 13,0.07); box-shadow: inset 3px 0 0 var(--icom-amber); }
 .icom-row.is-dim { opacity: 0.55; }
 .icom-row-main { min-width: 0; }
 .icom-row-main small { display: block; color: var(--icom-dim); font-size: 0.76rem; margin-top: 1px; }
@@ -751,45 +751,45 @@ select.icom-input option { color: #0B0C08; }
 .icom-row-time small { font-size: 0.72rem; color: var(--icom-dim); }
 .icom-now { color: var(--icom-amber); font-family: inherit; }
 .icom-row-freq { font-family: var(--icom-mono); font-size: 0.8rem; color: var(--icom-dim); }
-.icom-tagmode { display: inline-block; font-family: var(--icom-mono); font-size: 0.72rem; padding: 0 5px; border-radius: 3px; border: 1px solid #434634; color: #E6DFC3; margin: 1px 0; }
+.icom-tagmode { display: inline-block; font-family: var(--icom-mono); font-size: 0.72rem; padding: 0 5px; border-radius: 3px; border: 1px solid #32373E; color: #EDEEEB; margin: 1px 0; }
 .icom-tagmode.is-silent { border-style: dashed; opacity: 0.6; }
 .icom-tagmode.is-nofreq { opacity: 0.6; }
 .icom-modes { display: block; margin-top: 2px; }
 .icom-el { font-size: 0.76rem; margin-left: 4px; }
-.icom-el.q-weak { color: #F2C12D; } .icom-el.q-ok { color: #A3C367; } .icom-el.q-good { color: var(--icom-green); }
+.icom-el.q-weak { color: #FABE0B; } .icom-el.q-ok { color: #75D78C; } .icom-el.q-good { color: var(--icom-green); }
 .icom-row-actions { display: flex; gap: 4px; }
-.icom-mini { width: 2.1em; height: 2.1em; border-radius: 2px; border: 1px solid #36382A; background: linear-gradient(180deg, #2C2E22, #1D1F15); color: inherit; cursor: pointer; font-size: 0.9rem; }
+.icom-mini { width: 2.1em; height: 2.1em; border-radius: 3px; border: 1px solid #292E32; background: linear-gradient(180deg, #22282F, #181D22); color: inherit; cursor: pointer; font-size: 0.9rem; }
 .icom-mini:hover { border-color: var(--icom-cyan); }
-.icom-mini-report { color: #E19D58; }
+.icom-mini-report { color: #FFA049; }
 .icom-slots { display: flex; gap: 2px; }
-.icom-slot { display: inline-block; width: 12px; height: 16px; border-radius: 2px; background: #1A1B13; border: 1px solid #282A1E; }
+.icom-slot { display: inline-block; width: 12px; height: 16px; border-radius: 2px; background: #14181C; border: 1px solid #20252C; }
 .icom-legend .icom-slot { width: 10px; height: 10px; }
-.icom-slot.s-heard { background: #F4C948; border-color: #F4C948; }
-.icom-slot.s-tlm { background: #F1BE23; border-color: #F1BE23; }
-.icom-slot.s-not_heard { background: #CB492B; border-color: #CB492B; }
-.icom-slot.s-conflict { background: #D98129; border-color: #D98129; }
+.icom-slot.s-heard { background: #61B1FF; border-color: #61B1FF; }
+.icom-slot.s-tlm { background: #F5B905; border-color: #F5B905; }
+.icom-slot.s-not_heard { background: #FF2F2F; border-color: #FF2F2F; }
+.icom-slot.s-conflict { background: #FF8412; border-color: #FF8412; }
 .icom-empty { color: var(--icom-dim); font-size: 0.86rem; margin: 6px 0; }
 
 /* Polarplot */
 .icom .ic705-polar-card { padding: 4px; }
 .icom .ic705-polar-card svg { width: 100%; max-width: 330px; display: block; margin: 0 auto; }
-.icom .ic705-max-dot { fill: #F3C53B; }
-.icom .ic705-now-dot { fill: var(--icom-amber); stroke: #F4EED8; stroke-width: 1.2; filter: drop-shadow(0 0 4px var(--icom-amber)); }
-.icom .ic705-now-label { fill: var(--icom-amber); font-size: 8px; font-weight: 700; text-anchor: middle; paint-order: stroke; stroke: #10110B; stroke-width: 2px; }
-.icom .ic705-live-sky { margin: 0 0 8px; padding: 6px 9px; border-radius: 2px; border: 1px solid rgba(242, 194, 46,0.45); background: rgba(242, 194, 46,0.07); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.icom .ic705-max-dot { fill: #FAC21A; }
+.icom .ic705-now-dot { fill: var(--icom-amber); stroke: #FFFFFF; stroke-width: 1.2; filter: drop-shadow(0 0 4px var(--icom-amber)); }
+.icom .ic705-now-label { fill: var(--icom-amber); font-size: 8px; font-weight: 700; text-anchor: middle; paint-order: stroke; stroke: #0C0F11; stroke-width: 2px; }
+.icom .ic705-live-sky { margin: 0 0 8px; padding: 6px 9px; border-radius: 3px; border: 1px solid rgba(250, 191, 13,0.45); background: rgba(250, 191, 13,0.07); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 .icom .ic705-live-sky b { color: var(--icom-amber); }
-.icom .ic705-audibility { margin: 0 0 8px; padding: 6px 9px; border-radius: 2px; font-weight: 600; border: 1px solid; font-size: 0.9rem; }
-.icom .ic705-audibility.q-weak { color: #F2C12D; border-color: rgba(242, 193, 45,0.5); background: rgba(242, 193, 45,0.08); }
-.icom .ic705-audibility.q-ok { color: #A3C367; border-color: rgba(163, 195, 103,0.5); background: rgba(163, 195, 103,0.08); }
-.icom .ic705-audibility.q-good { color: var(--icom-green); border-color: rgba(157, 191, 94,0.55); background: rgba(157, 191, 94,0.08); }
+.icom .ic705-audibility { margin: 0 0 8px; padding: 6px 9px; border-radius: 3px; font-weight: 600; border: 1px solid; font-size: 0.9rem; }
+.icom .ic705-audibility.q-weak { color: #FABE0B; border-color: rgba(250, 190, 11,0.5); background: rgba(250, 190, 11,0.08); }
+.icom .ic705-audibility.q-ok { color: #75D78C; border-color: rgba(117, 215, 140,0.5); background: rgba(117, 215, 140,0.08); }
+.icom .ic705-audibility.q-good { color: var(--icom-green); border-color: rgba(106, 212, 131,0.55); background: rgba(106, 212, 131,0.08); }
 .icom .ic705-audibility small { display: block; font-weight: 400; opacity: 0.85; margin-top: 2px; }
 .icom .ic705-pass-facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 8px 0 0; font-size: 0.84rem; }
 .icom .ic705-pass-facts dt { color: var(--icom-dim); }
 .icom .ic705-pass-facts dd { margin: 0; font-variant-numeric: tabular-nums; }
 
 /* Melde-Dialog */
-.icom-dialog { --icom-text: #EEE7CF; --icom-dim: #999478; --icom-cyan: #B1D47D; --icom-amber: #F2C22E; --icom-mono: "SF Mono", Menlo, Consolas, monospace; padding: 0; width: min(560px, 94vw); }
-.icom-dialog::backdrop { background: rgba(11, 12, 8,0.6); }
+.icom-dialog { --icom-text: #F7F7F6; --icom-dim: #8E969D; --icom-cyan: #73D68A; --icom-amber: #FABF0D; --icom-mono: "SF Mono", Menlo, Consolas, monospace; padding: 0; width: min(560px, 94vw); }
+.icom-dialog::backdrop { background: rgba(11, 13, 15,0.6); }
 .icom-dialog .icom-field-label { color: var(--icom-dim); }
 .icom-dialog-sat { margin: 0 0 6px; font-weight: 700; color: var(--icom-amber); }
 .icom-field-radios label { display: inline-flex; gap: 4px; align-items: center; margin-right: 10px; font-size: 0.9rem; }
@@ -1622,7 +1622,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
     var w = Math.max(200, Math.round(canvas.clientWidth));
     if (canvas.width !== w) {
       canvas.width = w;
-      ctx2d.fillStyle = "#10110B";
+      ctx2d.fillStyle = "#0C0F11";
       ctx2d.fillRect(0, 0, canvas.width, canvas.height);
       rowImg = ctx2d.createImageData(w, 1);
     }
@@ -2478,7 +2478,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
   function setupCanvas(mode) {
     canvas.width = mode.w; canvas.height = mode.h;
     screen.style.aspectRatio = mode.w + " / " + mode.h;
-    c2d.fillStyle = "#0B0C08"; c2d.fillRect(0, 0, mode.w, mode.h);
+    c2d.fillStyle = "#0B0D0F"; c2d.fillRect(0, 0, mode.w, mode.h);
     imgData = c2d.createImageData(mode.w, mode.h);
   }
   function draw(rgba) {
@@ -2530,13 +2530,13 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
       modeEl.textContent = e.mode.name + (e.fromVis ? "" : " (ohne VIS)");
       linesEl.textContent = "0/" + e.mode.h;
       barEl.style.width = "0";
-      setState("● EMPFANG", "#9DBF5E");
+      setState("● EMPFANG", "#6AD483");
       finishBtn.disabled = false; saveBtn.disabled = false;
     } else if (e.type === "progress") {
       linesEl.textContent = e.lines + "/" + e.total;
       barEl.style.width = (e.lines / e.total * 100).toFixed(1) + "%";
     } else if (e.type === "vis-unknown") {
-      setState("VIS " + e.code + " unbekannt", "#F2C22E");
+      setState("VIS " + e.code + " unbekannt", "#FABF0D");
     } else if (e.type === "done") {
       var r = e.result;
       draw(r.rgba);
@@ -2584,7 +2584,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
         if (dec && dec.state === "hunt") { msg(lastImage ? "" : "Lausche … warte auf den VIS-Code eines SSTV-Bildes."); }
       });
       audio.addEventListener("error", function () {
-        if (audio) { stop(); msg("Audio-Stream (Port 8766) nicht erreichbar – läuft audio-stream.service?"); setState("Fehler", "#D55639"); }
+        if (audio) { stop(); msg("Audio-Stream (Port 8766) nicht erreichbar – läuft audio-stream.service?"); setState("Fehler", "#FF4747"); }
       });
       audio.play().catch(function (err) { stop(); msg("Stream konnte nicht gestartet werden: " + err.message); });
     } catch (err) {
@@ -2633,7 +2633,7 @@ var audioStreamUrl = "http://" + window.location.hostname + ":8766/stream.mp3";
   function decodeSamples(x, rate) {
     if (audio) { stop(); }
     var fd = new OrbitSSTV.Decoder(rate, { onEvent: onEvent }), i = 0, chunk = Math.round(rate * 2);
-    setState("Datei …", "#B1D47D"); msg("Suche VIS-Code in der Aufnahme …");
+    setState("Datei …", "#73D68A"); msg("Suche VIS-Code in der Aufnahme …");
     (function step() {
       var end = Math.min(x.length, i + chunk);
       fd.process(x.subarray(i, end)); i = end;

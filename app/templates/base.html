@@ -4,12 +4,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#15160F">
+<meta name="theme-color" content="#DDDFDA">
 <meta name="description" content="Satellite Orbit Data for Amateur Radio">
 <title>{% block title %}OrbitHub{% endblock %}</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', path='img/orbithub-mission-logo.png') }}">
 <link rel="manifest" href="{{ url_for('static', path='favicon/site.webmanifest') }}">
-<link rel="stylesheet" href="{{ url_for('static', path='css/polaris.css') }}?v={{ version }}-fg1">
+<link rel="stylesheet" href="{{ url_for('static', path='css/polaris.css') }}?v={{ version }}-iss1">
 {% block head %}{% endblock %}
 <style>
 #page-loading-overlay {
@@ -21,7 +21,7 @@
   justify-content: center;
   flex-direction: column;
   gap: 16px;
-  background: rgba(21, 22, 15, 0.92);
+  background: rgba(221, 223, 218, 0.92);
   backdrop-filter: blur(2px);
 }
 #page-loading-overlay.is-active {
@@ -31,12 +31,12 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: 4px solid rgba(244, 238, 216, 0.2);
-  border-top-color: #B0D37B;
+  border: 4px solid rgba(15, 18, 21, 0.2);
+  border-top-color: #0A7C8C;
   animation: page-loading-spin 0.8s linear infinite;
 }
 #page-loading-overlay .page-loading-text {
-  color: #EAE2C8;
+  color: #191D21;
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: 0.02em;

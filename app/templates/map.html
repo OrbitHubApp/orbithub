@@ -274,8 +274,8 @@ window.setTimeout(markMapLoaded, 6000);
 
 L.circleMarker([obsLat, obsLon], {
 radius: 7,
-color: "#F3C53B",
-fillColor: "#F3C53B",
+color: "#B88A00",
+fillColor: "#B88A00",
 fillOpacity: 0.9,
 weight: 2,
 })
@@ -308,14 +308,14 @@ const satelliteDivIcon = L.divIcon({
 className: "satellite-icon-marker",
 html:
 '<svg viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg">' +
-'<g stroke="#F4EED8" stroke-width="1" stroke-linejoin="round" stroke-linecap="round">' +
+'<g stroke="#0F1215" stroke-width="1" stroke-linejoin="round" stroke-linecap="round">' +
 '<line x1="12" y1="9.3" x2="12" y2="5.4"></line>' +
-'<circle cx="12" cy="4.6" r="1" fill="#F4C949"></circle>' +
+'<circle cx="12" cy="4.6" r="1" fill="#B88A00"></circle>' +
 '<line x1="7.6" y1="12" x2="9.3" y2="12"></line>' +
 '<line x1="14.7" y1="12" x2="16.4" y2="12"></line>' +
-'<rect x="2.4" y="9" width="5.2" height="6" rx="0.6" fill="#9FCA5F"></rect>' +
-'<rect x="16.4" y="9" width="5.2" height="6" rx="0.6" fill="#9FCA5F"></rect>' +
-'<rect x="9.3" y="9.3" width="5.4" height="5.4" rx="1" fill="#2E3024"></rect>' +
+'<rect x="2.4" y="9" width="5.2" height="6" rx="0.6" fill="#0A7C8C"></rect>' +
+'<rect x="16.4" y="9" width="5.2" height="6" rx="0.6" fill="#0A7C8C"></rect>' +
+'<rect x="9.3" y="9.3" width="5.4" height="5.4" rx="1" fill="#F4F4F0"></rect>' +
 "</g>" +
 "</svg>",
 iconSize: [22, 22],
@@ -325,7 +325,7 @@ iconAnchor: [11, 11],
 const trackLayerGroup = L.layerGroup().addTo(worldMap);
 const trackToggle = document.getElementById("map-track-toggle");
 const trackLegend = document.getElementById("map-track-legend");
-const TRACK_COLORS = ["#B3D47F", "#F4C949", "#D3A160", "#AAC773", "#DA6D54", "#F3C53B", "#C0DC95", "#D86348"];
+const TRACK_COLORS = ["#0A7C8C", "#B88A00", "#5B3FA0", "#1E8A3C", "#C8102E", "#B88A00", "#0A7C8C", "#C8102E"];
 let currentTrackData = new Map();
 let trackRefreshTimer = null;
 
@@ -536,9 +536,9 @@ className: "satellite-label",
 
 const circle = L.circle(latLng, {
 radius: radius,
-color: "#B3D47F",
+color: "#0A7C8C",
 weight: 1,
-fillColor: "#B3D47F",
+fillColor: "#0A7C8C",
 fillOpacity: 0.08,
 className: "satellite-footprint",
 }).addTo(worldMap);
@@ -853,7 +853,7 @@ return;
 
 win.document.title = "OrbitHub – {{ t('nav.map') }}";
 win.document.body.style.margin = "0";
-win.document.body.style.background = "#161710";
+win.document.body.style.background = "#DFE1DC";
 copyStylesInto(win.document);
 win.document.body.appendChild(mapCard);
 popoutWindow = win;
