@@ -119,12 +119,12 @@
 <script>
   (() => {
     const chartColors = {
-      cpu: "#7ad0ff",
-      ram: "#ffc879",
-      temp: "#ff8fa3",
-      duration: "#7ad0ff",
-      grid: "rgba(143, 169, 192, 0.16)",
-      text: "#8fa9c0",
+      cpu: "#F4CC51",
+      ram: "#E09952",
+      temp: "#DA6D54",
+      duration: "#F4CC51",
+      grid: "rgba(175, 168, 137, 0.16)",
+      text: "#AFA889",
     };
 
     Chart.defaults.color = chartColors.text;
@@ -320,11 +320,11 @@ const jsLocale = "{{ lang() }}" === "de" ? "de-DE" : "en-US";
           new Set(events.map((event) => event.source || "{{ t('statistics.unknown_source') }}"))
         );
         const palette = [
-          "#7ad0ff",
-          "#ffc879",
-          "#ff8fa3",
-          "#9ad38c",
-          "#c39bd3",
+          "#F4CC51",
+          "#E09952",
+          "#DA6D54",
+          "#A8C771",
+          "#D29E5C",
         ];
 
         const datasets = sourceNames.map((sourceName, index) => {

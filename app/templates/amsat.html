@@ -73,35 +73,35 @@ Daten: <a href="https://status.amsat.org/" target="_blank" rel="noopener">status
 <style>
 .amsat-toolbar { display: flex; flex-wrap: wrap; gap: 0.8em 1.6em; align-items: center; justify-content: space-between; margin-bottom: 0.4em; }
 .amsat-hours { display: flex; gap: 0.4em; align-items: center; flex-wrap: wrap; }
-.amsat-chip { padding: 0.3em 0.8em; border-radius: 999px; border: 1px solid rgba(255,255,255,0.3); color: inherit; text-decoration: none; font-size: 0.9em; }
-.amsat-chip.is-active { border-color: #3fae54; color: #3fae54; background: rgba(63,255,130,0.12); font-weight: 600; }
+.amsat-chip { padding: 0.3em 0.8em; border-radius: 999px; border: 1px solid rgba(244, 238, 216,0.3); color: inherit; text-decoration: none; font-size: 0.9em; }
+.amsat-chip.is-active { border-color: #95BA50; color: #95BA50; background: rgba(163, 195, 103,0.12); font-weight: 600; }
 .amsat-toolbar-right { display: flex; flex-wrap: wrap; gap: 0.8em 1.2em; align-items: center; }
-.amsat-live-btn { display: inline-block; padding: 0.45em 1em; border-radius: 6px; border: 1px solid #ff4fd8; color: #ff4fd8; text-decoration: none; font-weight: 700; white-space: nowrap; }
-.amsat-live-btn:hover { background: rgba(255,79,216,0.12); }
+.amsat-live-btn { display: inline-block; padding: 0.45em 1em; border-radius: 2px; border: 1px solid #CF9852; color: #CF9852; text-decoration: none; font-weight: 700; white-space: nowrap; }
+.amsat-live-btn:hover { background: rgba(207, 152, 82,0.12); }
 .amsat-toggle { font-size: 0.9em; display: flex; gap: 0.4em; align-items: center; cursor: pointer; }
 .amsat-table { min-width: 0; }
 .amsat-table td { vertical-align: middle; }
 .amsat-sat { font-weight: 700; }
 .amsat-sub { display: block; font-size: 0.78em; opacity: 0.65; }
-.amsat-mode { font-family: monospace; padding: 0.1em 0.5em; border-radius: 4px; border: 1px solid rgba(86,221,255,0.4); color: #56ddff; white-space: nowrap; }
+.amsat-mode { font-family: monospace; padding: 0.1em 0.5em; border-radius: 2px; border: 1px solid rgba(183, 215, 134,0.4); color: #B7D786; white-space: nowrap; }
 .amsat-badge { display: inline-block; padding: 0.15em 0.6em; border-radius: 999px; font-size: 0.82em; font-weight: 700; white-space: nowrap; }
-.amsat-badge.s-heard { background: rgba(63,224,138,0.15); color: #3fe08a; border: 1px solid rgba(63,224,138,0.5); }
-.amsat-badge.s-tlm { background: rgba(86,170,255,0.15); color: #7cbcff; border: 1px solid rgba(86,170,255,0.5); }
-.amsat-badge.s-silent { background: rgba(255,90,90,0.12); color: #ff8a8a; border: 1px solid rgba(255,90,90,0.45); }
+.amsat-badge.s-heard { background: rgba(157, 191, 95,0.15); color: #9DBF5F; border: 1px solid rgba(157, 191, 95,0.5); }
+.amsat-badge.s-tlm { background: rgba(243, 200, 67,0.15); color: #F4CC51; border: 1px solid rgba(243, 200, 67,0.5); }
+.amsat-badge.s-silent { background: rgba(215, 94, 66,0.12); color: #DA6C52; border: 1px solid rgba(215, 94, 66,0.45); }
 .amsat-counts { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.amsat-counts .c-h { color: #3fe08a; } .amsat-counts .c-t { color: #7cbcff; } .amsat-counts .c-n { color: #ff8a8a; }
+.amsat-counts .c-h { color: #9DBF5F; } .amsat-counts .c-t { color: #F4CC51; } .amsat-counts .c-n { color: #DA6C52; }
 .amsat-pass { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .amsat-tick { font-variant-numeric: tabular-nums; white-space: nowrap; }
-.amsat-pass.is-live { color: #ff4fd8; font-weight: 700; }
+.amsat-pass.is-live { color: #CF9852; font-weight: 700; }
 .amsat-el { font-weight: 700; }
-.amsat-el.q-weak { color: #e0a63a; } .amsat-el.q-ok { color: #8fd36b; } .amsat-el.q-good { color: #3fe08a; }
+.amsat-el.q-weak { color: #F2C12D; } .amsat-el.q-ok { color: #A3C367; } .amsat-el.q-good { color: #9DBF5F; }
 .amsat-rig { white-space: nowrap; }
 .amsat-freq { font-family: monospace; font-size: 0.9em; display: block; opacity: 0.85; }
-.amsat-rig-btn { display: inline-block; margin-top: 0.25em; padding: 0.3em 0.8em; border-radius: 6px; border: 1px solid #3fae54; color: #3fae54; text-decoration: none; font-size: 0.85em; font-weight: 600; }
-.amsat-rig-btn:hover { background: rgba(63,255,130,0.12); }
-.amsat-rig-btn.is-manual { border-color: rgba(255,255,255,0.35); color: inherit; font-weight: 400; }
+.amsat-rig-btn { display: inline-block; margin-top: 0.25em; padding: 0.3em 0.8em; border-radius: 2px; border: 1px solid #95BA50; color: #95BA50; text-decoration: none; font-size: 0.85em; font-weight: 600; }
+.amsat-rig-btn:hover { background: rgba(163, 195, 103,0.12); }
+.amsat-rig-btn.is-manual { border-color: rgba(244, 238, 216,0.35); color: inherit; font-weight: 400; }
 .amsat-row-silent { opacity: 0.55; }
-.amsat-src { color: #e0a63a; }
+.amsat-src { color: #F2C12D; }
 .amsat-legend { margin-top: 0.8em; line-height: 1.6; }
 </style>
 

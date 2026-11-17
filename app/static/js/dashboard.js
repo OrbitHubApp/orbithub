@@ -722,8 +722,8 @@ window.OrbitFavorites = {
 
     L.circleMarker([obsLat, obsLon], {
       radius: 6,
-      color: "#f2c14e",
-      fillColor: "#f2c14e",
+      color: "#F3C53B",
+      fillColor: "#F3C53B",
       fillOpacity: 0.9,
       weight: 2,
     })
@@ -847,7 +847,7 @@ window.OrbitFavorites = {
 
     if (trackLine) groundMap.removeLayer(trackLine);
     trackLine = L.polyline(latLngs, {
-      color: "#4ec9f0",
+      color: "#B3D47F",
       weight: 3,
       opacity: 0.85,
     }).addTo(groundMap);
@@ -860,9 +860,9 @@ window.OrbitFavorites = {
     if (footprintCircle) groundMap.removeLayer(footprintCircle);
     footprintCircle = L.circle([peak.lat, peak.lon], {
       radius: footprintRadiusMeters(peak.alt_km),
-      color: "#4ec9f0",
+      color: "#B3D47F",
       weight: 1,
-      fillColor: "#4ec9f0",
+      fillColor: "#B3D47F",
       fillOpacity: 0.08,
       dashArray: "4 6",
     }).addTo(groundMap);
@@ -873,8 +873,8 @@ window.OrbitFavorites = {
     if (riseMarker) groundMap.removeLayer(riseMarker);
     riseMarker = L.circleMarker([first.lat, first.lon], {
       radius: 5,
-      color: "#5fd97a",
-      fillColor: "#5fd97a",
+      color: "#A2C266",
+      fillColor: "#A2C266",
       fillOpacity: 1,
     })
       .addTo(groundMap)
@@ -883,8 +883,8 @@ window.OrbitFavorites = {
     if (setMarker) groundMap.removeLayer(setMarker);
     setMarker = L.circleMarker([last.lat, last.lon], {
       radius: 5,
-      color: "#e0575b",
-      fillColor: "#e0575b",
+      color: "#D45537",
+      fillColor: "#D45537",
       fillOpacity: 1,
     })
       .addTo(groundMap)
@@ -893,8 +893,8 @@ window.OrbitFavorites = {
     if (satMarker) groundMap.removeLayer(satMarker);
     satMarker = L.circleMarker([peak.lat, peak.lon], {
       radius: 4,
-      color: "#ffffff",
-      fillColor: "#0b1b2b",
+      color: "#F4EED8",
+      fillColor: "#191B12",
       fillOpacity: 1,
       weight: 2,
     }).addTo(groundMap);
