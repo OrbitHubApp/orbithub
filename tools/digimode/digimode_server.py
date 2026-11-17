@@ -615,6 +615,27 @@ class Engine:
         self.rig.poll()  # gleich frisch, damit die Anzeige nicht kurz „falsche QRG“ meldet
         self._begin()
 
+    def reconnect_rig(self) -> dict:
+        """kappanhang neu starten (WLAN-Verbindung zum IC-705) und warten, bis rigctld antwortet."""
+        self.tx.halt("Neu verbinden")
+        try:
+            r = subprocess.run(["systemctl", "--user", "restart", "kappanhang"],
+                               capture_output=True, text=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise ValueError(f"kappanhang-Neustart fehlgeschlagen: {exc}") from exc
+        if r.returncode != 0:
+            raise ValueError("kappanhang-Neustart fehlgeschlagen: " + (r.stderr.strip()[:200] or f"Code {r.returncode}"))
+        log.info("kappanhang neu gestartet")
+        t0 = time.time()
+        while time.time() - t0 < 30:
+            time.sleep(1.0)
+            self.rig.poll()
+            if self.rig.reachable:
+                return {"reachable": True, "seconds": round(time.time() - t0, 1),
+                        "freq_hz": self.rig.freq_hz, "mode": self.rig.mode, "running": bool(self.cfg.get("running")),
+                        "dial_hz": self.cfg.get("dial_hz"), "band": self.cfg.get("band")}
+        raise ValueError("IC-705 antwortet nach dem Neustart noch nicht – WLAN am Gerät und Netz prüfen.")
+
     def stop(self) -> None:
         self.tx.halt("Empfang gestoppt")
         self.tx.clear_qso()
@@ -907,6 +928,9 @@ class Handler(BaseHTTPRequestHandler):
                 engine.tx.start_test(float(data.get("seconds") or 5))
             elif path == "/tx/clear":
                 engine.tx.clear_qso()
+            elif path == "/rig/reconnect":
+                self._json(200, {"ok": True, "rig": engine.reconnect_rig(), "status": engine.status()})
+                return
             elif path == "/flush":
                 if engine.psk and engine.cfg.get("call") and engine.cfg.get("grid"):
                     engine.psk.flush(engine.cfg["call"], engine.cfg["grid"])

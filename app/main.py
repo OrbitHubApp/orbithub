@@ -3439,6 +3439,34 @@ async def digital_decodes(since: int = 0) -> dict:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
+@app.post("/api/rig/reconnect")
+async def rig_reconnect() -> dict:
+    """Verbindung zum IC-705 neu aufbauen (kappanhang-Neustart). Lief der Digimode-Empfang,
+    wird der IC-705 danach wieder auf dessen Frequenz in USB-D gestellt."""
+    live_observer.stop(stop_tracking=False)
+    tracking_session.stop()
+    relais_scanner.stop("Neu verbinden")
+    try:
+        result = await digimode.reconnect()
+    except digimode.DigimodeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    rig = result.get("rig") or {}
+    note = f"IC-705 wieder verbunden ({rig.get('seconds', '?')} s)."
+    dial = int(rig.get("dial_hz") or 0)
+    if rig.get("running") and dial:
+        def _retune() -> int:
+            rig_control.set_mode("PKTUSB", 3000)
+            rig_control.set_frequency(dial)
+            time.sleep(0.4)
+            return rig_control.get_frequency()
+        try:
+            actual = await asyncio.to_thread(_retune)
+            note += f" Digimode wieder auf {dial / 1e6:.3f} MHz USB-D" + ("." if abs(actual - dial) < 10 else f" – Gerät meldet {actual / 1e6:.6f} MHz.")
+        except RigControlError as exc:
+            note += f" Frequenz konnte nicht gesetzt werden: {exc}"
+    return {"ok": True, "message": note, "rig": rig}
+
+
 @app.post("/api/digital/start")
 async def digital_start(request: Request) -> dict:
     """Stellt den IC-705 auf die Standardfrequenz (USB-D) und startet den Empfang.

@@ -104,6 +104,11 @@ async def adif() -> str:
     return resp.text
 
 
+async def reconnect() -> dict:
+    """kappanhang auf dem Host neu starten; wartet bis zu 30 s auf den IC-705."""
+    return await _request("POST", "/rig/reconnect", {}, timeout=40.0)
+
+
 async def stop_quietly() -> bool:
     """Beendet den Digimode-Empfang, falls er laeuft (z. B. bei Doppler-Start).
     Fehler werden ignoriert. Gibt True zurueck, wenn er lief."""

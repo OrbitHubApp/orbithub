@@ -22,6 +22,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
     <span class="dg-sub">FT8 · FT4 · WSPR · IC-705 · WSJT-X-Decoder</span>
     <span class="dg-top-spacer"></span>
     <span class="dg-led" id="dg-led" title="Digimode-Dienst"></span>
+    <span class="rig-reconnect-msg" id="rig-reconnect-msg"></span><button type="button" class="rig-reconnect" id="rig-reconnect" title="WLAN-Verbindung zum IC-705 neu aufbauen (kappanhang neu starten)">⟳ Neu verbinden</button>
     <span class="dg-top-label" id="dg-service">Dienst …</span>
   </div>
 
@@ -383,6 +384,13 @@ OrbitHub &middot; {{ t('nav.digital') }}
 .dg-table tbody tr[data-seq] { cursor: pointer; }
 .dg-table tbody tr[data-seq]:hover td { background: rgba(115, 214, 138,0.07); }
 .dg-empty { padding: 18px; text-align: center; color: var(--dg-dim); font-size: 0.86rem; }
+
+.rig-reconnect { font: inherit; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; padding: 3px 10px; border-radius: 3px; border: 1px solid #3A424B; background: #232930; color: #E8EAE6; cursor: pointer; margin-left: 10px; }
+.rig-reconnect:hover { border-color: #5FB0FF; color: #fff; }
+.rig-reconnect:disabled { opacity: 0.6; cursor: wait; }
+.rig-reconnect-msg { font-size: 0.74rem; color: #9AA1A8; margin-left: 10px; }
+.rig-reconnect-msg.is-ok { color: #7CD992; }
+.rig-reconnect-msg.is-err { color: #FF4D4D; }
 </style>
 
 <script>
@@ -982,6 +990,23 @@ OrbitHub &middot; {{ t('nav.digital') }}
   setInterval(function () { if (st && st.tx && (st.tx.transmitting || st.tx.next)) { poll(); } }, 500);
   loadLog();
   setInterval(loadLog, 30000);
+})();
+</script>
+
+<script>
+(function () {
+  var b = document.getElementById("rig-reconnect");
+  if (!b) { return; }
+  b.addEventListener("click", function () {
+    var label = b.textContent, out = document.getElementById("rig-reconnect-msg");
+    b.disabled = true; b.textContent = "⟳ verbinde …";
+    if (out) { out.textContent = "kappanhang wird neu gestartet – bis zu 30 s …"; out.className = "rig-reconnect-msg"; }
+    fetch("/api/rig/reconnect", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) { throw new Error(d.detail || ("HTTP " + r.status)); } return d; }); })
+      .then(function (d) { if (out) { out.textContent = d.message; out.className = "rig-reconnect-msg is-ok"; } })
+      .catch(function (e) { if (out) { out.textContent = "Neu verbinden fehlgeschlagen: " + e.message; out.className = "rig-reconnect-msg is-err"; } })
+      .then(function () { b.disabled = false; b.textContent = label; });
+  });
 })();
 </script>
 {% endblock %}
