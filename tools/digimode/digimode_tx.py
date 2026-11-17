@@ -129,7 +129,13 @@ def channel_symbols(mode: str, message: str, wsjtx_bin: Path, env: dict) -> list
     lines = out.splitlines()
     row = next((ln for ln in lines if ln.strip().startswith("1.")), "")
     norm = " ".join(message.split())
-    if row.count(norm) < 2:
+    if "<" in norm:
+        # gehashtes Rufzeichen: ft8code zeigt es als <...>, übrige Teile müssen stimmen
+        plain = re.sub(r"<[^>]*>", " ", norm).split()
+        ok = all(row.count(tok) >= 2 for tok in plain) and "<" in row
+    else:
+        ok = row.count(norm) >= 2
+    if not ok:
         raise ValueError(f"„{message}“ lässt sich in {mode} nicht (unverändert) kodieren.")
     idx = next((i for i, ln in enumerate(lines) if "Channel symbols" in ln), None)
     if idx is None or idx + 2 >= len(lines):
@@ -163,9 +169,21 @@ def report(snr: int) -> str:
     return f"{snr:+03d}"
 
 
+def _standard_call(call: str) -> bool:
+    return bool(re.fullmatch(r"[A-Z0-9]{1,3}[0-9][A-Z]{1,3}", call or ""))
+
+
 def messages(me: str, grid4: str, his: str | None, rep_sent: str | None) -> dict:
-    his = his or "<?>"
     rep = rep_sent or "-10"
+    if his and not _standard_call(his):
+        # Präfix/Suffix-Rufzeichen (z. B. LX/PA1L): in FT8 gehasht als <LX/PA1L>,
+        # zusammen mit dem eigenen Standardrufzeichen (ft8code-geprüft)
+        h = f"<{his}>"
+        return {
+            "tx1": f"{h} {me} {grid4}", "tx2": f"{h} {me} {rep}", "tx3": f"{h} {me} R{rep}",
+            "tx4": f"{h} {me} RR73", "tx5": f"{h} {me} 73", "tx6": f"CQ {me} {grid4}",
+        }
+    his = his or "<?>"
     return {
         "tx1": f"{his} {me} {grid4}",
         "tx2": f"{his} {me} {rep}",
@@ -546,7 +564,9 @@ class Transmitter:
                     continue
                 self._transmit(plan)
             except Exception as exc:  # noqa: BLE001
-                self.last_error = f"TX-Fehler: {exc}"
+                self.last_error = f"TX-Fehler: {exc} – TX abgeschaltet."
+                self.cfg["tx_enabled"] = False
+                self.plan = None
                 self._ptt(False)
 
     def _maybe_wspr(self) -> None:
