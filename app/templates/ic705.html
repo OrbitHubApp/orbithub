@@ -640,9 +640,12 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .icom .vfo-relais-info b { color: var(--icom-amber); }
 .icom .vfo-unit { font-size: 0.8rem; color: var(--icom-dim); }
 .icom .vfo-offset:disabled, .icom .vfo-tone:disabled { opacity: 0.4; }
-.icom-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.2rem; margin-bottom: 1.2rem; align-items: start; }
-.icom-overview { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
-@media (max-width: 1250px) { .icom-overview { grid-template-columns: 1fr 1fr; } }
+.icom-panels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; margin-bottom: 1.2rem; align-items: stretch; }
+.icom-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; align-items: stretch; }
+.icom-panels > .icom-menu { display: flex; flex-direction: column; }
+.icom-panels > .icom-menu > .icom-menu-body { flex: 1 1 auto; }
+.icom-col > .icom-menu:last-child { flex: 1 1 auto; }
+@media (max-width: 1250px) { .icom-panels, .icom-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .icom-col { display: flex; flex-direction: column; gap: 1.2rem; min-width: 0; }
 .sstv-screen { position: relative; background: #0C0E10; border: 1px solid #1B2027; border-radius: 3px; overflow: hidden; aspect-ratio: 320 / 256; box-shadow: 0 0 0 1px #0B0D0F inset, 0 0 18px rgba(115, 214, 138,0.06) inset; }
 .sstv-screen canvas { display: block; width: 100%; height: 100%; }
@@ -665,7 +668,7 @@ OrbitHub &middot; {{ t('nav.ic705') }}
 .sstv-thumb img { display: block; width: 100%; aspect-ratio: 320 / 256; object-fit: cover; }
 .sstv-thumb span { position: absolute; left: 0; right: 0; bottom: 0; font-size: 0.6rem; padding: 1px 3px; background: rgba(11, 13, 15,0.65); color: #F0F1EE; font-family: var(--icom-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sstv-thumb:hover { border-color: var(--icom-cyan); }
-@media (max-width: 820px) { .icom-overview { grid-template-columns: 1fr; } }
+@media (max-width: 820px) { .icom-panels, .icom-overview { grid-template-columns: 1fr; } }
 .icom-menu, .icom-dialog { background: #0C0F11; border: 1px solid #242A30; border-radius: 3px; overflow: hidden; color: var(--icom-text); box-shadow: 0 8px 22px rgba(11, 13, 15,0.3); }
 .icom-menu-bar {
   display: flex; justify-content: space-between; align-items: center; gap: 1em;

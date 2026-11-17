@@ -151,17 +151,30 @@ class RigControl:
                 ) from exc
             raise
 
+    def _read_first(self, cmd: str, tries: int = 3) -> str | None:
+        """Erste Antwortzeile; kappanhang verliert unter Last gelegentlich eine CI-V-Antwort."""
+        for _ in range(tries):
+            try:
+                line = self._command(cmd).splitlines()[0].strip()
+            except (RigControlError, IndexError):
+                line = ""
+            if line and not line.startswith("RPRT"):
+                return line
+        return None
+
     def get_repeater(self) -> dict:
         """Aktuelle Ablage, Offset (Hz), Tonbetrieb und CTCSS-Ton (Hz)."""
-        shift_raw = self._command("r").splitlines()[0].strip()
-        shift = shift_raw if shift_raw in ("+", "-") else "0"
+        raw = {c: self._read_first(c) for c in ("r", "o", "c", "u TONE", "u TSQL")}
+        if all(v is None for v in raw.values()):
+            raise RigControlError("Relais-Werte nicht lesbar (keine Antwort vom IC-705).")
+        shift = raw["r"] if raw["r"] in ("+", "-") else "0"
         try:
-            offset_hz = int(float(self._command("o").splitlines()[0]))
-            tone_tenths = int(float(self._command("c").splitlines()[0]))
-            tone_on = self._command("u TONE").splitlines()[0].strip() == "1"
-            tsql_on = self._command("u TSQL").splitlines()[0].strip() == "1"
-        except (ValueError, IndexError) as exc:
+            offset_hz = int(float(raw["o"])) if raw["o"] is not None else 600000
+            tone_tenths = int(float(raw["c"])) if raw["c"] is not None else 0
+        except ValueError as exc:
             raise RigControlError(f"Unerwartete Antwort beim Lesen der Relais-Werte: {exc}") from exc
+        tone_on = raw["u TONE"] == "1"
+        tsql_on = raw["u TSQL"] == "1"
         return {
             "shift": shift,
             "offset_hz": offset_hz,

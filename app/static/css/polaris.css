@@ -4593,3 +4593,4 @@ h1, h2, h3 { font-family: var(--iss-sans); font-weight: 700; letter-spacing: 0.0
 .dg-card::before, .card::before { content: ""; position: absolute; left: -1px; right: -1px; top: -1px; height: 6px; background: var(--iss-stripe); pointer-events: none; z-index: 1; }
 .dg-card .dg-card-head { padding-top: 6px; }
 ::selection { background: var(--iss-blue); color: #fff; }
+.application-header { background: #D9DBD6 !important; }
