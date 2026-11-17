@@ -22,6 +22,7 @@ At the heart of it is the question every satellite observer asks: when and where
 - **Settings** – your own location, callsign, Maidenhead locator, and two separate horizon masks: one for radio (passes, watchlist, polar plot, exports) and one for visual observation (Visual page) – because radio signals often still reach you where trees or rooftops block the view.
 - **IC-705** – control of an ICOM IC-705 via the network (using [kappanhang](https://github.com/nonoo/kappanhang) as rigctld bridge): automatic Doppler correction, mode selection per transponder, manual frequency entry, live display of the radio, and receive audio streamed to the browser. Passes can be clicked to show a polar plot and an audibility rating.
 - **AMSAT Live** – current reception reports from [status.amsat.org](https://status.amsat.org/): which satellites were actually heard recently and in which mode, with your next pass and a button that sets the IC-705 to the matching frequency and mode. **Live observation** lets the IC-705 run unattended: every reported satellite is tuned automatically as soon as it rises above 10° – the highest one wins. New satellites with temporary SatNOGS IDs are matched automatically.
+- **Digital modes** – receive and transmit FT8, FT4 and WSPR with the IC-705, right in the browser. Decoding uses the WSJT-X decoders; QSOs work like in WSJT-X (double-click, auto sequence up to 73, ADIF log). Large display with frequency, Po/ALC/SWR, a QSO panel (call, country, distance, reports, current transmission), band activity with band-change markers and a waterfall. Automatic audio level from the ALC per band, SWR test button, STOP/Esc, dry run without PTT. Spots can be reported to PSK Reporter and WSPRnet.
 - **History** – changelog of the application itself.
 
 ## Technology
@@ -89,6 +90,33 @@ OrbitHub can be installed directly on a Raspberry Pi. You'll need a Raspberry Pi
    Follow the installation steps above to install the required dependencies and configure OrbitHub. Once set up, OrbitHub can be started on the Raspberry Pi and accessed via a web browser on the local network.
 
 Full installation guide, starting from a bare Raspberry Pi: https://orbithubapp.de/installation/
+
+## Setting up digital modes (FT8 / FT4 / WSPR)
+
+You need the IC-705 connection via kappanhang (see [tools/rig/README.md](tools/rig/README.md)), built with `tools/rig/kappanhang-fixes.patch` – among other things the patch adds the Po, ALC and SWR meters to rigctld.
+
+1. **Install the digimode service on the host** (no sudo, only fetches the WSJT-X decoders into `~/digimode/pkg`):
+
+   ```bash
+   sh tools/digimode/install.sh
+   ```
+
+   `digimode.service` then runs as a user service on port 8767; OrbitHub in the container reaches it via `host.docker.internal`.
+
+2. **Prepare the IC-705:** mode USB-D and in the menu **SET › Connectors › MOD Input › DATA MOD = WLAN** – otherwise the radio keys up but puts out no power. Set the output power on the radio.
+
+3. Enter **callsign and locator** under **Settings**.
+
+4. **Receive:** open **Digital modes** under *Radio* in the menu, pick mode and band, press **▶ Empfang**. OrbitHub tunes the IC-705 to the dial frequency in USB-D.
+
+5. **Transmit:**
+   - Under *Senden erlaubt auf* tick only the bands with a suitable antenna.
+   - **TEST · SWR** sends a 5-second carrier and shows SWR/Po/ALC.
+   - Untick **Probelauf** (dry run), then **CQ rufen** or **double-click** a station – the sequence runs automatically.
+   - **STOP** or the **Esc** key ends any transmission immediately.
+   - *Pegel automatisch (ALC)* calibrates the audio level per band during the first transmissions.
+
+6. **Connection lost?** **⟳ Neu verbinden** (IC-705 and digital page) restarts kappanhang and resumes receiving.
 
 ## License
 
