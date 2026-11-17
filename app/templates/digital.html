@@ -145,10 +145,10 @@ OrbitHub &middot; {{ t('nav.digital') }}
     </div>
   </div>
   <div class="dg-msg" id="dg-tx-err" hidden></div>
-  <details class="dg-log">
-    <summary>Logbuch <span id="dg-log-n"></span> · <a href="/api/digital/log.adi" download>ADIF herunterladen</a></summary>
+  <div class="dg-log">
+    <div class="dg-log-head">Logbuch · letzte 10 <span id="dg-log-n"></span> · <a href="/api/digital/log.adi" download>ADIF herunterladen</a></div>
     <table class="dg-table" id="dg-log-table"></table>
-  </details>
+  </div>
 </section>
 
 <section class="dg-card dg-wf" aria-label="Wasserfall">
@@ -238,7 +238,8 @@ OrbitHub &middot; {{ t('nav.digital') }}
 .dg-meters.is-live .dg-meter-note { color: var(--dg-red); }
 .dg-qsobig { margin-top: 12px; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,90,74,0.45); background: linear-gradient(90deg, rgba(255,90,74,0.12), rgba(255,90,74,0.03)); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "call info rst" "state state state"; gap: 4px 18px; align-items: center; }
 .dg-qsobig.is-done { border-color: rgba(60,224,122,0.5); background: linear-gradient(90deg, rgba(60,224,122,0.12), rgba(60,224,122,0.03)); }
-.dg-qb-call { grid-area: call; font-family: var(--dg-mono); font-weight: 800; font-size: clamp(1.8rem, 4vw, 2.8rem); color: #fff; letter-spacing: 0.04em; line-height: 1; }
+.dg-qb-call { grid-area: call; font-family: var(--dg-mono); font-weight: 800; font-size: clamp(1.8rem, 4vw, 2.8rem); color: #fff; letter-spacing: 0.04em; line-height: 1; transition: color 0.3s; }
+.dg-qb-call.is-connected { color: #ff9a2e; text-shadow: 0 0 18px rgba(255,154,46,0.35); }
 .dg-qb-info { grid-area: info; min-width: 0; }
 .dg-qb-country { font-size: 1.15rem; font-weight: 700; color: #ffd38a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dg-qb-dist { font-family: var(--dg-mono); font-size: 0.86rem; color: #cfd6dd; }
@@ -302,8 +303,9 @@ OrbitHub &middot; {{ t('nav.digital') }}
 .dg-wf-scale { position: relative; height: 1.3em; border: 1px solid #263240; border-bottom: none; background: #0a1018; font-size: 0.66rem; color: var(--dg-dim); overflow: hidden; }
 .dg-wf-scale span { position: absolute; top: 0.15em; transform: translateX(-50%); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .dg-wf-canvas { display: block; width: 100%; height: 140px; background: #020611; border: 1px solid #263240; border-top: none; image-rendering: pixelated; }
-.dg-wf-marks { position: relative; height: 1.4em; font-size: 0.62rem; overflow: hidden; }
-.dg-wf-marks span { position: absolute; transform: translateX(-50%); white-space: nowrap; color: var(--dg-amber); font-family: var(--dg-mono); }
+.dg-wf-marks { position: relative; height: 1.4em; font-size: 0.66rem; overflow: hidden; border: 1px solid #263240; border-top: none; background: #0a1018; }
+.dg-wf-marks span { position: absolute; transform: translateX(-50%); white-space: nowrap; color: var(--dg-amber); font-family: var(--dg-mono); line-height: 1.3em; }
+.dg-wf-marks span::before { content: ""; position: absolute; left: 50%; top: -0.25em; width: 1px; height: 0.25em; background: currentColor; opacity: 0.6; }
 .dg-wf-marks span.is-cq { color: var(--dg-green); }
 .dg-table-wrap { max-height: 62vh; overflow: auto; border-radius: 8px; border: 1px solid #1d2a38; }
 .dg-table { width: 100%; border-collapse: collapse; font-family: var(--dg-mono); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
@@ -358,7 +360,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
 .dg-check { font-size: 0.86rem; display: flex; gap: 6px; align-items: center; color: var(--dg-text); cursor: pointer; }
 .dg-check input { accent-color: var(--dg-red); }
 .dg-log { margin-top: 10px; font-size: 0.82rem; color: var(--dg-dim); }
-.dg-log summary { cursor: pointer; }
+.dg-log-head { color: var(--dg-dim); }
 .dg-log a { color: var(--dg-cyan); }
 .dg-log .dg-table { margin-top: 6px; }
 .dg-table tr.is-tx td { background: rgba(255,90,74,0.10); }
@@ -655,10 +657,16 @@ OrbitHub &middot; {{ t('nav.digital') }}
     rows = rows.filter(function (d) { return !d.tx; });
     var el = $("dg-wf-marks");
     if (isWspr() || !rows.length) { el.innerHTML = ""; return; }
-    var lastUtc = rows[rows.length - 1].utc, html = "";
-    rows.filter(function (d) { return d.utc === lastUtc; }).forEach(function (d) {
-      html += '<span class="' + (d.cq ? "is-cq" : "") + '" style="left:' + (d.df / 3000 * 100).toFixed(2) + '%">' + esc(d.call || "?") + "</span>";
-    });
+    var lastUtc = rows[rows.length - 1].utc, html = "", W = el.clientWidth || 1000, CH = 7, ends = [];
+    rows.filter(function (d) { return d.utc === lastUtc; })
+      .sort(function (a, b) { return a.df - b.df; })
+      .forEach(function (d) {
+        var txt = d.call || "?", x = d.df / 3000 * W, half = txt.length * CH / 2 + 4, row = 0;
+        while (row < ends.length && ends[row] > x - half) { row++; }
+        ends[row] = x + half;
+        html += '<span class="' + (d.cq ? "is-cq" : "") + '" style="left:' + (d.df / 3000 * 100).toFixed(2) + "%;top:" + (row * 1.3 + 0.15).toFixed(2) + 'em">' + esc(txt) + "</span>";
+      });
+    el.style.height = (Math.max(1, ends.length) * 1.3 + 0.3).toFixed(2) + "em";
     el.innerHTML = html;
   }
 
@@ -772,7 +780,9 @@ OrbitHub &middot; {{ t('nav.digital') }}
     $("dg-qb-rcvd").textContent = q.rep_rcvd || "–";
     var names = { call: "ruft an", report: "Rapport gesendet", rreport: "R-Rapport gesendet", rr73: "RR73 gesendet – QSO komplett", "73": "73 gesendet – QSO komplett", done: "QSO beendet ✓", cq: "Antwort auf CQ" };
     $("dg-qb-state").textContent = (names[q.state] || q.state) + (q.tries && q.state !== "done" ? " · Versuch " + q.tries : "") + (tx.next ? " · nächste Aussendung " + tx.next.utc.slice(11, 19) + " UTC" : "") + (q.rx_snr != null ? " · zuletzt gehört mit " + (q.rx_snr > 0 ? "+" : "") + q.rx_snr + " dB" : "");
-    el.classList.toggle("is-done", q.state === "done" || q.state === "rr73" || q.state === "73");
+    var finished = q.state === "done" || q.state === "rr73" || q.state === "73";
+    el.classList.toggle("is-done", finished);
+    $("dg-qb-call").classList.toggle("is-connected", !finished && !!(q.rep_rcvd || (q.cq && q.call)));
   }
   $("dg-autolevel").addEventListener("change", function (ev) { txPost("config", { auto_level: ev.target.checked }); });
   $("dg-dry").addEventListener("change", function (ev) {
@@ -816,11 +826,11 @@ OrbitHub &middot; {{ t('nav.digital') }}
   function loadLog() {
     fetch("/api/digital/log").then(function (r) { return r.json(); }).then(function (d) {
       var q = d.qsos || [];
-      $("dg-log-n").textContent = "(" + q.length + (q.length === 1 ? " QSO)" : " QSOs)");
+      $("dg-log-n").textContent = "(insgesamt " + q.length + (q.length === 1 ? " QSO)" : " QSOs)");
       $("dg-log-table").innerHTML = q.length ? '<thead><tr><th class="l">Datum</th><th class="l">UTC</th><th class="l">Rufzeichen</th><th class="l">Locator</th><th>Band</th><th class="l">Mode</th><th>gesendet</th><th>erhalten</th></tr></thead><tbody>' +
-        q.slice(0, 50).map(function (r) {
+        q.slice(0, 10).map(function (r) {
           return '<tr><td class="l">' + esc(r.QSO_DATE) + '</td><td class="l">' + esc((r.TIME_ON || "").slice(0, 4)) + '</td><td class="l msg">' + esc(r.CALL) + '</td><td class="l">' + esc(r.GRIDSQUARE || "") + "</td><td>" + esc(r.BAND || "") + '</td><td class="l">' + esc(r.SUBMODE || r.MODE) + "</td><td>" + esc(r.RST_SENT || "") + "</td><td>" + esc(r.RST_RCVD || "") + "</td></tr>";
-        }).join("") + "</tbody>" : "";
+        }).join("") + "</tbody>" : '<tbody><tr><td class="l">Noch keine QSOs.</td></tr></tbody>';
     }).catch(function () {});
   }
 
