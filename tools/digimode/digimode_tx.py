@@ -34,8 +34,10 @@ WSPR_DBM = (0, 3, 7, 10, 13, 17, 20, 23, 27, 30, 33, 37, 40, 43, 47, 50, 53, 57,
 
 # Sendebeginn relativ zum Periodenstart, spätester Start (sonst nächste Periode)
 TX_TIMING = {
-    "FT8": {"offset": 0.5, "late": 1.2},
-    "FT4": {"offset": 0.5, "late": 0.8},
+    # FT8: Decoder finden Signale bis DT ~2,5 s; auf vollem Band dauert die
+    # Auswertung bis ~3 s -> spaeter Start bis 2,4 s (DT dann bis ~1,9 s)
+    "FT8": {"offset": 0.5, "late": 2.4},
+    "FT4": {"offset": 0.5, "late": 1.0},
     "WSPR": {"offset": 1.0, "late": 2.0},
 }
 PTT_LEAD = 0.25    # PTT so viel vor dem Ton einschalten
@@ -536,7 +538,12 @@ class Transmitter:
                         continue
                     self.plan = None
                 if time.time() > plan["slot"] + TX_TIMING[plan["mode"]]["late"]:
-                    continue  # zu spät, Planung erfolgt nach der nächsten Auswertung neu
+                    # zu spät für diese Periode -> nächste eigene Periode statt verwerfen
+                    if plan["key"] != "wspr" and self.qso and self.tx_enabled():
+                        with self.lock:
+                            if self.plan is None:
+                                self.plan = {**plan, "slot": plan["slot"] + 2 * self.period()}
+                    continue
                 self._transmit(plan)
             except Exception as exc:  # noqa: BLE001
                 self.last_error = f"TX-Fehler: {exc}"
