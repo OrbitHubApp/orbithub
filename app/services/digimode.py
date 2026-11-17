@@ -82,6 +82,28 @@ async def configure(payload: dict) -> dict:
     return await _request("POST", "/config", payload)
 
 
+TX_ACTIONS = ("config", "cq", "call", "next", "halt", "clear")
+
+
+async def tx(action: str, payload: dict) -> dict:
+    if action not in TX_ACTIONS:
+        raise DigimodeError("Unbekannte Sendefunktion.")
+    return await _request("POST", f"/tx/{action}", payload)
+
+
+async def qso_log() -> dict:
+    return await _request("GET", "/log")
+
+
+async def adif() -> str:
+    try:
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            resp = await client.get(DIGIMODE_URL + "/log.adi")
+    except httpx.HTTPError as exc:
+        raise DigimodeError(f"Digimode-Dienst nicht erreichbar: {exc.__class__.__name__}") from exc
+    return resp.text
+
+
 async def stop_quietly() -> bool:
     """Beendet den Digimode-Empfang, falls er laeuft (z. B. bei Doppler-Start).
     Fehler werden ignoriert. Gibt True zurueck, wenn er lief."""

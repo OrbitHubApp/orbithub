@@ -33,6 +33,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
         <span class="dg-chip" id="dg-chip-state">STOP</span>
         <span class="dg-chip" id="dg-chip-qrg" title="Steht der IC-705 auf der Digimode-Frequenz?">QRG --</span>
         <span class="dg-chip" id="dg-chip-audio" title="Audio vom IC-705">AF --</span>
+        <span class="dg-chip" id="dg-chip-tx" title="Senden">TX AUS</span>
         <span class="dg-spacer"></span>
         <span class="dg-clock" id="dg-clock">--:--:-- UTC</span>
       </div>
@@ -78,6 +79,56 @@ OrbitHub &middot; {{ t('nav.digital') }}
       </div>
     </div>
   </div>
+</section>
+
+<section class="dg-card dg-tx" id="dg-tx" aria-label="Senden">
+  <div class="dg-card-head">
+    <span class="dg-card-title dg-tx-title">SENDEN · TX</span>
+    <span class="dg-tx-state" id="dg-tx-state">TX aus</span>
+    <span class="dg-spacer"></span>
+    <label class="dg-dry" title="Probelauf: Aussendung wird nur erzeugt und mit dem eigenen Decoder geprüft – kein PTT, kein Ton">
+      <input type="checkbox" id="dg-dry"> Probelauf (ohne PTT)
+    </label>
+    <button type="button" class="dg-halt" id="dg-halt" title="Sofort aufhören zu senden (Taste Esc)">■ NOT-AUS</button>
+  </div>
+
+  <div class="dg-tx-grid">
+    <div class="dg-tx-col">
+      <div class="dg-keylabel">SENDEN ERLAUBT AUF (ANTENNE VORHANDEN)</div>
+      <div class="dg-txbands" id="dg-txbands"></div>
+      <div class="dg-tx-row">
+        <label>TX-Frequenz <input type="number" id="dg-txdf" min="200" max="2900" step="10"> Hz</label>
+        <label>Pegel <input type="range" id="dg-txlevel" min="0.02" max="1" step="0.01"> <span id="dg-txlevel-v"></span></label>
+      </div>
+      <div class="dg-hint">Am IC-705: USB-D mit <b>DATA MOD = LAN</b> (Set › Connectors › MOD Input), Leistung am Gerät einstellen, ALC möglichst ruhig.</div>
+    </div>
+
+    <div class="dg-tx-col" id="dg-ft-panel">
+      <div class="dg-tx-row">
+        <button type="button" class="dg-key dg-key-cq" id="dg-cq">CQ rufen</button>
+        <button type="button" class="dg-key" id="dg-enable">TX frei</button>
+        <button type="button" class="dg-key" id="dg-clear-qso">QSO beenden</button>
+      </div>
+      <div class="dg-qso" id="dg-qso">Kein QSO. „CQ rufen“ oder in der Liste eine Station <b>doppelt anklicken</b>.</div>
+      <div class="dg-msgs" id="dg-msgs"></div>
+      <div class="dg-next" id="dg-next"></div>
+    </div>
+
+    <div class="dg-tx-col" id="dg-wspr-panel" hidden>
+      <label class="dg-check"><input type="checkbox" id="dg-beacon"> WSPR-Bake senden</label>
+      <div class="dg-tx-row">
+        <label>Anteil <select id="dg-wspr-pct"><option>10</option><option>20</option><option>25</option><option>33</option><option>50</option></select> %</label>
+        <label>Leistung <select id="dg-wspr-dbm"></select></label>
+      </div>
+      <div class="dg-hint" id="dg-wspr-msg"></div>
+      <div class="dg-next" id="dg-wspr-next"></div>
+    </div>
+  </div>
+  <div class="dg-msg" id="dg-tx-err" hidden></div>
+  <details class="dg-log">
+    <summary>Logbuch <span id="dg-log-n"></span> · <a href="/api/digital/log.adi" download>ADIF herunterladen</a></summary>
+    <table class="dg-table" id="dg-log-table"></table>
+  </details>
 </section>
 
 <section class="dg-card dg-wf" aria-label="Wasserfall">
@@ -222,6 +273,53 @@ OrbitHub &middot; {{ t('nav.digital') }}
 .dg-table td.up { color: var(--dg-amber); }
 .dg-table td.snr-good { color: var(--dg-green); }
 .dg-table td.snr-weak { color: #8a96a3; }
+.dg-tx { border-color: rgba(255,90,74,0.35); }
+.dg-tx-title { color: #ff8a7a; }
+.dg-tx-state { font-family: var(--dg-mono); font-size: 0.78rem; font-weight: 700; padding: 2px 9px; border-radius: 4px; border: 1px solid #5d646d; color: #cfd6dd; }
+.dg-tx-state.is-dry { border-color: var(--dg-amber); color: var(--dg-amber); background: rgba(255,173,31,0.12); }
+.dg-tx-state.is-armed { border-color: var(--dg-red); color: #ffb4a8; background: rgba(255,90,74,0.12); }
+.dg-tx-state.is-on { border-color: var(--dg-red); color: #fff; background: var(--dg-red); animation: dg-tx-blink 0.8s ease-in-out infinite; }
+@keyframes dg-tx-blink { 50% { opacity: 0.6; } }
+.dg-chip.is-tx { background: var(--dg-red); border-color: var(--dg-red); color: #fff; }
+.dg-chip.is-dry { color: var(--dg-amber); border-color: var(--dg-amber); background: rgba(255,173,31,0.12); }
+.dg-dry { font-size: 0.82rem; color: var(--dg-amber); display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.dg-dry input { accent-color: var(--dg-amber); }
+.dg-halt { font: inherit; font-weight: 800; letter-spacing: 0.08em; font-size: 0.82rem; padding: 7px 16px; border-radius: 8px; cursor: pointer; color: #fff; background: linear-gradient(180deg, #e0412f, #a3251a); border: 1px solid #5a0f08; box-shadow: 0 2px 0 #3d0905; }
+.dg-halt:active { transform: translateY(1px); }
+.dg-tx-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 16px; }
+@media (max-width: 980px) { .dg-tx-grid { grid-template-columns: 1fr; } }
+.dg-tx-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.dg-tx-row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 0.82rem; color: var(--dg-text); }
+.dg-tx-row input[type="number"] { width: 5.5em; }
+.dg-tx-row input, .dg-tx-row select { background: #0d1621; color: var(--dg-text); border: 1px solid #3d4a58; border-radius: 4px; font: inherit; padding: 2px 4px; }
+.dg-tx-row input[type="range"] { width: 110px; accent-color: var(--dg-red); padding: 0; }
+.dg-tx-row .dg-key { flex: 1 1 0; min-width: 7em; }
+.dg-txbands { display: flex; flex-wrap: wrap; gap: 4px; }
+.dg-txbands label { font-family: var(--dg-mono); font-size: 0.74rem; padding: 2px 7px; border-radius: 4px; border: 1px solid #3d4a58; color: var(--dg-dim); cursor: pointer; display: flex; gap: 4px; align-items: center; }
+.dg-txbands label.is-on { border-color: var(--dg-green); color: var(--dg-green); background: rgba(60,224,122,0.08); }
+.dg-txbands label.is-cur { box-shadow: 0 0 0 1px var(--dg-amber) inset; }
+.dg-txbands input { accent-color: var(--dg-green); margin: 0; }
+.dg-key-cq { color: #b6f5c9; }
+.dg-key.is-armed::before { background: var(--dg-red); box-shadow: 0 0 6px var(--dg-red); }
+.dg-qso { font-size: 0.86rem; color: #cfd6dd; }
+.dg-qso b { color: #fff; }
+.dg-msgs { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px; }
+.dg-msgs button { font-family: var(--dg-mono); font-size: 0.78rem; text-align: left; padding: 4px 8px; border-radius: 4px; border: 1px solid #2b3846; background: #0d1621; color: #cfd6dd; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dg-msgs button span { color: var(--dg-dim); margin-right: 6px; }
+.dg-msgs button.is-cur { border-color: var(--dg-red); color: #fff; background: rgba(255,90,74,0.14); }
+.dg-next { font-family: var(--dg-mono); font-size: 0.8rem; color: var(--dg-amber); min-height: 1.2em; }
+.dg-check { font-size: 0.86rem; display: flex; gap: 6px; align-items: center; color: var(--dg-text); cursor: pointer; }
+.dg-check input { accent-color: var(--dg-red); }
+.dg-log { margin-top: 10px; font-size: 0.82rem; color: var(--dg-dim); }
+.dg-log summary { cursor: pointer; }
+.dg-log a { color: var(--dg-cyan); }
+.dg-log .dg-table { margin-top: 6px; }
+.dg-table tr.is-tx td { background: rgba(255,90,74,0.10); }
+.dg-table tr.is-tx td.msg { color: #ffb4a8; }
+.dg-table tr.is-tx.is-dry td { background: rgba(255,173,31,0.07); }
+.dg-table tr.is-tx.is-dry td.msg { color: #ffd38a; }
+.dg-table tbody tr[data-seq] { cursor: pointer; }
+.dg-table tbody tr[data-seq]:hover td { background: rgba(56,200,255,0.07); }
 .dg-empty { padding: 18px; text-align: center; color: var(--dg-dim); font-size: 0.86rem; }
 </style>
 
@@ -385,6 +483,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
       warn = "Kein Audio vom IC-705" + (st.audio.error ? ": " + st.audio.error : "") + " – läuft kappanhang?";
     }
     showMsg(warn);
+    renderTx(st && st.tx, running);
     if (running !== prevRunning) { prevRunning = running; renderTable(); }
     $("dg-start").classList.toggle("is-active", running);
     var up = st && st.upload;
@@ -435,7 +534,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
   function visible() {
     var d0 = dial(sel.mode, sel.band), onlyCq = $("dg-only-cq").checked;
     return decodes.filter(function (d) {
-      return d.mode === sel.mode && (!d0 || d.dial_hz === d0) && (!onlyCq || d.cq || d.mode === "WSPR");
+      return d.mode === sel.mode && (!d0 || d.dial_hz === d0) && (!onlyCq || d.cq || d.tx || d.mode === "WSPR");
     });
   }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -459,6 +558,10 @@ OrbitHub &middot; {{ t('nav.digital') }}
       }
       var db = distBearing(d.grid);
       var cls = [];
+      if (d.tx) {
+        html += '<tr class="is-tx' + (d.dry_run ? " is-dry" : "") + (d.seq >= newSeqFrom ? " is-new" : "") + '"><td class="l">' + d.utc.slice(11, isWspr() ? 16 : 19) + '</td><td>TX</td><td></td><td>' + (isWspr() ? (d.freq_hz / 1e6).toFixed(6) : d.df) + '</td><td class="l msg" colspan="' + (isWspr() ? 5 : 3) + '">' + esc(d.message) + " · " + esc(d.tx_note || "") + "</td><td>" + (d.tx_ok ? "✓" : "✗") + "</td></tr>";
+        continue;
+      }
       if (d.cq) { cls.push("is-cq"); }
       if (MY_CALL && (d.to === MY_CALL || (d.message || "").split(" ").indexOf(MY_CALL) === 0)) { cls.push("is-me"); }
       if (d.seq >= newSeqFrom) { cls.push("is-new"); }
@@ -467,10 +570,11 @@ OrbitHub &middot; {{ t('nav.digital') }}
       if (isWspr()) {
         html += '<tr class="' + cls.join(" ") + '"><td class="l">' + d.utc.slice(11, 16) + '</td><td class="' + snrCls + '">' + d.snr + "</td><td>" + d.dt.toFixed(1) + "</td><td>" + (d.freq_hz / 1e6).toFixed(6) + "</td><td>" + (d.drift || 0) + '</td><td class="l msg">' + esc(d.call || d.message) + '</td><td class="l">' + esc(d.grid || "") + "</td><td>" + dbmW(d.dbm) + "</td><td>" + (db ? db.km.toLocaleString("de-DE") : "") + "</td>" + up + "</tr>";
       } else {
-        html += '<tr class="' + cls.join(" ") + '"><td class="l">' + d.utc.slice(11, 19) + '</td><td class="' + snrCls + '">' + (d.snr > 0 ? "+" : "") + d.snr + "</td><td>" + d.dt.toFixed(1) + "</td><td>" + d.df + '</td><td class="l msg">' + esc(d.message) + "</td><td>" + (db ? db.km.toLocaleString("de-DE") : "") + "</td><td>" + (db ? db.deg + "°" : "") + "</td>" + up + "</tr>";
+        html += '<tr class="' + cls.join(" ") + '"' + (d.call && !d.hashed ? ' data-seq="' + d.seq + '" title="Doppelklick: ' + esc(d.call) + ' anrufen"' : "") + '><td class="l">' + d.utc.slice(11, 19) + '</td><td class="' + snrCls + '">' + (d.snr > 0 ? "+" : "") + d.snr + "</td><td>" + d.dt.toFixed(1) + "</td><td>" + d.df + '</td><td class="l msg">' + esc(d.message) + "</td><td>" + (db ? db.km.toLocaleString("de-DE") : "") + "</td><td>" + (db ? db.deg + "°" : "") + "</td>" + up + "</tr>";
       }
     }
     rows.forEach(function (d) {
+      if (d.tx) { return; }
       if (d.call) { calls[d.call] = true; }
       var db = distBearing(d.grid);
       if (db && (!best || db.km > best.km)) { best = { km: db.km, call: d.call }; }
@@ -485,6 +589,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
   $("dg-clear").addEventListener("click", function () { decodes = []; renderTable(); });
 
   function renderLast(rows) {
+    rows = rows.filter(function (d) { return !d.tx; });
     var el = $("dg-last");
     if (!rows.length) { el.innerHTML = '<div class="dg-last-head">Letzte Periode</div><div class="dg-last-empty">' + (st && st.running ? "warte auf die erste Auswertung …" : "Empfang ist aus.") + "</div>"; return; }
     var lastUtc = rows[rows.length - 1].utc;
@@ -500,6 +605,7 @@ OrbitHub &middot; {{ t('nav.digital') }}
   }
 
   function renderMarks(rows) {
+    rows = rows.filter(function (d) { return !d.tx; });
     var el = $("dg-wf-marks");
     if (isWspr() || !rows.length) { el.innerHTML = ""; return; }
     var lastUtc = rows[rows.length - 1].utc, html = "";
@@ -507,6 +613,121 @@ OrbitHub &middot; {{ t('nav.digital') }}
       html += '<span class="' + (d.cq ? "is-cq" : "") + '" style="left:' + (d.df / 3000 * 100).toFixed(2) + '%">' + esc(d.call || "?") + "</span>";
     });
     el.innerHTML = html;
+  }
+
+  // ---- Senden
+  var BAND_NAMES = BANDS.map(function (b) { return b.band; });
+  var DBM = [0, 3, 7, 10, 13, 17, 20, 23, 27, 30, 33, 37, 40];
+  $("dg-wspr-dbm").innerHTML = DBM.map(function (d) {
+    var w = Math.pow(10, d / 10) / 1000;
+    return '<option value="' + d + '">' + d + " dBm (" + (w >= 1 ? w.toLocaleString("de-DE", { maximumFractionDigits: 1 }) + " W" : Math.round(w * 1000) + " mW") + ")</option>";
+  }).join("");
+  var txst = null;
+  function txPost(action, body) {
+    return post("/api/digital/tx/" + action, body || {})
+      .then(function (d) { st = d.status; renderStatus(); return d; })
+      .catch(function (err) { msg(err.message); });
+  }
+  function setVal(el, v) { if (document.activeElement !== el && v != null) { el.value = v; } }
+  function renderTx(tx, running) {
+    txst = tx || null;
+    var panel = $("dg-tx");
+    panel.hidden = !tx;
+    if (!tx) { chip("dg-chip-tx", "TX --"); return; }
+    var wspr = (running ? st.mode : sel.mode) === "WSPR";
+    $("dg-ft-panel").hidden = wspr;
+    $("dg-wspr-panel").hidden = !wspr;
+    $("dg-dry").checked = !!tx.dry_run;
+    // Zustand
+    var state = $("dg-tx-state"), text, cls;
+    if (tx.transmitting) { text = "● SENDET"; cls = "is-on"; }
+    else if (tx.dry_run) { text = "PROBELAUF · kein PTT"; cls = "is-dry"; }
+    else if (tx.enabled || tx.wspr_beacon) { text = "TX FREI" + (tx.armed_left ? " · " + Math.floor(tx.armed_left / 60) + ":" + String(tx.armed_left % 60).padStart(2, "0") : ""); cls = "is-armed"; }
+    else { text = "TX aus"; cls = ""; }
+    if (!tx.band_ok && !tx.dry_run) { text += " · Band nicht freigegeben"; }
+    state.textContent = text; state.className = "dg-tx-state " + cls;
+    chip("dg-chip-tx", tx.transmitting ? "TX" : tx.dry_run ? "PROBE" : tx.enabled ? "TX FREI" : "TX AUS", tx.transmitting ? "is-tx" : tx.dry_run ? "is-dry" : null);
+    // Baender
+    var cur = running ? st.band : sel.band;
+    $("dg-txbands").innerHTML = BAND_NAMES.map(function (b) {
+      var on = tx.tx_bands.indexOf(b) >= 0;
+      return '<label class="' + (on ? "is-on" : "") + (b === cur ? " is-cur" : "") + '"><input type="checkbox" data-txband="' + b + '"' + (on ? " checked" : "") + ">" + b + "</label>";
+    }).join("");
+    setVal($("dg-txdf"), tx.df);
+    setVal($("dg-txlevel"), tx.level);
+    $("dg-txlevel-v").textContent = Math.round(tx.level * 100) + " %";
+    // FT8/FT4
+    $("dg-enable").classList.toggle("is-armed", !!tx.enabled);
+    $("dg-enable").textContent = tx.enabled ? "TX frei ✓" : "TX frei";
+    var q = tx.qso;
+    if (q) {
+      var stateNames = { cq: "ruft CQ", call: "ruft an", report: "Rapport gesendet", rreport: "R-Rapport gesendet", rr73: "RR73 gesendet", "73": "73 gesendet", done: "QSO beendet" };
+      $("dg-qso").innerHTML = (q.call ? "QSO mit <b>" + esc(q.call) + "</b>" + (q.grid ? " (" + esc(q.grid) + ")" : "") : "<b>CQ</b>") + " · " + (stateNames[q.state] || q.state) +
+        (q.rep_sent ? " · gesendet " + esc(q.rep_sent) : "") + (q.rep_rcvd ? " · erhalten " + esc(q.rep_rcvd) : "") +
+        " · sende in " + (q.parity ? "2." : "1.") + " Periode" + (q.tries ? " · Versuch " + q.tries : "");
+    } else {
+      $("dg-qso").innerHTML = "Kein QSO. „CQ rufen“ oder in der Liste eine Station <b>doppelt anklicken</b>.";
+    }
+    var keys = ["tx1", "tx2", "tx3", "tx4", "tx5", "tx6"];
+    $("dg-msgs").innerHTML = keys.map(function (k, i) {
+      return '<button type="button" data-txkey="' + k + '" class="' + (q && q.tx === k ? "is-cur" : "") + '"><span>Tx' + (i + 1) + "</span>" + esc(tx.messages[k]) + "</button>";
+    }).join("");
+    var nx = tx.next ? "nächste Aussendung " + tx.next.utc.slice(11, 19) + " UTC: " + tx.next.message + (tx.dry_run ? " (Probelauf)" : "") : "";
+    if (tx.last) { nx += (nx ? " · " : "") + "zuletzt " + tx.last.utc.slice(11, 19) + ": " + (tx.last.tx_ok ? "✓ " : "✗ ") + tx.last.tx_note; }
+    $("dg-next").textContent = nx;
+    // WSPR
+    $("dg-beacon").checked = !!tx.wspr_beacon;
+    setVal($("dg-wspr-pct"), String(tx.wspr_pct));
+    setVal($("dg-wspr-dbm"), String(tx.wspr_dbm));
+    $("dg-wspr-msg").textContent = "Nachricht: " + MY_CALL + " " + MY_GRID.slice(0, 4) + " " + tx.wspr_dbm + " · Bake sendet zufällig in etwa " + tx.wspr_pct + " % der 2-Minuten-Perioden (wie WSJT-X).";
+    $("dg-wspr-next").textContent = tx.next && tx.next.key === "wspr" ? "Aussendung " + tx.next.utc.slice(11, 16) + " UTC" + (tx.dry_run ? " (Probelauf)" : "") : (tx.last ? "zuletzt " + tx.last.utc.slice(11, 16) + ": " + (tx.last.tx_ok ? "✓ " : "✗ ") + tx.last.tx_note : "");
+    var err = $("dg-tx-err");
+    err.hidden = !tx.error; err.textContent = tx.error || "";
+    err.classList.toggle("is-info", /beendet|geloggt/.test(tx.error || ""));
+  }
+  $("dg-dry").addEventListener("change", function (ev) {
+    var dry = ev.target.checked;
+    if (!dry) {
+      var band = (st && st.band) || sel.band;
+      if (!window.confirm("Probelauf ausschalten und wirklich senden?\n\nNur auf freigegebenen Bändern mit angeschlossener Antenne (aktuell " + band + ").")) {
+        ev.target.checked = true; return;
+      }
+    }
+    txPost("config", { dry_run: dry });
+  });
+  $("dg-txbands").addEventListener("change", function () {
+    var list = Array.prototype.filter.call(document.querySelectorAll("[data-txband]"), function (c) { return c.checked; })
+      .map(function (c) { return c.dataset.txband; });
+    txPost("config", { tx_bands: list });
+  });
+  $("dg-txdf").addEventListener("change", function (ev) { txPost("config", { tx_df: Number(ev.target.value) }); });
+  $("dg-txlevel").addEventListener("change", function (ev) { txPost("config", { tx_level: Number(ev.target.value) }); });
+  $("dg-cq").addEventListener("click", function () { txPost("cq"); });
+  $("dg-enable").addEventListener("click", function () { txPost("config", { tx_enabled: !(txst && txst.enabled) }); });
+  $("dg-clear-qso").addEventListener("click", function () { txPost("clear"); });
+  $("dg-halt").addEventListener("click", function () { txPost("halt"); });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { txPost("halt"); } });
+  $("dg-msgs").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-txkey]");
+    if (!b) { return; }
+    if (b.dataset.txkey === "tx6" && !(txst && txst.qso)) { txPost("cq"); } else { txPost("next", { key: b.dataset.txkey }); }
+  });
+  $("dg-beacon").addEventListener("change", function (ev) { txPost("config", { wspr_beacon: ev.target.checked }); });
+  $("dg-wspr-pct").addEventListener("change", function (ev) { txPost("config", { wspr_pct: Number(ev.target.value) }); });
+  $("dg-wspr-dbm").addEventListener("change", function (ev) { txPost("config", { wspr_dbm: Number(ev.target.value) }); });
+  $("dg-tbody").addEventListener("dblclick", function (ev) {
+    var tr = ev.target.closest("tr[data-seq]");
+    if (tr && !isWspr()) { txPost("call", { seq: Number(tr.dataset.seq) }); }
+  });
+  function loadLog() {
+    fetch("/api/digital/log").then(function (r) { return r.json(); }).then(function (d) {
+      var q = d.qsos || [];
+      $("dg-log-n").textContent = "(" + q.length + (q.length === 1 ? " QSO)" : " QSOs)");
+      $("dg-log-table").innerHTML = q.length ? '<thead><tr><th class="l">Datum</th><th class="l">UTC</th><th class="l">Rufzeichen</th><th class="l">Locator</th><th>Band</th><th class="l">Mode</th><th>gesendet</th><th>erhalten</th></tr></thead><tbody>' +
+        q.slice(0, 50).map(function (r) {
+          return '<tr><td class="l">' + esc(r.QSO_DATE) + '</td><td class="l">' + esc((r.TIME_ON || "").slice(0, 4)) + '</td><td class="l msg">' + esc(r.CALL) + '</td><td class="l">' + esc(r.GRIDSQUARE || "") + "</td><td>" + esc(r.BAND || "") + '</td><td class="l">' + esc(r.SUBMODE || r.MODE) + "</td><td>" + esc(r.RST_SENT || "") + "</td><td>" + esc(r.RST_RCVD || "") + "</td></tr>";
+        }).join("") + "</tbody>" : "";
+    }).catch(function () {});
   }
 
   // ---- Abfragen
@@ -612,6 +833,8 @@ OrbitHub &middot; {{ t('nav.digital') }}
   poll();
   setInterval(tickClock, 250);
   setInterval(poll, 2000);
+  loadLog();
+  setInterval(loadLog, 30000);
 })();
 </script>
 {% endblock %}

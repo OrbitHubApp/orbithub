@@ -49,7 +49,9 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-VERSION = "1.0"
+import digimode_tx
+
+VERSION = "1.1"
 HOME = Path.home()
 BASE_DIR = Path(os.environ.get("DIGIMODE_DIR", str(HOME / "digimode")))
 WSJTX_BIN = Path(os.environ.get("WSJTX_BIN", str(BASE_DIR / "pkg/root/usr/bin")))
@@ -68,10 +70,11 @@ LATENCY = 0.10  # parec --latency-msec, Näherung für die Verzögerung im Puffe
 RING_SECONDS = 150
 
 MODES = {
-    # Periode, Länge der Aufnahme, Wartezeit nach Periodenende
-    "FT8": {"period": 15.0, "length": 15.0},
-    "FT4": {"period": 7.5, "length": 7.5},
-    "WSPR": {"period": 120.0, "length": 120.0},
+    # Periode, Länge der Aufnahme, Auswertung ab Sekunde x der Periode (früh,
+    # damit eine Antwort noch in der nächsten Periode gesendet werden kann)
+    "FT8": {"period": 15.0, "length": 15.0, "decode_at": 13.3},
+    "FT4": {"period": 7.5, "length": 7.5, "decode_at": 6.0},
+    "WSPR": {"period": 120.0, "length": 120.0, "decode_at": 120.0},
 }
 
 PSK_HOST = ("report.pskreporter.info", 4739)
@@ -526,6 +529,9 @@ class Engine:
         self.cfg: dict = {
             "running": False, "mode": "FT8", "band": "", "dial_hz": 0,
             "call": "", "grid": "", "upload_psk": True, "upload_wsprnet": True,
+            # Senden (Voreinstellung: Probelauf, nur 2 m / 70 cm freigegeben)
+            "tx_bands": ["2m", "70cm"], "dry_run": True, "tx_df": 1500, "tx_level": 0.3,
+            "wspr_beacon": False, "wspr_pct": 20, "wspr_dbm": 37, "tx_enabled": False,
         }
         self.audio = AudioRing()
         self.rig = RigWatch()
@@ -538,7 +544,35 @@ class Engine:
         self._gen = 0
         self.psk: PskReporter | None = None
         self.wsprnet: WsprNet | None = None
+        self.log_dir = LOG_DIR
+        self.work_dir = WORK_DIR
+        self.wsjtx_bin = WSJTX_BIN
+        self.rigctld = RIGCTLD
         self._load()
+        # nach einem Neustart nie von selbst senden
+        self.cfg["tx_enabled"] = False
+        self.cfg["wspr_beacon"] = False
+        self.tx = digimode_tx.Transmitter(self)
+
+    # -- Hilfen für den Sender
+    env = staticmethod(lambda: _env())
+    write_wav = staticmethod(lambda path, samples: write_wav(path, samples))
+    run_decoder = staticmethod(lambda *a: run_decoder(*a))
+
+    def save(self) -> None:
+        self._save()
+
+    def iso(self, ts: float) -> str:
+        return self._iso(ts)
+
+    def add_entries(self, entries: list[dict]) -> None:
+        with self.lock:
+            for d in entries:
+                self.seq += 1
+                d["seq"] = self.seq
+                d.setdefault("dial_hz", int(self.cfg.get("dial_hz") or 0))
+                self.decodes.append(d)
+        self._log(entries)
 
     # -- Zustand
     def _load(self) -> None:
@@ -570,12 +604,17 @@ class Engine:
         if not 100_000 <= dial <= 500_000_000:
             raise ValueError("Ungültige Frequenz.")
         self.configure(data)
+        if mode != self.cfg.get("mode") or dial != self.cfg.get("dial_hz"):
+            self.tx.halt("Band/Betriebsart gewechselt")
+            self.tx.clear_qso()
         self.cfg.update({"running": True, "mode": mode, "dial_hz": dial, "band": str(data.get("band", ""))})
         self._save()
         self.rig.poll()  # gleich frisch, damit die Anzeige nicht kurz „falsche QRG“ meldet
         self._begin()
 
     def stop(self) -> None:
+        self.tx.halt("Empfang gestoppt")
+        self.tx.clear_qso()
         self.cfg["running"] = False
         self._save()
         self._gen += 1
@@ -600,11 +639,15 @@ class Engine:
         mode = self.cfg["mode"]
         spec = MODES[mode]
         period = spec["period"]
+        last_slot = 0.0
         while gen == self._gen:
             now = time.time()
             slot_start = math.floor(now / period) * period
-            slot_end = slot_start + period
-            wake = slot_end + LATENCY + 0.4
+            if slot_start <= last_slot:  # diese Periode ist schon ausgewertet
+                time.sleep(0.1)
+                continue
+            last_slot = slot_start
+            wake = slot_start + spec["decode_at"] + LATENCY + 0.15
             while gen == self._gen and time.time() < wake:
                 time.sleep(min(0.25, max(0.0, wake - time.time())))
             if gen != self._gen:
@@ -612,14 +655,24 @@ class Engine:
             # nur vollständig mitgeschnittene Perioden dekodieren
             if self.started_at and slot_start < self.started_at - 0.5:
                 continue
-            samples, have = self.audio.extract(slot_start, spec["length"])
+            if slot_start in self.tx.tx_slots:
+                self.tx.tx_slots.discard(slot_start)
+                self.last_cycle = {"utc": self._iso(slot_start), "mode": mode, "skipped": True,
+                                   "reason": "eigene Aussendung"}
+                self.tx.after_cycle(slot_start, [])
+                continue
+            part, have = self.audio.extract(slot_start, spec["decode_at"])
+            samples = array.array("h", bytes(int(spec["length"] * RATE) * 2))
+            samples[:len(part)] = part
             if have < 0.8:
                 self.last_cycle = {"utc": self._iso(slot_start), "mode": mode, "skipped": True,
                                    "reason": "zu wenig Audio" if have else "kein Audio", "have": round(have, 2)}
+                self.tx.after_cycle(slot_start, [])
                 continue
             if self.busy:
                 self.last_cycle = {"utc": self._iso(slot_start), "mode": mode, "skipped": True,
                                    "reason": "Decoder noch beschäftigt"}
+                self.tx.after_cycle(slot_start, [])
                 continue
             threading.Thread(target=self._decode, args=(gen, mode, slot_start, samples), daemon=True).start()
 
@@ -671,6 +724,10 @@ class Engine:
         self.last_cycle = {"utc": self._iso(slot_start), "mode": mode, "count": len(unique),
                            "seconds": round(time.time() - t0, 1), "error": error, "on_freq": on_freq}
         self._log(unique)
+        try:
+            self.tx.after_cycle(slot_start, unique)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("QSO-Ablauf: %s", exc)
         if on_freq and call and grid:
             self._upload(mode, unique, dial, call, grid, st)
 
@@ -715,7 +772,7 @@ class Engine:
 
     def _upload(self, mode: str, decodes: list[dict], dial: int, call: str, grid: str, st: datetime) -> None:
         for d in decodes:
-            if not d.get("call") or d.get("hashed") or d["call"] == call:
+            if d.get("tx") or not d.get("call") or d.get("hashed") or d["call"] == call:
                 continue
             if mode == "WSPR":
                 if self.cfg.get("upload_wsprnet") and self.wsprnet and d.get("dbm") is not None:
@@ -744,6 +801,7 @@ class Engine:
                 "psk": self.psk.status() if self.psk else None,
                 "wsprnet": self.wsprnet.status() if self.wsprnet else None,
             },
+            "tx": self.tx.status(),
             "decoders": {
                 "jt9": (WSJTX_BIN / "jt9").exists(), "wsprd": (WSJTX_BIN / "wsprd").exists(),
             },
@@ -797,6 +855,18 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 since = 0
             self._json(200, {"seq": engine.seq, "decodes": engine.decodes_since(since)})
+        elif url.path == "/log":
+            self._json(200, {"qsos": engine.tx.log_entries()})
+        elif url.path == "/log.adi":
+            try:
+                body = engine.tx.log_path.read_bytes()
+            except OSError:
+                body = b""
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
         else:
             self._json(404, {"error": "unbekannt"})
 
@@ -810,13 +880,30 @@ class Handler(BaseHTTPRequestHandler):
                 engine.stop()
             elif path == "/config":
                 engine.configure(data)
+            elif path == "/tx/config":
+                engine.tx.configure(data)
+            elif path == "/tx/cq":
+                engine.tx.start_cq()
+            elif path == "/tx/call":
+                seq = int(data.get("seq") or 0)
+                with engine.lock:
+                    d = next((x for x in engine.decodes if x["seq"] == seq), None)
+                if not d:
+                    raise ValueError("Dekodierung nicht mehr vorhanden.")
+                engine.tx.call_station(d)
+            elif path == "/tx/next":
+                engine.tx.choose(str(data.get("key", "")))
+            elif path == "/tx/halt":
+                engine.tx.halt("Not-Aus")
+            elif path == "/tx/clear":
+                engine.tx.clear_qso()
             elif path == "/flush":
                 if engine.psk and engine.cfg.get("call") and engine.cfg.get("grid"):
                     engine.psk.flush(engine.cfg["call"], engine.cfg["grid"])
             else:
                 self._json(404, {"error": "unbekannt"})
                 return
-        except ValueError as exc:
+        except (ValueError, TypeError) as exc:
             self._json(400, {"error": str(exc)})
             return
         self._json(200, engine.status())

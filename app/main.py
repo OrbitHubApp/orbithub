@@ -3500,6 +3500,38 @@ async def digital_stop() -> dict:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
+@app.post("/api/digital/tx/{action}")
+async def digital_tx(action: str, request: Request) -> dict:
+    """Senden: config, cq, call, next, halt (Not-Aus), clear - Pruefungen im Dienst."""
+    try:
+        payload = await request.json()
+    except ValueError:
+        payload = {}
+    try:
+        return {"ok": True, "status": await digimode.tx(action, payload if isinstance(payload, dict) else {})}
+    except digimode.DigimodeError as exc:
+        raise HTTPException(status_code=400 if action != "halt" else 502, detail=str(exc)) from exc
+
+
+@app.get("/api/digital/log")
+async def digital_log() -> dict:
+    try:
+        return await digimode.qso_log()
+    except digimode.DigimodeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/api/digital/log.adi")
+async def digital_log_adif():
+    try:
+        text = await digimode.adif()
+    except digimode.DigimodeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return PlainTextResponse(
+        text, headers={"Content-Disposition": 'attachment; filename="orbithub-dl7ag.adi"'}
+    )
+
+
 @app.post("/api/digital/config")
 async def digital_config(request: Request) -> dict:
     payload = await request.json()
