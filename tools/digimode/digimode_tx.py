@@ -358,6 +358,15 @@ class Transmitter:
             raise ValueError("Diese Zeile enthält kein verwendbares Rufzeichen.")
         slot = datetime.fromisoformat(decode["utc"].replace("Z", "+00:00")).timestamp()
         with self.lock:
+            q = self.qso
+            if q and q.get("call") == his and q["state"] not in ("done",) and decode.get("to") != me:
+                # erneuter Doppelklick auf dieselbe Station: QSO nicht von vorn beginnen
+                self.cfg["tx_enabled"] = True
+                self.touch()
+                self.last_error = None
+                if not self.plan:
+                    self._replan()
+                return
             self.qso = {"call": his, "grid": decode.get("grid"), "state": "call", "tx": "tx1",
                         "parity": self.parity(slot) ^ 1, "rep_sent": report(decode["snr"]),
                         "rep_rcvd": None, "tries": 0, "started": time.time(), "logged": False,
